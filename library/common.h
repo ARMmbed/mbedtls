@@ -29,6 +29,8 @@
 #include "mbedtls/config.h"
 #endif
 
+#include <stdint.h>
+
 /** Helper to define a function as static except when building invasive tests.
  *
  * If a function is only used inside its own source file and should be
@@ -48,6 +50,222 @@
 #define MBEDTLS_STATIC_TESTABLE
 #else
 #define MBEDTLS_STATIC_TESTABLE static
+#endif
+
+/** Byte Reading Macros
+ *
+ * To tidy up code and save horizontal and vertical space, use byte
+ * reading macros to cast
+ */
+#define MBEDTLS_BYTE_0( x ) ( (uint8_t) (   ( x )         & 0xff ) )
+#define MBEDTLS_BYTE_1( x ) ( (uint8_t) ( ( ( x ) >> 8  ) & 0xff ) )
+#define MBEDTLS_BYTE_2( x ) ( (uint8_t) ( ( ( x ) >> 16 ) & 0xff ) )
+#define MBEDTLS_BYTE_3( x ) ( (uint8_t) ( ( ( x ) >> 24 ) & 0xff ) )
+#define MBEDTLS_BYTE_4( x ) ( (uint8_t) ( ( ( x ) >> 32 ) & 0xff ) )
+#define MBEDTLS_BYTE_5( x ) ( (uint8_t) ( ( ( x ) >> 40 ) & 0xff ) )
+#define MBEDTLS_BYTE_6( x ) ( (uint8_t) ( ( ( x ) >> 48 ) & 0xff ) )
+#define MBEDTLS_BYTE_7( x ) ( (uint8_t) ( ( ( x ) >> 56 ) & 0xff ) )
+
+/**
+ * Get the unsigned 32 bits integer corresponding to four bytes in
+ * big-endian order (MSB first).
+ *
+ * \param   data    Base address of the memory to get the four bytes from.
+ * \param   offset  Offset from \p base of the first and most significant
+ *                  byte of the four bytes to build the 32 bits unsigned
+ *                  integer from.
+ */
+#ifndef MBEDTLS_GET_UINT32_BE
+#define MBEDTLS_GET_UINT32_BE( data , offset )              \
+    (                                                       \
+          ( (uint32_t) ( data )[( offset )    ] << 24 )     \
+        | ( (uint32_t) ( data )[( offset ) + 1] << 16 )     \
+        | ( (uint32_t) ( data )[( offset ) + 2] <<  8 )     \
+        | ( (uint32_t) ( data )[( offset ) + 3]       )     \
+    )
+#endif
+
+/**
+ * Put in memory a 32 bits unsigned integer in big-endian order.
+ *
+ * \param   n       32 bits unsigned integer to put in memory.
+ * \param   data    Base address of the memory where to put the 32
+ *                  bits unsigned integer in.
+ * \param   offset  Offset from \p base where to put the most significant
+ *                  byte of the 32 bits unsigned integer \p n.
+ */
+#ifndef MBEDTLS_PUT_UINT32_BE
+#define MBEDTLS_PUT_UINT32_BE( n, data, offset )                    \
+    do {                                                            \
+        ( data )[( offset )    ] = (unsigned char) ( (n) >> 24 );   \
+        ( data )[( offset ) + 1] = (unsigned char) ( (n) >> 16 );   \
+        ( data )[( offset ) + 2] = (unsigned char) ( (n) >>  8 );   \
+        ( data )[( offset ) + 3] = (unsigned char) ( (n)       );   \
+    } while( 0 )
+#endif
+
+/**
+ * Get the unsigned 32 bits integer corresponding to four bytes in
+ * little-endian order (LSB first).
+ *
+ * \param   data    Base address of the memory to get the four bytes from.
+ * \param   offset  Offset from \p base of the first and least significant
+ *                  byte of the four bytes to build the 32 bits unsigned
+ *                  integer from.
+ */
+#ifndef MBEDTLS_GET_UINT32_LE
+#define MBEDTLS_GET_UINT32_LE( data, offset )              \
+    (                                                      \
+          ( (uint32_t) ( data )[( offset )    ]       )    \
+        | ( (uint32_t) ( data )[( offset ) + 1] <<  8 )    \
+        | ( (uint32_t) ( data )[( offset ) + 2] << 16 )    \
+        | ( (uint32_t) ( data )[( offset ) + 3] << 24 )    \
+    )
+#endif
+
+/**
+ * Put in memory a 32 bits unsigned integer in little-endian order.
+ *
+ * \param   n       32 bits unsigned integer to put in memory.
+ * \param   data    Base address of the memory where to put the 32
+ *                  bits unsigned integer in.
+ * \param   offset  Offset from \p base where to put the least significant
+ *                  byte of the 32 bits unsigned integer \p n.
+ */
+#ifndef MBEDTLS_PUT_UINT32_LE
+#define MBEDTLS_PUT_UINT32_LE( n, data, offset )                                \
+    do {                                                                        \
+        ( data )[( offset )    ] = (unsigned char) ( ( (n)       ) & 0xFF );    \
+        ( data )[( offset ) + 1] = (unsigned char) ( ( (n) >>  8 ) & 0xFF );    \
+        ( data )[( offset ) + 2] = (unsigned char) ( ( (n) >> 16 ) & 0xFF );    \
+        ( data )[( offset ) + 3] = (unsigned char) ( ( (n) >> 24 ) & 0xFF );    \
+    } while( 0 )
+#endif
+
+/**
+ * Get the unsigned 16 bits integer corresponding to two bytes in
+ * little-endian order (LSB first).
+ *
+ * \param   data    Base address of the memory to get the two bytes from.
+ * \param   offset  Offset from \p base of the first and least significant
+ *                  byte of the two bytes to build the 16 bits unsigned
+ *                  integer from.
+ */
+#ifndef MBEDTLS_GET_UINT16_LE
+#define MBEDTLS_GET_UINT16_LE( data, offset )               \
+    (                                                       \
+          ( (uint16_t) ( data )[( offset )    ]       )     \
+        | ( (uint16_t) ( data )[( offset ) + 1] <<  8 )     \
+    )
+#endif
+
+/**
+ * Put in memory a 16 bits unsigned integer in little-endian order.
+ *
+ * \param   n       16 bits unsigned integer to put in memory.
+ * \param   data    Base address of the memory where to put the 16
+ *                  bits unsigned integer in.
+ * \param   offset  Offset from \p base where to put the least significant
+ *                  byte of the 16 bits unsigned integer \p n.
+ */
+#ifndef MBEDTLS_PUT_UINT16_LE
+#define MBEDTLS_PUT_UINT16_LE( n, data, offset )                            \
+{                                                                           \
+    ( data )[( offset )    ] = (unsigned char) ( ( (n)       ) & 0xFF );    \
+    ( data )[( offset ) + 1] = (unsigned char) ( ( (n) >>  8 ) & 0xFF );    \
+}
+#endif
+
+/**
+ * Get the unsigned 64 bits integer corresponding to eight bytes in
+ * big-endian order (MSB first).
+ *
+ * \param   data    Base address of the memory to get the eight bytes from.
+ * \param   offset  Offset from \p base of the first and most significant
+ *                  byte of the eight bytes to build the 64 bits unsigned
+ *                  integer from.
+ */
+#ifndef MBEDTLS_GET_UINT64_BE
+#define MBEDTLS_GET_UINT64_BE( data, offset )                 \
+    (                                                         \
+          ( (uint64_t) ( data )[( offset )    ] << 56 )       \
+        | ( (uint64_t) ( data )[( offset ) + 1] << 48 )       \
+        | ( (uint64_t) ( data )[( offset ) + 2] << 40 )       \
+        | ( (uint64_t) ( data )[( offset ) + 3] << 32 )       \
+        | ( (uint64_t) ( data )[( offset ) + 4] << 24 )       \
+        | ( (uint64_t) ( data )[( offset ) + 5] << 16 )       \
+        | ( (uint64_t) ( data )[( offset ) + 6] <<  8 )       \
+        | ( (uint64_t) ( data )[( offset ) + 7]       )       \
+    )
+#endif
+
+/**
+ * Put in memory a 64 bits unsigned integer in big-endian order.
+ *
+ * \param   n       64 bits unsigned integer to put in memory.
+ * \param   data    Base address of the memory where to put the 64
+ *                  bits unsigned integer in.
+ * \param   offset  Offset from \p base where to put the most significant
+ *                  byte of the 64 bits unsigned integer \p n.
+ */
+#ifndef MBEDTLS_PUT_UINT64_BE
+#define MBEDTLS_PUT_UINT64_BE( n, data, offset )                    \
+{                                                                   \
+    ( data )[( offset )    ] = (unsigned char) ( (n) >> 56 );       \
+    ( data )[( offset ) + 1] = (unsigned char) ( (n) >> 48 );       \
+    ( data )[( offset ) + 2] = (unsigned char) ( (n) >> 40 );       \
+    ( data )[( offset ) + 3] = (unsigned char) ( (n) >> 32 );       \
+    ( data )[( offset ) + 4] = (unsigned char) ( (n) >> 24 );       \
+    ( data )[( offset ) + 5] = (unsigned char) ( (n) >> 16 );       \
+    ( data )[( offset ) + 6] = (unsigned char) ( (n) >>  8 );       \
+    ( data )[( offset ) + 7] = (unsigned char) ( (n)       );       \
+}
+#endif
+
+/**
+ * Get the unsigned 64 bits integer corresponding to eight bytes in
+ * little-endian order (LSB first).
+ *
+ * \param   data    Base address of the memory to get the eight bytes from.
+ * \param   offset  Offset from \p base of the first and least significant
+ *                  byte of the eight bytes to build the 64 bits unsigned
+ *                  integer from.
+ */
+#ifndef MBEDTLS_GET_UINT64_LE
+#define MBEDTLS_GET_UINT64_LE( data, offset )               \
+    (                                                       \
+          ( (uint64_t) ( data )[( offset ) + 7] << 56 )     \
+        | ( (uint64_t) ( data )[( offset ) + 6] << 48 )     \
+        | ( (uint64_t) ( data )[( offset ) + 5] << 40 )     \
+        | ( (uint64_t) ( data )[( offset ) + 4] << 32 )     \
+        | ( (uint64_t) ( data )[( offset ) + 3] << 24 )     \
+        | ( (uint64_t) ( data )[( offset ) + 2] << 16 )     \
+        | ( (uint64_t) ( data )[( offset ) + 1] <<  8 )     \
+        | ( (uint64_t) ( data )[( offset )    ]       )     \
+    )
+#endif
+
+/**
+ * Put in memory a 64 bits unsigned integer in little-endian order.
+ *
+ * \param   n       64 bits unsigned integer to put in memory.
+ * \param   data    Base address of the memory where to put the 64
+ *                  bits unsigned integer in.
+ * \param   offset  Offset from \p base where to put the least significant
+ *                  byte of the 64 bits unsigned integer \p n.
+ */
+#ifndef MBEDTLS_PUT_UINT64_LE
+#define MBEDTLS_PUT_UINT64_LE( n, data, offset )                    \
+{                                                                   \
+    ( data )[( offset ) + 7] = (unsigned char) ( (n) >> 56 );       \
+    ( data )[( offset ) + 6] = (unsigned char) ( (n) >> 48 );       \
+    ( data )[( offset ) + 5] = (unsigned char) ( (n) >> 40 );       \
+    ( data )[( offset ) + 4] = (unsigned char) ( (n) >> 32 );       \
+    ( data )[( offset ) + 3] = (unsigned char) ( (n) >> 24 );       \
+    ( data )[( offset ) + 2] = (unsigned char) ( (n) >> 16 );       \
+    ( data )[( offset ) + 1] = (unsigned char) ( (n) >>  8 );       \
+    ( data )[( offset )    ] = (unsigned char) ( (n)       );       \
+}
 #endif
 
 #endif /* MBEDTLS_LIBRARY_COMMON_H */

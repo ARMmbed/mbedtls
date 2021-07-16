@@ -263,22 +263,8 @@ int mbedtls_chachapoly_finish( mbedtls_chachapoly_context *ctx,
     /* The lengths of the AAD and ciphertext are processed by
      * Poly1305 as the final 128-bit block, encoded as little-endian integers.
      */
-    len_block[ 0] = (unsigned char)( ctx->aad_len       );
-    len_block[ 1] = (unsigned char)( ctx->aad_len >>  8 );
-    len_block[ 2] = (unsigned char)( ctx->aad_len >> 16 );
-    len_block[ 3] = (unsigned char)( ctx->aad_len >> 24 );
-    len_block[ 4] = (unsigned char)( ctx->aad_len >> 32 );
-    len_block[ 5] = (unsigned char)( ctx->aad_len >> 40 );
-    len_block[ 6] = (unsigned char)( ctx->aad_len >> 48 );
-    len_block[ 7] = (unsigned char)( ctx->aad_len >> 56 );
-    len_block[ 8] = (unsigned char)( ctx->ciphertext_len       );
-    len_block[ 9] = (unsigned char)( ctx->ciphertext_len >>  8 );
-    len_block[10] = (unsigned char)( ctx->ciphertext_len >> 16 );
-    len_block[11] = (unsigned char)( ctx->ciphertext_len >> 24 );
-    len_block[12] = (unsigned char)( ctx->ciphertext_len >> 32 );
-    len_block[13] = (unsigned char)( ctx->ciphertext_len >> 40 );
-    len_block[14] = (unsigned char)( ctx->ciphertext_len >> 48 );
-    len_block[15] = (unsigned char)( ctx->ciphertext_len >> 56 );
+    MBEDTLS_PUT_UINT64_LE(ctx->aad_len, len_block, 0);
+    MBEDTLS_PUT_UINT64_LE(ctx->ciphertext_len, len_block, 8);
 
     ret = mbedtls_poly1305_update( &ctx->poly1305_ctx, len_block, 16U );
     if( ret != 0 )

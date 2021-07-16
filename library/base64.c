@@ -319,9 +319,9 @@ int mbedtls_base64_decode( unsigned char *dst, size_t dlen, size_t *olen,
         if( ++n == 4 )
         {
             n = 0;
-            if( j > 0 ) *p++ = (unsigned char)( x >> 16 );
-            if( j > 1 ) *p++ = (unsigned char)( x >>  8 );
-            if( j > 2 ) *p++ = (unsigned char)( x       );
+            if( j > 0 ) *p++ = MBEDTLS_BYTE_2( x );
+            if( j > 1 ) *p++ = MBEDTLS_BYTE_1( x );
+            if( j > 2 ) *p++ = MBEDTLS_BYTE_0( x );
         }
     }
 
