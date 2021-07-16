@@ -52,13 +52,6 @@
 
 #define POLY1305_BLOCK_SIZE_BYTES ( 16U )
 
-#define BYTES_TO_U32_LE( data, offset )                           \
-    ( (uint32_t) (data)[offset]                                     \
-          | (uint32_t) ( (uint32_t) (data)[( offset ) + 1] << 8 )   \
-          | (uint32_t) ( (uint32_t) (data)[( offset ) + 2] << 16 )  \
-          | (uint32_t) ( (uint32_t) (data)[( offset ) + 3] << 24 )  \
-    )
-
 /*
  * Our implementation is tuned for 32-bit platforms with a 64-bit multiplier.
  * However we provided an alternative for platforms without such a multiplier.
@@ -129,10 +122,10 @@ static void poly1305_process( mbedtls_poly1305_context *ctx,
     for( i = 0U; i < nblocks; i++ )
     {
         /* The input block is treated as a 128-bit little-endian integer */
-        d0   = BYTES_TO_U32_LE( input, offset + 0  );
-        d1   = BYTES_TO_U32_LE( input, offset + 4  );
-        d2   = BYTES_TO_U32_LE( input, offset + 8  );
-        d3   = BYTES_TO_U32_LE( input, offset + 12 );
+        d0   = MBEDTLS_GET_UINT32_LE( input, offset + 0  );
+        d1   = MBEDTLS_GET_UINT32_LE( input, offset + 4  );
+        d2   = MBEDTLS_GET_UINT32_LE( input, offset + 8  );
+        d3   = MBEDTLS_GET_UINT32_LE( input, offset + 12 );
 
         /* Compute: acc += (padded) block as a 130-bit integer */
         d0  += (uint64_t) acc0;
@@ -257,22 +250,22 @@ static void poly1305_compute_mac( const mbedtls_poly1305_context *ctx,
     acc3 += ctx->s[3] + (uint32_t) ( d >> 32U );
 
     /* Compute MAC (128 least significant bits of the accumulator) */
-    mac[ 0] = (unsigned char)( acc0       );
-    mac[ 1] = (unsigned char)( acc0 >>  8 );
-    mac[ 2] = (unsigned char)( acc0 >> 16 );
-    mac[ 3] = (unsigned char)( acc0 >> 24 );
-    mac[ 4] = (unsigned char)( acc1       );
-    mac[ 5] = (unsigned char)( acc1 >>  8 );
-    mac[ 6] = (unsigned char)( acc1 >> 16 );
-    mac[ 7] = (unsigned char)( acc1 >> 24 );
-    mac[ 8] = (unsigned char)( acc2       );
-    mac[ 9] = (unsigned char)( acc2 >>  8 );
-    mac[10] = (unsigned char)( acc2 >> 16 );
-    mac[11] = (unsigned char)( acc2 >> 24 );
-    mac[12] = (unsigned char)( acc3       );
-    mac[13] = (unsigned char)( acc3 >>  8 );
-    mac[14] = (unsigned char)( acc3 >> 16 );
-    mac[15] = (unsigned char)( acc3 >> 24 );
+    mac[ 0] = MBEDTLS_BYTE_0( acc0 );
+    mac[ 1] = MBEDTLS_BYTE_1( acc0 );
+    mac[ 2] = MBEDTLS_BYTE_2( acc0 );
+    mac[ 3] = MBEDTLS_BYTE_3( acc0 );
+    mac[ 4] = MBEDTLS_BYTE_0( acc1 );
+    mac[ 5] = MBEDTLS_BYTE_1( acc1 );
+    mac[ 6] = MBEDTLS_BYTE_2( acc1 );
+    mac[ 7] = MBEDTLS_BYTE_3( acc1 );
+    mac[ 8] = MBEDTLS_BYTE_0( acc2 );
+    mac[ 9] = MBEDTLS_BYTE_1( acc2 );
+    mac[10] = MBEDTLS_BYTE_2( acc2 );
+    mac[11] = MBEDTLS_BYTE_3( acc2 );
+    mac[12] = MBEDTLS_BYTE_0( acc3 );
+    mac[13] = MBEDTLS_BYTE_1( acc3 );
+    mac[14] = MBEDTLS_BYTE_2( acc3 );
+    mac[15] = MBEDTLS_BYTE_3( acc3 );
 }
 
 void mbedtls_poly1305_init( mbedtls_poly1305_context *ctx )
@@ -297,15 +290,15 @@ int mbedtls_poly1305_starts( mbedtls_poly1305_context *ctx,
     POLY1305_VALIDATE_RET( key != NULL );
 
     /* r &= 0x0ffffffc0ffffffc0ffffffc0fffffff */
-    ctx->r[0] = BYTES_TO_U32_LE( key, 0 )  & 0x0FFFFFFFU;
-    ctx->r[1] = BYTES_TO_U32_LE( key, 4 )  & 0x0FFFFFFCU;
-    ctx->r[2] = BYTES_TO_U32_LE( key, 8 )  & 0x0FFFFFFCU;
-    ctx->r[3] = BYTES_TO_U32_LE( key, 12 ) & 0x0FFFFFFCU;
+    ctx->r[0] = MBEDTLS_GET_UINT32_LE( key, 0 )  & 0x0FFFFFFFU;
+    ctx->r[1] = MBEDTLS_GET_UINT32_LE( key, 4 )  & 0x0FFFFFFCU;
+    ctx->r[2] = MBEDTLS_GET_UINT32_LE( key, 8 )  & 0x0FFFFFFCU;
+    ctx->r[3] = MBEDTLS_GET_UINT32_LE( key, 12 ) & 0x0FFFFFFCU;
 
-    ctx->s[0] = BYTES_TO_U32_LE( key, 16 );
-    ctx->s[1] = BYTES_TO_U32_LE( key, 20 );
-    ctx->s[2] = BYTES_TO_U32_LE( key, 24 );
-    ctx->s[3] = BYTES_TO_U32_LE( key, 28 );
+    ctx->s[0] = MBEDTLS_GET_UINT32_LE( key, 16 );
+    ctx->s[1] = MBEDTLS_GET_UINT32_LE( key, 20 );
+    ctx->s[2] = MBEDTLS_GET_UINT32_LE( key, 24 );
+    ctx->s[3] = MBEDTLS_GET_UINT32_LE( key, 28 );
 
     /* Initial accumulator state */
     ctx->acc[0] = 0U;
