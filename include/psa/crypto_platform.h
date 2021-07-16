@@ -45,8 +45,7 @@
 /* PSA requires several types which C99 provides in stdint.h. */
 #include <stdint.h>
 
-#if ( defined(__ARMCC_VERSION) || defined(_MSC_VER) ) && \
-    !defined(inline) && !defined(__cplusplus)
+#if (defined(__ARMCC_VERSION) || defined(_MSC_VER)) && !defined(inline) && !defined(__cplusplus)
 #define inline __inline
 #endif
 
@@ -70,10 +69,9 @@ typedef int32_t mbedtls_key_owner_id_t;
  *
  * \return Non-zero if the two key owner identifiers are equal, zero otherwise.
  */
-static inline int mbedtls_key_owner_id_equal( mbedtls_key_owner_id_t id1,
-                                              mbedtls_key_owner_id_t id2 )
+static inline int mbedtls_key_owner_id_equal(mbedtls_key_owner_id_t id1, mbedtls_key_owner_id_t id2)
 {
-    return( id1 == id2 );
+        return (id1 == id2);
 }
 
 #endif /* MBEDTLS_PSA_CRYPTO_KEY_ID_ENCODES_OWNER */
@@ -101,7 +99,7 @@ static inline int mbedtls_key_owner_id_equal( mbedtls_key_owner_id_t id1,
  * are expected to replace it with a custom definition.
  */
 typedef struct {
-    uintptr_t MBEDTLS_PRIVATE(opaque)[2];
+        uintptr_t MBEDTLS_PRIVATE(opaque)[2];
 } mbedtls_psa_external_random_context_t;
 #endif /* MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG */
 

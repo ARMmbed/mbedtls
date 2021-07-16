@@ -1,4 +1,4 @@
- /**
+/**
  * \file private_access.h
  *
  * \brief Macro wrapper for struct's memebrs.

@@ -39,43 +39,51 @@
 /*
  * MAC multi-part operation definitions.
  */
-#if defined(MBEDTLS_PSA_BUILTIN_ALG_CMAC) || \
-    defined(MBEDTLS_PSA_BUILTIN_ALG_HMAC)
+#if defined(MBEDTLS_PSA_BUILTIN_ALG_CMAC) || defined(MBEDTLS_PSA_BUILTIN_ALG_HMAC)
 #define MBEDTLS_PSA_BUILTIN_MAC
 #endif
 
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_HMAC) || defined(PSA_CRYPTO_DRIVER_TEST)
-typedef struct
-{
-    /** The HMAC algorithm in use */
-    psa_algorithm_t MBEDTLS_PRIVATE(alg);
-    /** The hash context. */
-    struct psa_hash_operation_s hash_ctx;
-    /** The HMAC part of the context. */
-    uint8_t MBEDTLS_PRIVATE(opad)[PSA_HMAC_MAX_HASH_BLOCK_SIZE];
+typedef struct {
+        /** The HMAC algorithm in use */
+        psa_algorithm_t MBEDTLS_PRIVATE(alg);
+        /** The hash context. */
+        struct psa_hash_operation_s hash_ctx;
+        /** The HMAC part of the context. */
+        uint8_t MBEDTLS_PRIVATE(opad)[PSA_HMAC_MAX_HASH_BLOCK_SIZE];
 } mbedtls_psa_hmac_operation_t;
 
-#define MBEDTLS_PSA_HMAC_OPERATION_INIT {0, PSA_HASH_OPERATION_INIT, {0}}
+#define MBEDTLS_PSA_HMAC_OPERATION_INIT     \
+        {                                   \
+                0, PSA_HASH_OPERATION_INIT, \
+                {                           \
+                        0                   \
+                }                           \
+        }
 #endif /* MBEDTLS_PSA_BUILTIN_ALG_HMAC */
 
 #include "mbedtls/cmac.h"
 
-typedef struct
-{
-    psa_algorithm_t MBEDTLS_PRIVATE(alg);
-    union
-    {
-        unsigned MBEDTLS_PRIVATE(dummy); /* Make the union non-empty even with no supported algorithms. */
+typedef struct {
+        psa_algorithm_t MBEDTLS_PRIVATE(alg);
+        union {
+                unsigned MBEDTLS_PRIVATE(dummy); /* Make the union non-empty even with no supported algorithms. */
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_HMAC) || defined(PSA_CRYPTO_DRIVER_TEST)
-        mbedtls_psa_hmac_operation_t MBEDTLS_PRIVATE(hmac);
+                mbedtls_psa_hmac_operation_t MBEDTLS_PRIVATE(hmac);
 #endif /* MBEDTLS_PSA_BUILTIN_ALG_HMAC */
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_CMAC) || defined(PSA_CRYPTO_DRIVER_TEST)
-        mbedtls_cipher_context_t MBEDTLS_PRIVATE(cmac);
+                mbedtls_cipher_context_t MBEDTLS_PRIVATE(cmac);
 #endif /* MBEDTLS_PSA_BUILTIN_ALG_CMAC */
-    } MBEDTLS_PRIVATE(ctx);
+        } MBEDTLS_PRIVATE(ctx);
 } mbedtls_psa_mac_operation_t;
 
-#define MBEDTLS_PSA_MAC_OPERATION_INIT {0, {0}}
+#define MBEDTLS_PSA_MAC_OPERATION_INIT \
+        {                              \
+                0,                     \
+                {                      \
+                        0              \
+                }                      \
+        }
 
 /*
  * BEYOND THIS POINT, TEST DRIVER DECLARATIONS ONLY.

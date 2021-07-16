@@ -1,6 +1,6 @@
 add_subdirectory(aes)
-if (NOT WIN32)
-    add_subdirectory(fuzz)
+if(NOT WIN32)
+        add_subdirectory(fuzz)
 endif()
 add_subdirectory(hash)
 add_subdirectory(pkey)

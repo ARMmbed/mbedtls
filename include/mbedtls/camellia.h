@@ -30,8 +30,8 @@
 
 #include "mbedtls/platform_util.h"
 
-#define MBEDTLS_CAMELLIA_ENCRYPT     1
-#define MBEDTLS_CAMELLIA_DECRYPT     0
+#define MBEDTLS_CAMELLIA_ENCRYPT 1
+#define MBEDTLS_CAMELLIA_DECRYPT 0
 
 #define MBEDTLS_ERR_CAMELLIA_BAD_INPUT_DATA -0x0024 /**< Bad input data. */
 
@@ -48,14 +48,12 @@ extern "C" {
 /**
  * \brief          CAMELLIA context structure
  */
-typedef struct mbedtls_camellia_context
-{
-    int MBEDTLS_PRIVATE(nr);                     /*!<  number of rounds  */
-    uint32_t MBEDTLS_PRIVATE(rk)[68];            /*!<  CAMELLIA round keys    */
-}
-mbedtls_camellia_context;
+typedef struct mbedtls_camellia_context {
+        int MBEDTLS_PRIVATE(nr);          /*!<  number of rounds  */
+        uint32_t MBEDTLS_PRIVATE(rk)[68]; /*!<  CAMELLIA round keys    */
+} mbedtls_camellia_context;
 
-#else  /* MBEDTLS_CAMELLIA_ALT */
+#else /* MBEDTLS_CAMELLIA_ALT */
 #include "camellia_alt.h"
 #endif /* MBEDTLS_CAMELLIA_ALT */
 
@@ -65,7 +63,7 @@ mbedtls_camellia_context;
  * \param ctx      The CAMELLIA context to be initialized.
  *                 This must not be \c NULL.
  */
-void mbedtls_camellia_init( mbedtls_camellia_context *ctx );
+void mbedtls_camellia_init(mbedtls_camellia_context* ctx);
 
 /**
  * \brief          Clear a CAMELLIA context.
@@ -74,7 +72,7 @@ void mbedtls_camellia_init( mbedtls_camellia_context *ctx );
  *                 in which case this function returns immediately. If it is not
  *                 \c NULL, it must be initialized.
  */
-void mbedtls_camellia_free( mbedtls_camellia_context *ctx );
+void mbedtls_camellia_free(mbedtls_camellia_context* ctx);
 
 /**
  * \brief          Perform a CAMELLIA key schedule operation for encryption.
@@ -88,9 +86,7 @@ void mbedtls_camellia_free( mbedtls_camellia_context *ctx );
  * \return         \c 0 if successful.
  * \return         A negative error code on failure.
  */
-int mbedtls_camellia_setkey_enc( mbedtls_camellia_context *ctx,
-                                 const unsigned char *key,
-                                 unsigned int keybits );
+int mbedtls_camellia_setkey_enc(mbedtls_camellia_context* ctx, const unsigned char* key, unsigned int keybits);
 
 /**
  * \brief          Perform a CAMELLIA key schedule operation for decryption.
@@ -104,9 +100,7 @@ int mbedtls_camellia_setkey_enc( mbedtls_camellia_context *ctx,
  * \return         \c 0 if successful.
  * \return         A negative error code on failure.
  */
-int mbedtls_camellia_setkey_dec( mbedtls_camellia_context *ctx,
-                                 const unsigned char *key,
-                                 unsigned int keybits );
+int mbedtls_camellia_setkey_dec(mbedtls_camellia_context* ctx, const unsigned char* key, unsigned int keybits);
 
 /**
  * \brief          Perform a CAMELLIA-ECB block encryption/decryption operation.
@@ -123,10 +117,8 @@ int mbedtls_camellia_setkey_dec( mbedtls_camellia_context *ctx,
  * \return         \c 0 if successful.
  * \return         A negative error code on failure.
  */
-int mbedtls_camellia_crypt_ecb( mbedtls_camellia_context *ctx,
-                    int mode,
-                    const unsigned char input[16],
-                    unsigned char output[16] );
+int mbedtls_camellia_crypt_ecb(mbedtls_camellia_context* ctx, int mode, const unsigned char input[16],
+                               unsigned char output[16]);
 
 #if defined(MBEDTLS_CIPHER_MODE_CBC)
 /**
@@ -157,12 +149,8 @@ int mbedtls_camellia_crypt_ecb( mbedtls_camellia_context *ctx,
  * \return         \c 0 if successful.
  * \return         A negative error code on failure.
  */
-int mbedtls_camellia_crypt_cbc( mbedtls_camellia_context *ctx,
-                    int mode,
-                    size_t length,
-                    unsigned char iv[16],
-                    const unsigned char *input,
-                    unsigned char *output );
+int mbedtls_camellia_crypt_cbc(mbedtls_camellia_context* ctx, int mode, size_t length, unsigned char iv[16],
+                               const unsigned char* input, unsigned char* output);
 #endif /* MBEDTLS_CIPHER_MODE_CBC */
 
 #if defined(MBEDTLS_CIPHER_MODE_CFB)
@@ -203,13 +191,8 @@ int mbedtls_camellia_crypt_cbc( mbedtls_camellia_context *ctx,
  * \return         \c 0 if successful.
  * \return         A negative error code on failure.
  */
-int mbedtls_camellia_crypt_cfb128( mbedtls_camellia_context *ctx,
-                       int mode,
-                       size_t length,
-                       size_t *iv_off,
-                       unsigned char iv[16],
-                       const unsigned char *input,
-                       unsigned char *output );
+int mbedtls_camellia_crypt_cfb128(mbedtls_camellia_context* ctx, int mode, size_t length, size_t* iv_off,
+                                  unsigned char iv[16], const unsigned char* input, unsigned char* output);
 #endif /* MBEDTLS_CIPHER_MODE_CFB */
 
 #if defined(MBEDTLS_CIPHER_MODE_CTR)
@@ -287,13 +270,9 @@ int mbedtls_camellia_crypt_cfb128( mbedtls_camellia_context *ctx,
  * \return              \c 0 if successful.
  * \return              A negative error code on failure.
  */
-int mbedtls_camellia_crypt_ctr( mbedtls_camellia_context *ctx,
-                       size_t length,
-                       size_t *nc_off,
-                       unsigned char nonce_counter[16],
-                       unsigned char stream_block[16],
-                       const unsigned char *input,
-                       unsigned char *output );
+int mbedtls_camellia_crypt_ctr(mbedtls_camellia_context* ctx, size_t length, size_t* nc_off,
+                               unsigned char nonce_counter[16], unsigned char stream_block[16],
+                               const unsigned char* input, unsigned char* output);
 #endif /* MBEDTLS_CIPHER_MODE_CTR */
 
 #if defined(MBEDTLS_SELF_TEST)
@@ -303,7 +282,7 @@ int mbedtls_camellia_crypt_ctr( mbedtls_camellia_context *ctx,
  *
  * \return         0 if successful, or 1 if the test failed
  */
-int mbedtls_camellia_self_test( int verbose );
+int mbedtls_camellia_self_test(int verbose);
 
 #endif /* MBEDTLS_SELF_TEST */
 

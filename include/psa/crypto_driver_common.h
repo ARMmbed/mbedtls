@@ -45,9 +45,6 @@
 
 /** For encrypt-decrypt functions, whether the operation is an encryption
  * or a decryption. */
-typedef enum {
-    PSA_CRYPTO_DRIVER_DECRYPT,
-    PSA_CRYPTO_DRIVER_ENCRYPT
-} psa_encrypt_or_decrypt_t;
+typedef enum { PSA_CRYPTO_DRIVER_DECRYPT, PSA_CRYPTO_DRIVER_ENCRYPT } psa_encrypt_or_decrypt_t;
 
 #endif /* PSA_CRYPTO_DRIVER_COMMON_H */

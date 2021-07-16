@@ -233,10 +233,9 @@ typedef psa_key_id_t mbedtls_svc_key_id_t;
  * client and encodes the client identity in the key identifier argument of
  * functions such as psa_open_key().
  */
-typedef struct
-{
-    psa_key_id_t MBEDTLS_PRIVATE(key_id);
-    mbedtls_key_owner_id_t MBEDTLS_PRIVATE(owner);
+typedef struct {
+        psa_key_id_t MBEDTLS_PRIVATE(key_id);
+        mbedtls_key_owner_id_t MBEDTLS_PRIVATE(owner);
 } mbedtls_svc_key_id_t;
 
 #endif /* !MBEDTLS_PSA_CRYPTO_KEY_ID_ENCODES_OWNER */
@@ -358,7 +357,6 @@ typedef uint32_t psa_key_usage_t;
  * Once a key has been created, it is impossible to change its attributes.
  */
 typedef struct psa_key_attributes_s psa_key_attributes_t;
-
 
 #ifndef __DOXYGEN_ONLY__
 #if defined(MBEDTLS_PSA_CRYPTO_SE_C)

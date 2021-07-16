@@ -50,9 +50,9 @@ typedef mbedtls_svc_key_id_t psa_key_handle_t;
  *
  * \return Non-zero if the handle is null, zero otherwise.
  */
-static inline int psa_key_handle_is_null( psa_key_handle_t handle )
+static inline int psa_key_handle_is_null(psa_key_handle_t handle)
 {
-    return( mbedtls_svc_key_id_is_null( handle ) );
+        return (mbedtls_svc_key_id_is_null(handle));
 }
 
 /** Open a handle to an existing persistent key.
@@ -115,8 +115,7 @@ static inline int psa_key_handle_is_null( psa_key_handle_t handle )
  *         It is implementation-dependent whether a failure to initialize
  *         results in this error code.
  */
-psa_status_t psa_open_key( mbedtls_svc_key_id_t key,
-                           psa_key_handle_t *handle );
+psa_status_t psa_open_key(mbedtls_svc_key_id_t key, psa_key_handle_t* handle);
 
 /** Close a key handle.
  *

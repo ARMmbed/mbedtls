@@ -46,26 +46,26 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MBEDTLS_ERR_NET_SOCKET_FAILED                     -0x0042  /**< Failed to open a socket. */
-#define MBEDTLS_ERR_NET_CONNECT_FAILED                    -0x0044  /**< The connection to the given server / port failed. */
-#define MBEDTLS_ERR_NET_BIND_FAILED                       -0x0046  /**< Binding of the socket failed. */
-#define MBEDTLS_ERR_NET_LISTEN_FAILED                     -0x0048  /**< Could not listen on the socket. */
-#define MBEDTLS_ERR_NET_ACCEPT_FAILED                     -0x004A  /**< Could not accept the incoming connection. */
-#define MBEDTLS_ERR_NET_RECV_FAILED                       -0x004C  /**< Reading information from the socket failed. */
-#define MBEDTLS_ERR_NET_SEND_FAILED                       -0x004E  /**< Sending information through the socket failed. */
-#define MBEDTLS_ERR_NET_CONN_RESET                        -0x0050  /**< Connection was reset by peer. */
-#define MBEDTLS_ERR_NET_UNKNOWN_HOST                      -0x0052  /**< Failed to get an IP address for the given hostname. */
-#define MBEDTLS_ERR_NET_BUFFER_TOO_SMALL                  -0x0043  /**< Buffer is too small to hold the data. */
-#define MBEDTLS_ERR_NET_INVALID_CONTEXT                   -0x0045  /**< The context is invalid, eg because it was free()ed. */
-#define MBEDTLS_ERR_NET_POLL_FAILED                       -0x0047  /**< Polling the net context failed. */
-#define MBEDTLS_ERR_NET_BAD_INPUT_DATA                    -0x0049  /**< Input invalid. */
+#define MBEDTLS_ERR_NET_SOCKET_FAILED -0x0042    /**< Failed to open a socket. */
+#define MBEDTLS_ERR_NET_CONNECT_FAILED -0x0044   /**< The connection to the given server / port failed. */
+#define MBEDTLS_ERR_NET_BIND_FAILED -0x0046      /**< Binding of the socket failed. */
+#define MBEDTLS_ERR_NET_LISTEN_FAILED -0x0048    /**< Could not listen on the socket. */
+#define MBEDTLS_ERR_NET_ACCEPT_FAILED -0x004A    /**< Could not accept the incoming connection. */
+#define MBEDTLS_ERR_NET_RECV_FAILED -0x004C      /**< Reading information from the socket failed. */
+#define MBEDTLS_ERR_NET_SEND_FAILED -0x004E      /**< Sending information through the socket failed. */
+#define MBEDTLS_ERR_NET_CONN_RESET -0x0050       /**< Connection was reset by peer. */
+#define MBEDTLS_ERR_NET_UNKNOWN_HOST -0x0052     /**< Failed to get an IP address for the given hostname. */
+#define MBEDTLS_ERR_NET_BUFFER_TOO_SMALL -0x0043 /**< Buffer is too small to hold the data. */
+#define MBEDTLS_ERR_NET_INVALID_CONTEXT -0x0045  /**< The context is invalid, eg because it was free()ed. */
+#define MBEDTLS_ERR_NET_POLL_FAILED -0x0047      /**< Polling the net context failed. */
+#define MBEDTLS_ERR_NET_BAD_INPUT_DATA -0x0049   /**< Input invalid. */
 
-#define MBEDTLS_NET_LISTEN_BACKLOG         10 /**< The backlog that listen() should use. */
+#define MBEDTLS_NET_LISTEN_BACKLOG 10 /**< The backlog that listen() should use. */
 
 #define MBEDTLS_NET_PROTO_TCP 0 /**< The TCP transport protocol */
 #define MBEDTLS_NET_PROTO_UDP 1 /**< The UDP transport protocol */
 
-#define MBEDTLS_NET_POLL_READ  1 /**< Used in \c mbedtls_net_poll to check for pending data  */
+#define MBEDTLS_NET_POLL_READ 1  /**< Used in \c mbedtls_net_poll to check for pending data  */
 #define MBEDTLS_NET_POLL_WRITE 2 /**< Used in \c mbedtls_net_poll to check if write possible */
 
 #ifdef __cplusplus
@@ -79,11 +79,9 @@ extern "C" {
  * (eg two file descriptors for combined IPv4 + IPv6 support, or additional
  * structures for hand-made UDP demultiplexing).
  */
-typedef struct mbedtls_net_context
-{
-    int MBEDTLS_PRIVATE(fd);             /**< The underlying file descriptor                 */
-}
-mbedtls_net_context;
+typedef struct mbedtls_net_context {
+        int MBEDTLS_PRIVATE(fd); /**< The underlying file descriptor                 */
+} mbedtls_net_context;
 
 /**
  * \brief          Initialize a context
@@ -91,7 +89,7 @@ mbedtls_net_context;
  *
  * \param ctx      Context to initialize
  */
-void mbedtls_net_init( mbedtls_net_context *ctx );
+void mbedtls_net_init(mbedtls_net_context* ctx);
 
 /**
  * \brief          Initiate a connection with host:port in the given protocol
@@ -108,7 +106,7 @@ void mbedtls_net_init( mbedtls_net_context *ctx );
  *
  * \note           Sets the socket in connected mode even with UDP.
  */
-int mbedtls_net_connect( mbedtls_net_context *ctx, const char *host, const char *port, int proto );
+int mbedtls_net_connect(mbedtls_net_context* ctx, const char* host, const char* port, int proto);
 
 /**
  * \brief          Create a receiving socket on bind_ip:port in the chosen
@@ -128,7 +126,7 @@ int mbedtls_net_connect( mbedtls_net_context *ctx, const char *host, const char 
  * \note           Regardless of the protocol, opens the sockets and binds it.
  *                 In addition, make the socket listening if protocol is TCP.
  */
-int mbedtls_net_bind( mbedtls_net_context *ctx, const char *bind_ip, const char *port, int proto );
+int mbedtls_net_bind(mbedtls_net_context* ctx, const char* bind_ip, const char* port, int proto);
 
 /**
  * \brief           Accept a connection from a remote client
@@ -148,9 +146,8 @@ int mbedtls_net_bind( mbedtls_net_context *ctx, const char *bind_ip, const char 
  *                  MBEDTLS_ERR_SSL_WANT_READ if bind_fd was set to
  *                  non-blocking and accept() would block.
  */
-int mbedtls_net_accept( mbedtls_net_context *bind_ctx,
-                        mbedtls_net_context *client_ctx,
-                        void *client_ip, size_t buf_size, size_t *ip_len );
+int mbedtls_net_accept(mbedtls_net_context* bind_ctx, mbedtls_net_context* client_ctx, void* client_ip, size_t buf_size,
+                       size_t* ip_len);
 
 /**
  * \brief          Check and wait for the context to be ready for read/write
@@ -177,7 +174,7 @@ int mbedtls_net_accept( mbedtls_net_context *bind_ctx,
  * \return         Bitmask composed of MBEDTLS_NET_POLL_READ/WRITE
  *                 on success or timeout, or a negative return code otherwise.
  */
-int mbedtls_net_poll( mbedtls_net_context *ctx, uint32_t rw, uint32_t timeout );
+int mbedtls_net_poll(mbedtls_net_context* ctx, uint32_t rw, uint32_t timeout);
 
 /**
  * \brief          Set the socket blocking
@@ -186,7 +183,7 @@ int mbedtls_net_poll( mbedtls_net_context *ctx, uint32_t rw, uint32_t timeout );
  *
  * \return         0 if successful, or a non-zero error code
  */
-int mbedtls_net_set_block( mbedtls_net_context *ctx );
+int mbedtls_net_set_block(mbedtls_net_context* ctx);
 
 /**
  * \brief          Set the socket non-blocking
@@ -195,7 +192,7 @@ int mbedtls_net_set_block( mbedtls_net_context *ctx );
  *
  * \return         0 if successful, or a non-zero error code
  */
-int mbedtls_net_set_nonblock( mbedtls_net_context *ctx );
+int mbedtls_net_set_nonblock(mbedtls_net_context* ctx);
 
 /**
  * \brief          Portable usleep helper
@@ -205,7 +202,7 @@ int mbedtls_net_set_nonblock( mbedtls_net_context *ctx );
  * \note           Real amount of time slept will not be less than
  *                 select()'s timeout granularity (typically, 10ms).
  */
-void mbedtls_net_usleep( unsigned long usec );
+void mbedtls_net_usleep(unsigned long usec);
 
 /**
  * \brief          Read at most 'len' characters. If no error occurs,
@@ -219,7 +216,7 @@ void mbedtls_net_usleep( unsigned long usec );
  *                 or a non-zero error code; with a non-blocking socket,
  *                 MBEDTLS_ERR_SSL_WANT_READ indicates read() would block.
  */
-int mbedtls_net_recv( void *ctx, unsigned char *buf, size_t len );
+int mbedtls_net_recv(void* ctx, unsigned char* buf, size_t len);
 
 /**
  * \brief          Write at most 'len' characters. If no error occurs,
@@ -233,7 +230,7 @@ int mbedtls_net_recv( void *ctx, unsigned char *buf, size_t len );
  *                 or a non-zero error code; with a non-blocking socket,
  *                 MBEDTLS_ERR_SSL_WANT_WRITE indicates write() would block.
  */
-int mbedtls_net_send( void *ctx, const unsigned char *buf, size_t len );
+int mbedtls_net_send(void* ctx, const unsigned char* buf, size_t len);
 
 /**
  * \brief          Read at most 'len' characters, blocking for at most
@@ -261,22 +258,21 @@ int mbedtls_net_send( void *ctx, const unsigned char *buf, size_t len );
  *                 non-blocking. Handling timeouts with non-blocking reads
  *                 requires a different strategy.
  */
-int mbedtls_net_recv_timeout( void *ctx, unsigned char *buf, size_t len,
-                      uint32_t timeout );
+int mbedtls_net_recv_timeout(void* ctx, unsigned char* buf, size_t len, uint32_t timeout);
 
 /**
  * \brief          Closes down the connection and free associated data
  *
  * \param ctx      The context to close
  */
-void mbedtls_net_close( mbedtls_net_context *ctx );
+void mbedtls_net_close(mbedtls_net_context* ctx);
 
 /**
  * \brief          Gracefully shutdown the connection and free associated data
  *
  * \param ctx      The context to free
  */
-void mbedtls_net_free( mbedtls_net_context *ctx );
+void mbedtls_net_free(mbedtls_net_context* ctx);
 
 #ifdef __cplusplus
 }

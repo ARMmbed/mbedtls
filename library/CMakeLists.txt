@@ -3,11 +3,10 @@ option(USE_SHARED_MBEDTLS_LIBRARY "Build mbed TLS shared library." OFF)
 option(LINK_WITH_PTHREAD "Explicitly link mbed TLS library to pthread." OFF)
 option(LINK_WITH_TRUSTED_STORAGE "Explicitly link mbed TLS library to trusted_storage." OFF)
 
-# Set the project root directory if it's not already defined, as may happen if
-# the library folder is included directly by a parent project, without
-# including the top level CMakeLists.txt.
+# Set the project root directory if it's not already defined, as may happen if the library folder is included directly
+# by a parent project, without including the top level CMakeLists.txt.
 if(NOT DEFINED MBEDTLS_DIR)
-    set(MBEDTLS_DIR ${CMAKE_SOURCE_DIR})
+        set(MBEDTLS_DIR ${CMAKE_SOURCE_DIR})
 endif()
 
 set(src_crypto
@@ -79,8 +78,7 @@ set(src_crypto
     threading.c
     timing.c
     version.c
-    version_features.c
-)
+    version_features.c)
 
 set(src_x509
     x509.c
@@ -89,8 +87,7 @@ set(src_x509
     x509_crt.c
     x509_csr.c
     x509write_crt.c
-    x509write_csr.c
-)
+    x509write_csr.c)
 
 set(src_tls
     debug.c
@@ -103,127 +100,129 @@ set(src_tls
     ssl_srv.c
     ssl_ticket.c
     ssl_tls.c
-    ssl_tls13_keys.c
-)
+    ssl_tls13_keys.c)
 
 if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-declarations -Wmissing-prototypes")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-declarations -Wmissing-prototypes")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 if(CMAKE_COMPILER_IS_CLANG)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-declarations -Wmissing-prototypes -Wdocumentation -Wno-documentation-deprecated-sync -Wunreachable-code")
+        set(CMAKE_C_FLAGS
+            "${CMAKE_C_FLAGS} -Wmissing-declarations -Wmissing-prototypes -Wdocumentation -Wno-documentation-deprecated-sync -Wunreachable-code"
+        )
 endif(CMAKE_COMPILER_IS_CLANG)
 
 if(WIN32)
-    set(libs ${libs} ws2_32)
+        set(libs ${libs} ws2_32)
 endif(WIN32)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    SET(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
-    SET(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
-    SET(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
-    SET(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+        set(CMAKE_C_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+        set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+        set(CMAKE_C_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+        set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
 endif()
 
 if(HAIKU)
-    set(libs ${libs} network)
+        set(libs ${libs} network)
 endif(HAIKU)
 
 if(LINK_WITH_PTHREAD)
-    set(libs ${libs} pthread)
+        set(libs ${libs} pthread)
 endif()
 
 if(LINK_WITH_TRUSTED_STORAGE)
-    set(libs ${libs} trusted_storage)
+        set(libs ${libs} trusted_storage)
 endif()
 
-if (NOT USE_STATIC_MBEDTLS_LIBRARY AND NOT USE_SHARED_MBEDTLS_LIBRARY)
-    message(FATAL_ERROR "Need to choose static or shared mbedtls build!")
+if(NOT USE_STATIC_MBEDTLS_LIBRARY AND NOT USE_SHARED_MBEDTLS_LIBRARY)
+        message(FATAL_ERROR "Need to choose static or shared mbedtls build!")
 endif(NOT USE_STATIC_MBEDTLS_LIBRARY AND NOT USE_SHARED_MBEDTLS_LIBRARY)
 
-set(mbedtls_target    "${MBEDTLS_TARGET_PREFIX}mbedtls")
-set(mbedx509_target   "${MBEDTLS_TARGET_PREFIX}mbedx509")
+set(mbedtls_target "${MBEDTLS_TARGET_PREFIX}mbedtls")
+set(mbedx509_target "${MBEDTLS_TARGET_PREFIX}mbedx509")
 set(mbedcrypto_target "${MBEDTLS_TARGET_PREFIX}mbedcrypto")
 
-set(mbedtls_target    ${mbedtls_target}    PARENT_SCOPE)
-set(mbedx509_target   ${mbedx509_target}   PARENT_SCOPE)
-set(mbedcrypto_target ${mbedcrypto_target} PARENT_SCOPE)
+set(mbedtls_target
+    ${mbedtls_target}
+    PARENT_SCOPE)
+set(mbedx509_target
+    ${mbedx509_target}
+    PARENT_SCOPE)
+set(mbedcrypto_target
+    ${mbedcrypto_target}
+    PARENT_SCOPE)
 
-if (USE_STATIC_MBEDTLS_LIBRARY)
-    set(mbedtls_static_target    ${mbedtls_target})
-    set(mbedx509_static_target   ${mbedx509_target})
-    set(mbedcrypto_static_target ${mbedcrypto_target})
+if(USE_STATIC_MBEDTLS_LIBRARY)
+        set(mbedtls_static_target ${mbedtls_target})
+        set(mbedx509_static_target ${mbedx509_target})
+        set(mbedcrypto_static_target ${mbedcrypto_target})
 endif()
 
 set(target_libraries ${mbedcrypto_target} ${mbedx509_target} ${mbedtls_target})
 
 if(USE_STATIC_MBEDTLS_LIBRARY AND USE_SHARED_MBEDTLS_LIBRARY)
-    string(APPEND mbedtls_static_target    "_static")
-    string(APPEND mbedx509_static_target   "_static")
-    string(APPEND mbedcrypto_static_target "_static")
+        string(APPEND mbedtls_static_target "_static")
+        string(APPEND mbedx509_static_target "_static")
+        string(APPEND mbedcrypto_static_target "_static")
 
-    list(APPEND target_libraries
-        ${mbedcrypto_static_target}
-        ${mbedx509_static_target}
-        ${mbedtls_static_target})
+        list(APPEND target_libraries ${mbedcrypto_static_target} ${mbedx509_static_target} ${mbedtls_static_target})
 endif()
 
 if(USE_STATIC_MBEDTLS_LIBRARY)
-    add_library(${mbedcrypto_static_target} STATIC ${src_crypto})
-    set_target_properties(${mbedcrypto_static_target} PROPERTIES OUTPUT_NAME mbedcrypto)
-    target_link_libraries(${mbedcrypto_static_target} PUBLIC ${libs})
+        add_library(${mbedcrypto_static_target} STATIC ${src_crypto})
+        set_target_properties(${mbedcrypto_static_target} PROPERTIES OUTPUT_NAME mbedcrypto)
+        target_link_libraries(${mbedcrypto_static_target} PUBLIC ${libs})
 
-    if(TARGET everest)
-        target_link_libraries(${mbedcrypto_static_target} PUBLIC everest)
-    endif()
+        if(TARGET everest)
+                target_link_libraries(${mbedcrypto_static_target} PUBLIC everest)
+        endif()
 
-    add_library(${mbedx509_static_target} STATIC ${src_x509})
-    set_target_properties(${mbedx509_static_target} PROPERTIES OUTPUT_NAME mbedx509)
-    target_link_libraries(${mbedx509_static_target} PUBLIC ${libs} ${mbedcrypto_static_target})
+        add_library(${mbedx509_static_target} STATIC ${src_x509})
+        set_target_properties(${mbedx509_static_target} PROPERTIES OUTPUT_NAME mbedx509)
+        target_link_libraries(${mbedx509_static_target} PUBLIC ${libs} ${mbedcrypto_static_target})
 
-    add_library(${mbedtls_static_target} STATIC ${src_tls})
-    set_target_properties(${mbedtls_static_target} PROPERTIES OUTPUT_NAME mbedtls)
-    target_link_libraries(${mbedtls_static_target} PUBLIC ${libs} ${mbedx509_static_target})
+        add_library(${mbedtls_static_target} STATIC ${src_tls})
+        set_target_properties(${mbedtls_static_target} PROPERTIES OUTPUT_NAME mbedtls)
+        target_link_libraries(${mbedtls_static_target} PUBLIC ${libs} ${mbedx509_static_target})
 endif(USE_STATIC_MBEDTLS_LIBRARY)
 
 if(USE_SHARED_MBEDTLS_LIBRARY)
-    add_library(${mbedcrypto_target} SHARED ${src_crypto})
-    set_target_properties(${mbedcrypto_target} PROPERTIES VERSION 3.0.0 SOVERSION 10)
-    target_link_libraries(${mbedcrypto_target} PUBLIC ${libs})
+        add_library(${mbedcrypto_target} SHARED ${src_crypto})
+        set_target_properties(${mbedcrypto_target} PROPERTIES VERSION 3.0.0 SOVERSION 10)
+        target_link_libraries(${mbedcrypto_target} PUBLIC ${libs})
 
-    if(TARGET everest)
-        target_link_libraries(${mbedcrypto_target} PUBLIC everest)
-    endif()
+        if(TARGET everest)
+                target_link_libraries(${mbedcrypto_target} PUBLIC everest)
+        endif()
 
-    add_library(${mbedx509_target} SHARED ${src_x509})
-    set_target_properties(${mbedx509_target} PROPERTIES VERSION 3.0.0 SOVERSION 4)
-    target_link_libraries(${mbedx509_target} PUBLIC ${libs} ${mbedcrypto_target})
+        add_library(${mbedx509_target} SHARED ${src_x509})
+        set_target_properties(${mbedx509_target} PROPERTIES VERSION 3.0.0 SOVERSION 4)
+        target_link_libraries(${mbedx509_target} PUBLIC ${libs} ${mbedcrypto_target})
 
-    add_library(${mbedtls_target} SHARED ${src_tls})
-    set_target_properties(${mbedtls_target} PROPERTIES VERSION 3.0.0 SOVERSION 16)
-    target_link_libraries(${mbedtls_target} PUBLIC ${libs} ${mbedx509_target})
+        add_library(${mbedtls_target} SHARED ${src_tls})
+        set_target_properties(${mbedtls_target} PROPERTIES VERSION 3.0.0 SOVERSION 16)
+        target_link_libraries(${mbedtls_target} PUBLIC ${libs} ${mbedx509_target})
 endif(USE_SHARED_MBEDTLS_LIBRARY)
 
 foreach(target IN LISTS target_libraries)
-    # Include public header files from /include and other directories
-    # declared by /3rdparty/**/CMakeLists.txt. Include private header files
-    # from /library and others declared by /3rdparty/**/CMakeLists.txt.
-    # /library needs to be listed explicitly when building .c files outside
-    # of /library (which currently means: under /3rdparty).
-    target_include_directories(${target}
-        PUBLIC $<BUILD_INTERFACE:${MBEDTLS_DIR}/include/>
-               $<INSTALL_INTERFACE:include/>
-        PRIVATE ${MBEDTLS_DIR}/library/)
-    install(
-        TARGETS ${target}
-        EXPORT MbedTLSTargets
-        DESTINATION ${LIB_INSTALL_DIR}
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+        # Include public header files from /include and other directories declared by /3rdparty/**/CMakeLists.txt.
+        # Include private header files from /library and others declared by /3rdparty/**/CMakeLists.txt. /library needs
+        # to be listed explicitly when building .c files outside of /library (which currently means: under /3rdparty).
+        target_include_directories(
+                ${target}
+                PUBLIC $<BUILD_INTERFACE:${MBEDTLS_DIR}/include/> $<INSTALL_INTERFACE:include/>
+                PRIVATE ${MBEDTLS_DIR}/library/)
+        install(
+                TARGETS ${target}
+                EXPORT MbedTLSTargets
+                DESTINATION ${LIB_INSTALL_DIR}
+                PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
 endforeach(target)
 
 set(lib_target "${MBEDTLS_TARGET_PREFIX}lib")
 
 add_custom_target(${lib_target} DEPENDS ${mbedcrypto_target} ${mbedx509_target} ${mbedtls_target})
 if(USE_STATIC_MBEDTLS_LIBRARY AND USE_SHARED_MBEDTLS_LIBRARY)
-    add_dependencies(${lib_target} ${mbedcrypto_static_target} ${mbedx509_static_target} ${mbedtls_static_target})
+        add_dependencies(${lib_target} ${mbedcrypto_static_target} ${mbedx509_static_target} ${mbedtls_static_target})
 endif()

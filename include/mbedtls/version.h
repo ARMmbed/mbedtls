@@ -41,7 +41,7 @@ extern "C" {
  * \return          The constructed version number in the format
  *                  MMNNPP00 (Major, Minor, Patch).
  */
-unsigned int mbedtls_version_get_number( void );
+unsigned int mbedtls_version_get_number(void);
 
 /**
  * Get the version string ("x.y.z").
@@ -49,7 +49,7 @@ unsigned int mbedtls_version_get_number( void );
  * \param string    The string that will receive the value.
  *                  (Should be at least 9 bytes in size)
  */
-void mbedtls_version_get_string( char *string );
+void mbedtls_version_get_string(char* string);
 
 /**
  * Get the full version string ("mbed TLS x.y.z").
@@ -60,7 +60,7 @@ void mbedtls_version_get_string( char *string );
  *                  (So the buffer should be at least 18 bytes to receive this
  *                  version string).
  */
-void mbedtls_version_get_string_full( char *string );
+void mbedtls_version_get_string_full(char* string);
 
 /**
  * \brief           Check if support for a feature was compiled into this
@@ -79,7 +79,7 @@ void mbedtls_version_get_string_full( char *string );
  *                  -2 if support for feature checking as a whole was not
  *                  compiled in.
  */
-int mbedtls_version_check_feature( const char *feature );
+int mbedtls_version_check_feature(const char* feature);
 
 #ifdef __cplusplus
 }
