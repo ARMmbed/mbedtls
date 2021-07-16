@@ -61,9 +61,9 @@ static uint64_t mul64( uint32_t a, uint32_t b )
 {
     /* a = al + 2**16 ah, b = bl + 2**16 bh */
     const uint16_t al = (uint16_t) a;
-    const uint16_t bl = (uint16_t) b;
-    const uint16_t ah = MBEDTLS_BYTE_2( a );
-    const uint16_t bh = MBEDTLS_BYTE_2( b );
+    const uint16_t bl = (uint16_t) b;    
+    const uint16_t ah = a >> 16;
+    const uint16_t bh = b >> 16;
 
     /* ab = al*bl + 2**16 (ah*bl + bl*bh) + 2**32 ah*bh */
     const uint32_t lo = (uint32_t) al * bl;
