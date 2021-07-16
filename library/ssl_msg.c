@@ -2443,9 +2443,9 @@ int mbedtls_ssl_write_handshake_msg( mbedtls_ssl_context *ssl )
      */
     if( ssl->out_msgtype == MBEDTLS_SSL_MSG_HANDSHAKE )
     {
-        ssl->out_msg[1] = (unsigned char)( hs_len >> 16 );
-        ssl->out_msg[2] = (unsigned char)( hs_len >>  8 );
-        ssl->out_msg[3] = (unsigned char)( hs_len       );
+        ssl->out_msg[1] = MBEDTLS_BYTE_2( hs_len );
+        ssl->out_msg[2] = MBEDTLS_BYTE_1( hs_len );
+        ssl->out_msg[3] = MBEDTLS_BYTE_0( hs_len );
 
         /*
          * DTLS has additional fields in the Handshake layer,
@@ -2558,8 +2558,8 @@ int mbedtls_ssl_write_record( mbedtls_ssl_context *ssl, uint8_t force_flush )
                            ssl->conf->transport, ssl->out_hdr + 1 );
 
         memcpy( ssl->out_ctr, ssl->cur_out_ctr, 8 );
-        ssl->out_len[0] = (unsigned char)( len >> 8 );
-        ssl->out_len[1] = (unsigned char)( len      );
+        ssl->out_len[0] = MBEDTLS_BYTE_1( len );
+        ssl->out_len[1] = MBEDTLS_BYTE_0( len );
 
         if( ssl->transform_out != NULL )
         {
@@ -2599,8 +2599,8 @@ int mbedtls_ssl_write_record( mbedtls_ssl_context *ssl, uint8_t force_flush )
             memcpy( ssl->out_cid, rec.cid, rec.cid_len );
 #endif /* MBEDTLS_SSL_DTLS_CONNECTION_ID */
             ssl->out_msglen = len = rec.data_len;
-            ssl->out_len[0] = (unsigned char)( rec.data_len >> 8 );
-            ssl->out_len[1] = (unsigned char)( rec.data_len      );
+            ssl->out_len[0] = MBEDTLS_BYTE_1( rec.data_len );
+            ssl->out_len[1] = MBEDTLS_BYTE_0( rec.data_len );
         }
 
         protected_record_size = len + mbedtls_ssl_out_hdr_len( ssl );
@@ -3172,12 +3172,12 @@ static int ssl_check_dtls_clihlo_cookie(
     /* Go back and fill length fields */
     obuf[27] = (unsigned char)( *olen - 28 );
 
-    obuf[14] = obuf[22] = (unsigned char)( ( *olen - 25 ) >> 16 );
-    obuf[15] = obuf[23] = (unsigned char)( ( *olen - 25 ) >>  8 );
-    obuf[16] = obuf[24] = (unsigned char)( ( *olen - 25 )       );
+    obuf[14] = obuf[22] = MBEDTLS_BYTE_2( *olen - 25 );
+    obuf[15] = obuf[23] = MBEDTLS_BYTE_1( *olen - 25 );
+    obuf[16] = obuf[24] = MBEDTLS_BYTE_0( *olen - 25 );
 
-    obuf[11] = (unsigned char)( ( *olen - 13 ) >>  8 );
-    obuf[12] = (unsigned char)( ( *olen - 13 )       );
+    obuf[11] = MBEDTLS_BYTE_1( *olen - 13 );
+    obuf[12] = MBEDTLS_BYTE_0( *olen - 13 );
 
     return( MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED );
 }
@@ -4557,8 +4557,8 @@ static int ssl_get_next_record( mbedtls_ssl_context *ssl )
     ssl->in_hdr[0] = rec.type;
     ssl->in_msg    = rec.buf + rec.data_offset;
     ssl->in_msglen = rec.data_len;
-    ssl->in_len[0] = (unsigned char)( rec.data_len >> 8 );
-    ssl->in_len[1] = (unsigned char)( rec.data_len      );
+    ssl->in_len[0] = MBEDTLS_BYTE_1( rec.data_len );
+    ssl->in_len[1] = MBEDTLS_BYTE_0( rec.data_len );
 
     return( 0 );
 }

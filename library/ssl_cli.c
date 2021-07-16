@@ -352,8 +352,8 @@ static int ssl_write_supported_elliptic_curves_ext( mbedtls_ssl_context *ssl,
          grp_id++ )
     {
         info = mbedtls_ecp_curve_info_from_grp_id( *grp_id );
-        elliptic_curve_list[elliptic_curve_len++] = info->tls_id >> 8;
-        elliptic_curve_list[elliptic_curve_len++] = info->tls_id & 0xFF;
+        elliptic_curve_list[elliptic_curve_len++] = MBEDTLS_BYTE_1( info->tls_id );
+        elliptic_curve_list[elliptic_curve_len++] = MBEDTLS_BYTE_0( info->tls_id );
     }
 
     *p++ = MBEDTLS_BYTE_1( MBEDTLS_TLS_EXT_SUPPORTED_ELLIPTIC_CURVES );
@@ -857,10 +857,10 @@ static int ssl_generate_random( mbedtls_ssl_context *ssl )
 
 #if defined(MBEDTLS_HAVE_TIME)
     t = mbedtls_time( NULL );
-    *p++ = (unsigned char)( t >> 24 );
-    *p++ = (unsigned char)( t >> 16 );
-    *p++ = (unsigned char)( t >>  8 );
-    *p++ = (unsigned char)( t       );
+    *p++ = MBEDTLS_BYTE_3( t );
+    *p++ = MBEDTLS_BYTE_2( t );
+    *p++ = MBEDTLS_BYTE_1( t );
+    *p++ = MBEDTLS_BYTE_0( t );
 
     MBEDTLS_SSL_DEBUG_MSG( 3, ( "client hello, current time: %" MBEDTLS_PRINTF_LONGLONG,
                                 (long long) t ) );
@@ -1143,8 +1143,8 @@ static int ssl_write_client_hello( mbedtls_ssl_context *ssl )
         MBEDTLS_SSL_CHK_BUF_PTR( p, end, 2 );
 
         n++;
-        *p++ = (unsigned char)( ciphersuites[i] >> 8 );
-        *p++ = (unsigned char)( ciphersuites[i]      );
+        *p++ = MBEDTLS_BYTE_1( ciphersuites[i] );
+        *p++ = MBEDTLS_BYTE_0( ciphersuites[i] );
     }
 
     MBEDTLS_SSL_DEBUG_MSG( 3,
@@ -1159,8 +1159,8 @@ static int ssl_write_client_hello( mbedtls_ssl_context *ssl )
     {
         MBEDTLS_SSL_DEBUG_MSG( 3, ( "adding EMPTY_RENEGOTIATION_INFO_SCSV" ) );
         MBEDTLS_SSL_CHK_BUF_PTR( p, end, 2 );
-        *p++ = (unsigned char)( MBEDTLS_SSL_EMPTY_RENEGOTIATION_INFO >> 8 );
-        *p++ = (unsigned char)( MBEDTLS_SSL_EMPTY_RENEGOTIATION_INFO      );
+        *p++ = MBEDTLS_BYTE_1( MBEDTLS_SSL_EMPTY_RENEGOTIATION_INFO );
+        *p++ = MBEDTLS_BYTE_0( MBEDTLS_SSL_EMPTY_RENEGOTIATION_INFO );
         n++;
     }
 
@@ -2744,8 +2744,8 @@ static int ssl_write_encrypted_pms( mbedtls_ssl_context *ssl,
 #if defined(MBEDTLS_SSL_PROTO_TLS1_2)
     if( len_bytes == 2 )
     {
-        ssl->out_msg[offset+0] = (unsigned char)( *olen >> 8 );
-        ssl->out_msg[offset+1] = (unsigned char)( *olen      );
+        ssl->out_msg[offset+0] = MBEDTLS_BYTE_1( *olen );
+        ssl->out_msg[offset+1] = MBEDTLS_BYTE_0( *olen );
         *olen += 2;
     }
 #endif
@@ -3502,8 +3502,8 @@ static int ssl_write_client_key_exchange( mbedtls_ssl_context *ssl )
          */
         content_len = mbedtls_dhm_get_len( &ssl->handshake->dhm_ctx );
 
-        ssl->out_msg[4] = (unsigned char)( content_len >> 8 );
-        ssl->out_msg[5] = (unsigned char)( content_len      );
+        ssl->out_msg[4] = MBEDTLS_BYTE_1( content_len );
+        ssl->out_msg[5] = MBEDTLS_BYTE_0( content_len );
         header_len = 6;
 
         ret = mbedtls_dhm_make_public( &ssl->handshake->dhm_ctx,
@@ -3718,8 +3718,8 @@ ecdh_calc_secret:
             return( MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL );
         }
 
-        ssl->out_msg[header_len++] = (unsigned char)( content_len >> 8 );
-        ssl->out_msg[header_len++] = (unsigned char)( content_len      );
+        ssl->out_msg[header_len++] = MBEDTLS_BYTE_1( content_len );
+        ssl->out_msg[header_len++] = MBEDTLS_BYTE_0( content_len );
 
         memcpy( ssl->out_msg + header_len,
                 ssl->conf->psk_identity,
@@ -3770,8 +3770,8 @@ ecdh_calc_secret:
                 return( MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL );
             }
 
-            ssl->out_msg[header_len++] = (unsigned char)( content_len >> 8 );
-            ssl->out_msg[header_len++] = (unsigned char)( content_len      );
+            ssl->out_msg[header_len++] = MBEDTLS_BYTE_1( content_len );
+            ssl->out_msg[header_len++] = MBEDTLS_BYTE_0( content_len );
 
             ret = mbedtls_dhm_make_public( &ssl->handshake->dhm_ctx,
                     (int) mbedtls_dhm_get_len( &ssl->handshake->dhm_ctx ),
@@ -4046,8 +4046,8 @@ sign:
         return( ret );
     }
 
-    ssl->out_msg[4 + offset] = (unsigned char)( n >> 8 );
-    ssl->out_msg[5 + offset] = (unsigned char)( n      );
+    ssl->out_msg[4 + offset] = MBEDTLS_BYTE_1( n );
+    ssl->out_msg[5 + offset] = MBEDTLS_BYTE_0( n );
 
     ssl->out_msglen  = 6 + n + offset;
     ssl->out_msgtype = MBEDTLS_SSL_MSG_HANDSHAKE;

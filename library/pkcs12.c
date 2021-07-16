@@ -285,8 +285,8 @@ int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen,
         for( i = v; i > 0; i-- )
         {
             j = salt_block[i - 1] + hash_block[i - 1] + c;
-            c = (unsigned char) (j >> 8);
-            salt_block[i - 1] = j & 0xFF;
+            c = MBEDTLS_BYTE_1( j );
+            salt_block[i - 1] = MBEDTLS_BYTE_0( j );
         }
 
         // pwd_block  += B
@@ -294,8 +294,8 @@ int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen,
         for( i = v; i > 0; i-- )
         {
             j = pwd_block[i - 1] + hash_block[i - 1] + c;
-            c = (unsigned char) (j >> 8);
-            pwd_block[i - 1] = j & 0xFF;
+            c = MBEDTLS_BYTE_1( j );
+            pwd_block[i - 1] = MBEDTLS_BYTE_0( j );
         }
     }
 

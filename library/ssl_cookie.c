@@ -165,10 +165,10 @@ int mbedtls_ssl_cookie_write( void *p_ctx,
     t = ctx->serial++;
 #endif
 
-    (*p)[0] = (unsigned char)( t >> 24 );
-    (*p)[1] = (unsigned char)( t >> 16 );
-    (*p)[2] = (unsigned char)( t >>  8 );
-    (*p)[3] = (unsigned char)( t       );
+    (*p)[0] = MBEDTLS_BYTE_3( t );
+    (*p)[1] = MBEDTLS_BYTE_2( t );
+    (*p)[2] = MBEDTLS_BYTE_1( t );
+    (*p)[3] = MBEDTLS_BYTE_0( t );
     *p += 4;
 
 #if defined(MBEDTLS_THREADING_C)

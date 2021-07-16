@@ -62,8 +62,8 @@ static uint64_t mul64( uint32_t a, uint32_t b )
     /* a = al + 2**16 ah, b = bl + 2**16 bh */
     const uint16_t al = (uint16_t) a;
     const uint16_t bl = (uint16_t) b;
-    const uint16_t ah = a >> 16;
-    const uint16_t bh = b >> 16;
+    const uint16_t ah = MBEDTLS_BYTE_2( a );
+    const uint16_t bh = MBEDTLS_BYTE_2( b );
 
     /* ab = al*bl + 2**16 (ah*bl + bl*bh) + 2**32 ah*bh */
     const uint32_t lo = (uint32_t) al * bl;
@@ -250,22 +250,22 @@ static void poly1305_compute_mac( const mbedtls_poly1305_context *ctx,
     acc3 += ctx->s[3] + (uint32_t) ( d >> 32U );
 
     /* Compute MAC (128 least significant bits of the accumulator) */
-    mac[ 0] = (unsigned char)( acc0       );
-    mac[ 1] = (unsigned char)( acc0 >>  8 );
-    mac[ 2] = (unsigned char)( acc0 >> 16 );
-    mac[ 3] = (unsigned char)( acc0 >> 24 );
-    mac[ 4] = (unsigned char)( acc1       );
-    mac[ 5] = (unsigned char)( acc1 >>  8 );
-    mac[ 6] = (unsigned char)( acc1 >> 16 );
-    mac[ 7] = (unsigned char)( acc1 >> 24 );
-    mac[ 8] = (unsigned char)( acc2       );
-    mac[ 9] = (unsigned char)( acc2 >>  8 );
-    mac[10] = (unsigned char)( acc2 >> 16 );
-    mac[11] = (unsigned char)( acc2 >> 24 );
-    mac[12] = (unsigned char)( acc3       );
-    mac[13] = (unsigned char)( acc3 >>  8 );
-    mac[14] = (unsigned char)( acc3 >> 16 );
-    mac[15] = (unsigned char)( acc3 >> 24 );
+    mac[ 0] = MBEDTLS_BYTE_0( acc0 );
+    mac[ 1] = MBEDTLS_BYTE_1( acc0 );
+    mac[ 2] = MBEDTLS_BYTE_2( acc0 );
+    mac[ 3] = MBEDTLS_BYTE_3( acc0 );
+    mac[ 4] = MBEDTLS_BYTE_0( acc1 );
+    mac[ 5] = MBEDTLS_BYTE_1( acc1 );
+    mac[ 6] = MBEDTLS_BYTE_2( acc1 );
+    mac[ 7] = MBEDTLS_BYTE_3( acc1 );
+    mac[ 8] = MBEDTLS_BYTE_0( acc2 );
+    mac[ 9] = MBEDTLS_BYTE_1( acc2 );
+    mac[10] = MBEDTLS_BYTE_2( acc2 );
+    mac[11] = MBEDTLS_BYTE_3( acc2 );
+    mac[12] = MBEDTLS_BYTE_0( acc3 );
+    mac[13] = MBEDTLS_BYTE_1( acc3 );
+    mac[14] = MBEDTLS_BYTE_2( acc3 );
+    mac[15] = MBEDTLS_BYTE_3( acc3 );
 }
 
 void mbedtls_poly1305_init( mbedtls_poly1305_context *ctx )

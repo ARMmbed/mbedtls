@@ -2493,10 +2493,10 @@ static int ssl_write_server_hello( mbedtls_ssl_context *ssl )
 
 #if defined(MBEDTLS_HAVE_TIME)
     t = mbedtls_time( NULL );
-    *p++ = (unsigned char)( t >> 24 );
-    *p++ = (unsigned char)( t >> 16 );
-    *p++ = (unsigned char)( t >>  8 );
-    *p++ = (unsigned char)( t       );
+    *p++ = MBEDTLS_BYTE_3( t );
+    *p++ = MBEDTLS_BYTE_2( t );
+    *p++ = MBEDTLS_BYTE_1( t );
+    *p++ = MBEDTLS_BYTE_0( t );
 
     MBEDTLS_SSL_DEBUG_MSG( 3, ( "server hello, current time: %" MBEDTLS_PRINTF_LONGLONG,
                                 (long long) t ) );
@@ -2577,9 +2577,9 @@ static int ssl_write_server_hello( mbedtls_ssl_context *ssl )
     MBEDTLS_SSL_DEBUG_MSG( 3, ( "%s session has been resumed",
                    ssl->handshake->resume ? "a" : "no" ) );
 
-    *p++ = (unsigned char)( ssl->session_negotiate->ciphersuite >> 8 );
-    *p++ = (unsigned char)( ssl->session_negotiate->ciphersuite      );
-    *p++ = (unsigned char)( ssl->session_negotiate->compression      );
+    *p++ = MBEDTLS_BYTE_1( ssl->session_negotiate->ciphersuite );
+    *p++ = MBEDTLS_BYTE_0( ssl->session_negotiate->ciphersuite );
+    *p++ = MBEDTLS_BYTE_0( ssl->session_negotiate->compression );
 
     MBEDTLS_SSL_DEBUG_MSG( 3, ( "server hello, chosen ciphersuite: %s",
            mbedtls_ssl_get_ciphersuite_name( ssl->session_negotiate->ciphersuite ) ) );
@@ -2784,8 +2784,8 @@ static int ssl_write_certificate_request( mbedtls_ssl_context *ssl )
 #endif
         }
 
-        p[0] = (unsigned char)( sa_len >> 8 );
-        p[1] = (unsigned char)( sa_len      );
+        p[0] = MBEDTLS_BYTE_1( sa_len );
+        p[1] = MBEDTLS_BYTE_0( sa_len );
         sa_len += 2;
         p += sa_len;
     }
@@ -2825,8 +2825,8 @@ static int ssl_write_certificate_request( mbedtls_ssl_context *ssl )
                 break;
             }
 
-            *p++ = (unsigned char)( dn_size >> 8 );
-            *p++ = (unsigned char)( dn_size      );
+            *p++ = MBEDTLS_BYTE_1( dn_size );
+            *p++ = MBEDTLS_BYTE_0( dn_size );
             memcpy( p, crt->subject_raw.p, dn_size );
             p += dn_size;
 
@@ -2840,8 +2840,8 @@ static int ssl_write_certificate_request( mbedtls_ssl_context *ssl )
     ssl->out_msglen  = p - buf;
     ssl->out_msgtype = MBEDTLS_SSL_MSG_HANDSHAKE;
     ssl->out_msg[0]  = MBEDTLS_SSL_HS_CERTIFICATE_REQUEST;
-    ssl->out_msg[4 + ct_len + sa_len] = (unsigned char)( total_dn_size  >> 8 );
-    ssl->out_msg[5 + ct_len + sa_len] = (unsigned char)( total_dn_size       );
+    ssl->out_msg[4 + ct_len + sa_len] = MBEDTLS_BYTE_1( total_dn_size );
+    ssl->out_msg[5 + ct_len + sa_len] = MBEDTLS_BYTE_0( total_dn_size );
 
     ret = mbedtls_ssl_write_handshake_msg( ssl );
 
@@ -3310,8 +3310,8 @@ static int ssl_write_server_key_exchange( mbedtls_ssl_context *ssl )
 #if defined(MBEDTLS_KEY_EXCHANGE_WITH_SERVER_SIGNATURE_ENABLED)
     if( signature_len != 0 )
     {
-        ssl->out_msg[ssl->out_msglen++] = (unsigned char)( signature_len >> 8 );
-        ssl->out_msg[ssl->out_msglen++] = (unsigned char)( signature_len      );
+        ssl->out_msg[ssl->out_msglen++] = MBEDTLS_BYTE_1( signature_len );
+        ssl->out_msg[ssl->out_msglen++] = MBEDTLS_BYTE_0( signature_len );
 
         MBEDTLS_SSL_DEBUG_BUF( 3, "my signature",
                                ssl->out_msg + ssl->out_msglen,

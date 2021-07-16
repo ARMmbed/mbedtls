@@ -1497,8 +1497,8 @@ int mbedtls_ssl_psk_derive_premaster( mbedtls_ssl_context *ssl, mbedtls_key_exch
         if( end - p < 2 )
             return( MBEDTLS_ERR_SSL_BAD_INPUT_DATA );
 
-        *(p++) = (unsigned char)( psk_len >> 8 );
-        *(p++) = (unsigned char)( psk_len      );
+        *(p++) = MBEDTLS_BYTE_1( psk_len );
+        *(p++) = MBEDTLS_BYTE_0( psk_len );
 
         if( end < p || (size_t)( end - p ) < psk_len )
             return( MBEDTLS_ERR_SSL_BAD_INPUT_DATA );
@@ -1538,8 +1538,8 @@ int mbedtls_ssl_psk_derive_premaster( mbedtls_ssl_context *ssl, mbedtls_key_exch
             MBEDTLS_SSL_DEBUG_RET( 1, "mbedtls_dhm_calc_secret", ret );
             return( ret );
         }
-        *(p++) = (unsigned char)( len >> 8 );
-        *(p++) = (unsigned char)( len );
+        *(p++) = MBEDTLS_BYTE_1( len );
+        *(p++) = MBEDTLS_BYTE_0( len );
         p += len;
 
         MBEDTLS_SSL_DEBUG_MPI( 3, "DHM: K ", &ssl->handshake->dhm_ctx.K  );
@@ -1560,8 +1560,8 @@ int mbedtls_ssl_psk_derive_premaster( mbedtls_ssl_context *ssl, mbedtls_key_exch
             return( ret );
         }
 
-        *(p++) = (unsigned char)( zlen >> 8 );
-        *(p++) = (unsigned char)( zlen      );
+        *(p++) = MBEDTLS_BYTE_1( zlen );
+        *(p++) = MBEDTLS_BYTE_0( zlen );
         p += zlen;
 
         MBEDTLS_SSL_DEBUG_ECDH( 3, &ssl->handshake->ecdh_ctx,
@@ -1578,8 +1578,8 @@ int mbedtls_ssl_psk_derive_premaster( mbedtls_ssl_context *ssl, mbedtls_key_exch
     if( end - p < 2 )
         return( MBEDTLS_ERR_SSL_BAD_INPUT_DATA );
 
-    *(p++) = (unsigned char)( psk_len >> 8 );
-    *(p++) = (unsigned char)( psk_len      );
+    *(p++) = MBEDTLS_BYTE_1( psk_len );
+    *(p++) = MBEDTLS_BYTE_0( psk_len );
 
     if( end < p || (size_t)( end - p ) < psk_len )
         return( MBEDTLS_ERR_SSL_BAD_INPUT_DATA );
@@ -1756,17 +1756,17 @@ int mbedtls_ssl_write_certificate( mbedtls_ssl_context *ssl )
             return( MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL );
         }
 
-        ssl->out_msg[i    ] = (unsigned char)( n >> 16 );
-        ssl->out_msg[i + 1] = (unsigned char)( n >>  8 );
-        ssl->out_msg[i + 2] = (unsigned char)( n       );
+        ssl->out_msg[i    ] = MBEDTLS_BYTE_2( n );
+        ssl->out_msg[i + 1] = MBEDTLS_BYTE_1( n );
+        ssl->out_msg[i + 2] = MBEDTLS_BYTE_0( n );
 
         i += 3; memcpy( ssl->out_msg + i, crt->raw.p, n );
         i += n; crt = crt->next;
     }
 
-    ssl->out_msg[4]  = (unsigned char)( ( i - 7 ) >> 16 );
-    ssl->out_msg[5]  = (unsigned char)( ( i - 7 ) >>  8 );
-    ssl->out_msg[6]  = (unsigned char)( ( i - 7 )       );
+    ssl->out_msg[4]  = MBEDTLS_BYTE_2( i - 7 );
+    ssl->out_msg[5]  = MBEDTLS_BYTE_1( i - 7 );
+    ssl->out_msg[6]  = MBEDTLS_BYTE_0( i - 7 );
 
     ssl->out_msglen  = i;
     ssl->out_msgtype = MBEDTLS_SSL_MSG_HANDSHAKE;
