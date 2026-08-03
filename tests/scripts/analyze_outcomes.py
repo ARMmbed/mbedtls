@@ -144,21 +144,6 @@ class CoverageTask(outcome_analysis.CoverageTask):
             # https://github.com/Mbed-TLS/mbedtls/issues/9592
             'Config: PSA_WANT_ALG_DETERMINSTIC_ECDSA without PSA_WANT_ALG_ECDSA',
         ],
-        'test_suite_pkcs12': [
-            # We never test with CBC/PKCS5/PKCS12 enabled but
-            # PKCS7 padding disabled.
-            # https://github.com/Mbed-TLS/mbedtls/issues/9580
-            'PBE Decrypt, (Invalid padding & PKCS7 padding disabled)',
-            'PBE Encrypt, pad = 8 (PKCS7 padding disabled)',
-        ],
-        'test_suite_pkcs5': [
-            # We never test with CBC/PKCS5/PKCS12 enabled but
-            # PKCS7 padding disabled.
-            # https://github.com/Mbed-TLS/mbedtls/issues/9580
-            'PBES2 Decrypt (Invalid padding & PKCS7 padding disabled)',
-            'PBES2 Encrypt, pad=6 (PKCS7 padding disabled)',
-            'PBES2 Encrypt, pad=8 (PKCS7 padding disabled)',
-        ],
         'test_suite_psa_crypto': [
             # We don't test this unusual, but sensible configuration.
             # https://github.com/Mbed-TLS/mbedtls/issues/9592
