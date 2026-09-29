@@ -585,6 +585,8 @@ static int x509_get_ext_key_usage(unsigned char **p,
     return 0;
 }
 
+
+#if defined(MBEDTLS_X509_KEY_IDENTIFIERS)
 /*
  * SubjectKeyIdentifier ::= KeyIdentifier
  *
@@ -697,6 +699,7 @@ static int x509_get_authority_key_id(unsigned char **p,
 
     return 0;
 }
+#endif
 
 /*
  * id-ce-certificatePolicies OBJECT IDENTIFIER ::=  { id-ce 32 }
@@ -996,6 +999,7 @@ static int x509_get_crt_ext(unsigned char **p,
                 }
                 break;
 
+#if defined(MBEDTLS_X509_KEY_IDENTIFIERS)
             case MBEDTLS_X509_EXT_SUBJECT_KEY_IDENTIFIER:
                 /* Parse subject key identifier */
                 if ((ret = x509_get_subject_key_id(p, end_ext_data,
@@ -1011,6 +1015,8 @@ static int x509_get_crt_ext(unsigned char **p,
                     return ret;
                 }
                 break;
+#endif /* defined(MBEDTLS_X509_KEY_IDENTIFIERS) */
+#if defined(MBEDTLS_X509_SUBJECT_ALT_NAME)
             case MBEDTLS_X509_EXT_SUBJECT_ALT_NAME:
                 /* Parse subject alt name
                  * SubjectAltName ::= GeneralNames
@@ -1020,7 +1026,9 @@ static int x509_get_crt_ext(unsigned char **p,
                     return ret;
                 }
                 break;
+#endif
 
+#if defined(MBEDTLS_X509_NS_CERT_TYPE)
             case MBEDTLS_X509_EXT_NS_CERT_TYPE:
                 /* Parse netscape certificate type */
                 if ((ret = mbedtls_x509_get_ns_cert_type(p, end_ext_octet,
@@ -1028,6 +1036,7 @@ static int x509_get_crt_ext(unsigned char **p,
                     return ret;
                 }
                 break;
+#endif
 
             case MBEDTLS_X509_EXT_CERTIFICATE_POLICIES:
                 /* Parse certificate policies type */
