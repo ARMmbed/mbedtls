@@ -3618,6 +3618,21 @@ int mbedtls_ssl_conf_psk(mbedtls_ssl_config *conf,
  *                 the PSK callback takes precedence over an opaque PSK
  *                 configured by this function.
  *
+ * \note           When TLS 1.3 is negotiated, external PSK identities are
+ *                 always offered with SHA-256
+ *                 (see ssl_tls13_psk_get_identity()).
+ *
+ * \note           If the key is non-exportable, it must be of type
+ *                 #PSA_KEY_TYPE_DERIVE with a key policy allowing
+ *                 #PSA_ALG_HKDF_EXTRACT(#PSA_ALG_SHA_256) and
+ *                 #PSA_KEY_USAGE_DERIVE, so that the TLS 1.3 key
+ *                 schedule can consume it via psa_key_derivation_input_key().
+ *
+ * \note           Exportable keys are exported and used as raw bytes in
+ *                 TLS 1.3, so their policy is not checked for TLS 1.3.
+ *                 Consequently, a single key can be used for both TLS 1.2
+ *                 and TLS 1.3 only if it is exportable.
+ *
  * \param conf     The SSL configuration to register the PSK with.
  * \param psk      The identifier of the key slot holding the PSK.
  *                 Until \p conf is destroyed or this function is successfully
@@ -3670,6 +3685,21 @@ int mbedtls_ssl_set_hs_psk(mbedtls_ssl_context *ssl,
  *
  * \note           An opaque PSK set by this function takes precedence over an
  *                 opaque PSK configured by \c mbedtls_ssl_conf_psk_opaque().
+ *
+ * \note           When TLS 1.3 is negotiated, external PSK identities are
+ *                 always offered with SHA-256
+ *                 (see ssl_tls13_psk_get_identity()).
+ *
+ * \note           If the key is non-exportable, it must be of type
+ *                 #PSA_KEY_TYPE_DERIVE with a key policy allowing
+ *                 #PSA_ALG_HKDF_EXTRACT(#PSA_ALG_SHA_256) and
+ *                 #PSA_KEY_USAGE_DERIVE, so that the TLS 1.3 key
+ *                 schedule can consume it via psa_key_derivation_input_key().
+ *
+ * \note           Exportable keys are exported and used as raw bytes in
+ *                 TLS 1.3, so their policy is not checked for TLS 1.3.
+ *                 Consequently, a single key can be used for both TLS 1.2
+ *                 and TLS 1.3 only if it is exportable.
  *
  * \param ssl      The SSL context to configure a PSK for.
  * \param psk      The identifier of the key slot holding the PSK.

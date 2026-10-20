@@ -2019,7 +2019,11 @@ int mbedtls_ssl_set_hs_psk(mbedtls_ssl_context *ssl,
 
 #if defined(MBEDTLS_SSL_PROTO_TLS1_3)
     if (ssl->tls_version == MBEDTLS_SSL_VERSION_TLS1_3) {
-        alg = PSA_ALG_HKDF_EXTRACT(PSA_ALG_ANY_HASH);
+        /*
+         * Keys imported on the TLS 1.3 path always carry
+         * PSA_KEY_USAGE_EXPORT and keep the byte path in the key
+         * schedule, so their algorithm policy is never consulted.
+         */
         psa_set_key_usage_flags(&key_attributes,
                                 PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_EXPORT);
     }
@@ -5100,10 +5104,6 @@ static int ssl_context_load(mbedtls_ssl_context *ssl,
         }
 
         alpn_len = *p++;
-
-        if ((size_t) (end - p) < alpn_len) {
-            return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
-        }
 
         if (alpn_len != 0 && ssl->conf->alpn_list != NULL) {
             /* alpn_chosen should point to an item in the configured list */

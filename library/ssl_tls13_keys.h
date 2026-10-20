@@ -473,6 +473,11 @@ int mbedtls_ssl_tls13_evolve_secret(
  *                    digest size of  the hash algorithm represented by
  *                    \p hash_alg.
  *
+ * \param psk_opaque  Opaque key for the binder, used only when \p psk is
+ *                    \c NULL. The caller passes the key matching
+ *                    \p psk_type (configured external PSK on the client,
+ *                    handshake PSK on the server).
+ *
  * \returns           \c 0 on success.
  * \returns           A negative error code on failure.
  */
@@ -481,6 +486,7 @@ int mbedtls_ssl_tls13_create_psk_binder(mbedtls_ssl_context *ssl,
                                         const psa_algorithm_t hash_alg,
                                         unsigned char const *psk, size_t psk_len,
                                         int psk_type,
+                                        mbedtls_svc_key_id_t psk_opaque,
                                         unsigned char const *transcript,
                                         unsigned char *result);
 

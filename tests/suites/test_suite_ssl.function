@@ -2408,6 +2408,7 @@ void ssl_tls13_create_psk_binder(int hash_alg,
                    alg,
                    psk->x, psk->len,
                    psk_type,
+                   MBEDTLS_SVC_KEY_ID_INIT,
                    transcript->x,
                    binder),  0);
 
