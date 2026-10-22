@@ -5105,6 +5105,10 @@ static int ssl_context_load(mbedtls_ssl_context *ssl,
 
         alpn_len = *p++;
 
+        if ((size_t) (end - p) < alpn_len) {
+            return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+        }
+
         if (alpn_len != 0 && ssl->conf->alpn_list != NULL) {
             /* alpn_chosen should point to an item in the configured list */
             for (cur = ssl->conf->alpn_list; *cur != NULL; cur++) {
