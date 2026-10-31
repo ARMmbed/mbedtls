@@ -3467,6 +3467,14 @@ TLS 1.3 cli, early data, no later ALPN
 depends_on:MBEDTLS_SSL_ALPN
 tls13_read_early_data:TEST_EARLY_DATA_NO_LATER_ALPN
 
+TLS 1.3 early data, ticket rejected, external PSK selected, psk_ephemeral
+depends_on:PSA_WANT_KEY_TYPE_AES:PSA_WANT_ALG_GCM
+tls13_early_data_ticket_rejected_external_psk:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL
+
+TLS 1.3 early data, ticket rejected, external PSK selected, psk
+depends_on:PSA_WANT_KEY_TYPE_AES:PSA_WANT_ALG_GCM:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_ENABLED
+tls13_early_data_ticket_rejected_external_psk:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK
+
 TLS 1.3 cli, early data state, early data accepted
 tls13_cli_early_data_state:TEST_EARLY_DATA_ACCEPTED
 
