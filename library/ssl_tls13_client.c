@@ -1916,16 +1916,18 @@ static int ssl_tls13_postprocess_server_hello(mbedtls_ssl_context *ssl)
     /* Start the TLS 1.3 key scheduling if not already done.
      *
      * If we proposed early data then we have already derived an
-     * early secret using the selected PSK and its associated hash.
-     * It means that if the negotiated key exchange mode is psk or
-     * psk_ephemeral, we have already correctly computed the
-     * early secret and thus we do not do it again. In all other
-     * cases we compute it here.
+     * early secret using the first PSK we offered (the ticket) and its
+     * associated hash. It means that if the negotiated key exchange mode
+     * is psk or psk_ephemeral and the server selected that first PSK, we
+     * have already correctly computed the early secret and thus we do not
+     * do it again. In all other cases, including when the server selected
+     * another PSK, we compute it here.
      */
 #if defined(MBEDTLS_SSL_EARLY_DATA)
     if (ssl->early_data_state == MBEDTLS_SSL_EARLY_DATA_STATE_NO_IND_SENT ||
         handshake->key_exchange_mode ==
-        MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL)
+        MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL ||
+        handshake->selected_identity != 0)
 #endif
     {
         ret = mbedtls_ssl_tls13_key_schedule_stage_early(ssl);
