@@ -3451,6 +3451,9 @@ tls13_read_early_data:TEST_EARLY_DATA_SERVER_REJECTS
 TLS 1.3 read early data, discard after HRR
 tls13_read_early_data:TEST_EARLY_DATA_HRR
 
+TLS 1.3 read early data, ticket rejected
+tls13_read_early_data:TEST_EARLY_DATA_TICKET_REJECTED
+
 TLS 1.3 cli, early data, same ALPN
 depends_on:MBEDTLS_SSL_ALPN
 tls13_read_early_data:TEST_EARLY_DATA_SAME_ALPN
@@ -3529,6 +3532,15 @@ tls13_srv_max_early_data_size:TEST_EARLY_DATA_SERVER_REJECTS:3:3
 
 TLS 1.3 srv, max early data size, server rejects, 98, wsz=49
 tls13_srv_max_early_data_size:TEST_EARLY_DATA_SERVER_REJECTS:98:49
+
+TLS 1.3 srv, max early data size, ticket rejected, dflt, wsz=128
+tls13_srv_max_early_data_size:TEST_EARLY_DATA_TICKET_REJECTED:-1:128
+
+TLS 1.3 srv, max early data size, ticket rejected, 3, wsz=3
+tls13_srv_max_early_data_size:TEST_EARLY_DATA_TICKET_REJECTED:3:3
+
+TLS 1.3 srv, max early data size, ticket rejected, 98, wsz=49
+tls13_srv_max_early_data_size:TEST_EARLY_DATA_TICKET_REJECTED:98:49
 
 TLS 1.3 srv, max early data size, HRR, dflt, wsz=128
 tls13_srv_max_early_data_size:TEST_EARLY_DATA_HRR:-1:128

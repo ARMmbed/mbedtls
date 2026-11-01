@@ -26,6 +26,7 @@
 #define TEST_EARLY_DATA_DIFF_ALPN 5
 #define TEST_EARLY_DATA_NO_INITIAL_ALPN 6
 #define TEST_EARLY_DATA_NO_LATER_ALPN 7
+#define TEST_EARLY_DATA_TICKET_REJECTED 8
 
 /* Mutations for ssl_session_load_rejects_bad_serialized_data */
 #define TEST_SESSION_LOAD_TRAILING_DATA          0
@@ -5158,6 +5159,16 @@ void tls13_read_early_data(int scenario)
                 "EarlyData: Ignore application message before 2nd ClientHello";
             server_options.group_list = group_list + 1;
             break;
+
+        case TEST_EARLY_DATA_TICKET_REJECTED:
+            /*
+             * The server does not have the ticket callbacks set below, thus it
+             * cannot use the ticket and does a full handshake.
+             */
+            mbedtls_debug_set_threshold(3);
+            server_pattern.pattern =
+                "EarlyData: deprotect and discard app data records.";
+            break;
 #if defined(MBEDTLS_SSL_ALPN)
         case TEST_EARLY_DATA_SAME_ALPN:
             client_options.alpn_list[0] = "ALPNExample";
@@ -5200,10 +5211,12 @@ void tls13_read_early_data(int scenario)
                                          &server_options);
     TEST_EQUAL(ret, 0);
 
-    mbedtls_ssl_conf_session_tickets_cb(&server_ep.conf,
-                                        mbedtls_test_ticket_write,
-                                        mbedtls_test_ticket_parse,
-                                        NULL);
+    if (scenario != TEST_EARLY_DATA_TICKET_REJECTED) {
+        mbedtls_ssl_conf_session_tickets_cb(&server_ep.conf,
+                                            mbedtls_test_ticket_write,
+                                            mbedtls_test_ticket_parse,
+                                            NULL);
+    }
 
     ret = mbedtls_test_mock_socket_connect(&(client_ep.socket),
                                            &(server_ep.socket), 1024);
@@ -5253,6 +5266,7 @@ void tls13_read_early_data(int scenario)
 
         case TEST_EARLY_DATA_SERVER_REJECTS: /* Intentional fallthrough */
         case TEST_EARLY_DATA_HRR:
+        case TEST_EARLY_DATA_TICKET_REJECTED:
 #if defined(MBEDTLS_SSL_ALPN)
         case TEST_EARLY_DATA_DIFF_ALPN:
         case TEST_EARLY_DATA_NO_INITIAL_ALPN:
@@ -5270,6 +5284,14 @@ void tls13_read_early_data(int scenario)
     TEST_EQUAL(mbedtls_test_move_handshake_to_state(
                    &(server_ep.ssl), &(client_ep.ssl),
                    MBEDTLS_SSL_HANDSHAKE_OVER), 0);
+
+    if (scenario == TEST_EARLY_DATA_TICKET_REJECTED) {
+        TEST_EQUAL(mbedtls_test_move_handshake_to_state(
+                       &(client_ep.ssl), &(server_ep.ssl),
+                       MBEDTLS_SSL_HANDSHAKE_OVER), 0);
+        TEST_EQUAL(mbedtls_ssl_get_early_data_status(&(client_ep.ssl)),
+                   MBEDTLS_SSL_EARLY_DATA_STATUS_REJECTED);
+    }
 
 exit:
     mbedtls_test_ssl_endpoint_free(&client_ep);
@@ -6223,6 +6245,18 @@ void tls13_srv_max_early_data_size(int scenario, int max_early_data_size_arg, in
         case TEST_EARLY_DATA_ACCEPTED:
             break;
 
+        case TEST_EARLY_DATA_TICKET_REJECTED:
+            /*
+             * The server does not have the ticket callbacks set below, thus it
+             * cannot use the ticket. The early data limit is then the one
+             * configured on the server, which is the same as the ticket one.
+             */
+            ret = mbedtls_snprintf(pattern, sizeof(pattern),
+                                   "EarlyData: deprotect and discard app data records.");
+            TEST_ASSERT(ret < (int) sizeof(pattern));
+            mbedtls_debug_set_threshold(3);
+            break;
+
         case TEST_EARLY_DATA_SERVER_REJECTS:
             server_options.early_data = MBEDTLS_SSL_EARLY_DATA_DISABLED;
             ret = mbedtls_snprintf(pattern, sizeof(pattern),
@@ -6256,13 +6290,20 @@ void tls13_srv_max_early_data_size(int scenario, int max_early_data_size_arg, in
                                          &server_options);
     TEST_EQUAL(ret, 0);
 
-    mbedtls_ssl_conf_session_tickets_cb(&server_ep.conf,
-                                        mbedtls_test_ticket_write,
-                                        mbedtls_test_ticket_parse,
-                                        NULL);
+    if (scenario != TEST_EARLY_DATA_TICKET_REJECTED) {
+        mbedtls_ssl_conf_session_tickets_cb(&server_ep.conf,
+                                            mbedtls_test_ticket_write,
+                                            mbedtls_test_ticket_parse,
+                                            NULL);
+    }
 
-    ret = mbedtls_test_mock_socket_connect(&(client_ep.socket),
-                                           &(server_ep.socket), 1024);
+    /*
+     * Without a usable ticket, the server sends its certificate thus use a
+     * bigger buffer.
+     */
+    ret = mbedtls_test_mock_socket_connect(
+        &(client_ep.socket), &(server_ep.socket),
+        (scenario == TEST_EARLY_DATA_TICKET_REJECTED) ? 4096 : 1024);
     TEST_EQUAL(ret, 0);
 
     max_early_data_size = saved_session.max_early_data_size;
@@ -6343,6 +6384,7 @@ void tls13_srv_max_early_data_size(int scenario, int max_early_data_size_arg, in
                 break;
 
             case TEST_EARLY_DATA_SERVER_REJECTS: /* Intentional fallthrough */
+            case TEST_EARLY_DATA_TICKET_REJECTED: /* Intentional fallthrough */
             case TEST_EARLY_DATA_HRR:
                 ret = mbedtls_ssl_handshake(&(server_ep.ssl));
                 /*
@@ -6359,7 +6401,7 @@ void tls13_srv_max_early_data_size(int scenario, int max_early_data_size_arg, in
                  * expansion (tag, ...).
                  */
                 if (ret == MBEDTLS_ERR_SSL_UNEXPECTED_MESSAGE) {
-                    if (scenario == TEST_EARLY_DATA_SERVER_REJECTS) {
+                    if (scenario != TEST_EARLY_DATA_HRR) {
                         TEST_LE_U(max_early_data_size,
                                   write_size + 1 +
                                   MBEDTLS_SSL_CID_TLS1_3_PADDING_GRANULARITY);
