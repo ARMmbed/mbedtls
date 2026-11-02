@@ -33,7 +33,7 @@ void enc_chars()
 /* BEGIN_CASE depends_on:MBEDTLS_TEST_HOOKS */
 void dec_chars()
 {
-    char *p;
+    const char *p;
     signed char expected;
 
     for (unsigned c = 0; c <= 0xff; c++) {
