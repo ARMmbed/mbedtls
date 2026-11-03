@@ -167,7 +167,7 @@ typedef struct {
 
 extern const mbedtls_cipher_definition_t mbedtls_cipher_definitions[];
 
-extern int mbedtls_cipher_supported[];
+extern const int mbedtls_cipher_supported[];
 
 extern const mbedtls_cipher_base_t * const mbedtls_cipher_base_lookup_table[];
 

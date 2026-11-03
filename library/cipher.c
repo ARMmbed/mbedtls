@@ -54,8 +54,6 @@
 
 #include "mbedtls/platform.h"
 
-static int supported_init = 0;
-
 static inline const mbedtls_cipher_base_t *mbedtls_cipher_get_base(
     const mbedtls_cipher_info_t *info)
 {
@@ -64,22 +62,6 @@ static inline const mbedtls_cipher_base_t *mbedtls_cipher_get_base(
 
 const int *mbedtls_cipher_list(void)
 {
-    const mbedtls_cipher_definition_t *def;
-    int *type;
-
-    if (!supported_init) {
-        def = mbedtls_cipher_definitions;
-        type = mbedtls_cipher_supported;
-
-        while (def->type != 0) {
-            *type++ = (*def++).type;
-        }
-
-        *type = 0;
-
-        supported_init = 1;
-    }
-
     return mbedtls_cipher_supported;
 }
 
