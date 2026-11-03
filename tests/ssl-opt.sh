@@ -477,7 +477,7 @@ detect_required_features() {
     esac
 
     case " $CMD_LINE " in
-        *[-_\ =]tickets=[^0]*)
+        *[-_\ =]tickets=[!0]*)
             requires_config_enabled MBEDTLS_SSL_TICKET_C;;
     esac
     case " $CMD_LINE " in
@@ -12262,7 +12262,7 @@ run_test  "DTLS-SRTP all profiles supported. server doesn't support mki." \
           -c "selected srtp profile" \
           -c "DTLS-SRTP key material is"\
           -c "DTLS-SRTP no mki value negotiated"\
-          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*\$'"\
           -c "dumping 'sending mki' (8 bytes)" \
           -C "dumping 'received mki' (8 bytes)" \
           -C "error"
@@ -12278,7 +12278,7 @@ run_test  "DTLS-SRTP all profiles supported. openssl client." \
           -s "selected srtp profile" \
           -s "server hello, adding use_srtp extension" \
           -s "DTLS-SRTP key material is"\
-          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*\$'"\
           -c "SRTP Extension negotiated, profile=SRTP_AES128_CM_SHA1_80"
 
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
