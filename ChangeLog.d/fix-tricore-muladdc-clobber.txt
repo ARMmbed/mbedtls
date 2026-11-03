@@ -1,0 +1,8 @@
+Bugfix
+   * Fix the TriCore MULADDC inline assembly in library/bn_mul.h which was
+     missing register d5 (the high half of the e4 carry-in pair) from its
+     clobber list. On TriCore 1.8 (AURIX TC4xx) the compiler could allocate
+     a live value in d5 across the asm block, which the asm then overwrote,
+     corrupting the carry chain. This produced wrong results in
+     mbedtls_mpi_core_mla, making mbedtls_mpi_mod_mpi loop forever. Declare
+     all data registers the asm writes so the compiler does not reuse them.
