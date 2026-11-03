@@ -1,0 +1,7 @@
+Bugfix
+   * Fix a build failure with GCC on AArch64 when
+     MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_IF_PRESENT or
+     MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_ONLY is enabled and the target CPU has
+     extensions beyond Armv8.0-A, such as -mcpu=cortex-a53 with CRC. The
+     sha256 module then failed to inline always_inline functions such as a
+     fortified memset().

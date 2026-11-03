@@ -1,0 +1,7 @@
+Bugfix
+   * Fix a build failure with GCC 13 or later on AArch64 when
+     MBEDTLS_SHA512_USE_A64_CRYPTO_IF_PRESENT or
+     MBEDTLS_SHA512_USE_A64_CRYPTO_ONLY is enabled and the target CPU has
+     extensions that Armv8.2-A does not include, such as -mcpu=cortex-a76.
+     The sha512 module then failed to inline always_inline functions such as
+     a fortified memset().

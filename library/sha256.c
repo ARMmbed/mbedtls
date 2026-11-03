@@ -102,7 +102,11 @@
 #          error "A more recent GCC is required for MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_*"
 #        else
 #          pragma GCC push_options
-#          pragma GCC target ("arch=armv8-a+crypto")
+#          if defined(MBEDTLS_ARCH_IS_ARM64)
+#            pragma GCC target ("+crypto")
+#          else
+#            pragma GCC target ("arch=armv8-a+crypto")
+#          endif
 #          define MBEDTLS_POP_TARGET_PRAGMA
 #        endif
 #      else

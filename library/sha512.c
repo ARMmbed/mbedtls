@@ -91,7 +91,12 @@
 #          error "A more recent GCC is required for MBEDTLS_SHA512_USE_A64_CRYPTO_*"
 #        else
 #          pragma GCC push_options
-#          pragma GCC target ("arch=armv8.2-a+sha3")
+/* Before GCC 13, the SHA-512 intrinsics require Armv8.2-A. */
+#          if __GNUC__ < 13
+#            pragma GCC target ("arch=armv8.2-a+sha3")
+#          else
+#            pragma GCC target ("+sha3")
+#          endif
 #          define MBEDTLS_POP_TARGET_PRAGMA
 #        endif
 #      else

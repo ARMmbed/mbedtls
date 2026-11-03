@@ -276,6 +276,40 @@ component_test_m32_no_asm () {
     make test
 }
 
+component_build_sha_armce_gcc () {
+    # The SHA-256 crypto extensions must be added to the target of the build,
+    # not replace it: with -mcpu=cortex-a53 (which has CRC) GCC otherwise
+    # refuses to inline always_inline functions such as a fortified memset().
+    scripts/config.py unset MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_IF_PRESENT
+    for opt in MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_ONLY MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_IF_PRESENT; do
+        scripts/config.py set $opt
+            msg "$opt ${AARCH64_LINUX_GNU_GCC_PREFIX}gcc, -mcpu=cortex-a53 -D_FORTIFY_SOURCE=2"
+            make -B library/sha256.o library/sha256.s CC="${AARCH64_LINUX_GNU_GCC_PREFIX}gcc" CFLAGS="-std=c99 -Werror -O2 -mcpu=cortex-a53 -D_FORTIFY_SOURCE=2"
+            msg "$opt ${AARCH64_LINUX_GNU_GCC_PREFIX}gcc, test aarch64 crypto instructions built"
+            grep -E 'sha256[a-z0-9]+\s+[qv]' library/sha256.s
+        scripts/config.py unset $opt
+    done
+
+    # The same for the SHA-512 extensions with -mcpu=cortex-a76, which has
+    # extensions beyond Armv8.2-A. Before GCC 13, the SHA-512 intrinsics
+    # require Armv8.2-A, so this only builds with GCC 13 or later.
+    if [ "$(gcc_version "${AARCH64_LINUX_GNU_GCC_PREFIX}gcc")" -ge 13 ]; then
+        for opt in MBEDTLS_SHA512_USE_A64_CRYPTO_ONLY MBEDTLS_SHA512_USE_A64_CRYPTO_IF_PRESENT; do
+            scripts/config.py set $opt
+                msg "$opt ${AARCH64_LINUX_GNU_GCC_PREFIX}gcc, -mcpu=cortex-a76 -D_FORTIFY_SOURCE=2"
+                make -B library/sha512.o library/sha512.s CC="${AARCH64_LINUX_GNU_GCC_PREFIX}gcc" CFLAGS="-std=c99 -Werror -O2 -mcpu=cortex-a76 -D_FORTIFY_SOURCE=2"
+                msg "$opt ${AARCH64_LINUX_GNU_GCC_PREFIX}gcc, test aarch64 crypto instructions built"
+                grep -E 'sha512[a-z0-9]+\s+[qv]' library/sha512.s
+            scripts/config.py unset $opt
+        done
+    fi
+}
+
+support_build_sha_armce_gcc () {
+    # Minimum version of GCC for MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_* is 6.0
+    [ "$(gcc_version "${AARCH64_LINUX_GNU_GCC_PREFIX}gcc")" -ge 6 ]
+}
+
 support_test_m32_no_asm () {
     case $(uname -m) in
         amd64|x86_64) true;;
