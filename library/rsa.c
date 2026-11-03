@@ -1609,13 +1609,28 @@ int mbedtls_rsa_private(mbedtls_rsa_context *ctx,
     MBEDTLS_MPI_CHK(rsa_apply_crt(&T, &TP, &TQ, ctx));
 #endif /* MBEDTLS_RSA_NO_CRT */
 
-    /* Verify the result to prevent glitching attacks. */
-    MBEDTLS_MPI_CHK(mbedtls_mpi_exp_mod(&check_result_blinded, &T, &ctx->E,
-                                        &ctx->N, &ctx->RN));
+#if !defined(MBEDTLS_RSA_NO_CRT)
+    /* Verify the result to prevent a glitching attack: Arjen Lenstra,
+     * Memo on RSA signature generation in the presence of faults, 1996.
+     * https://infoscience.epfl.ch/record/164524/files/nscan20.PDF
+     *
+     * The attack is mostly on signature (the attacker needs to see
+     * the output), but could be relevant against decryption if the
+     * attacker gets to see the raw decryption result or maybe even part
+     * of it, possibly through a side channel in padding verification.
+     * We do the verification before unblinding, to reduce the risk of
+     * leaking information about the input.
+     * We use the "unsafe" version of exponentiation, which leaks the
+     * public exponent, for a slight performance improvement.
+     */
+    MBEDTLS_MPI_CHK(mbedtls_mpi_exp_mod_unsafe(&check_result_blinded,
+                                               &T, &ctx->E,
+                                               &ctx->N, &ctx->RN));
     if (mbedtls_mpi_cmp_mpi(&check_result_blinded, &input_blinded) != 0) {
         ret = MBEDTLS_ERR_RSA_VERIFY_FAILED;
         goto cleanup;
     }
+#endif
 
     /*
      * Unblind
@@ -2488,7 +2503,6 @@ int mbedtls_rsa_rsassa_pkcs1_v15_sign(mbedtls_rsa_context *ctx,
                                       unsigned char *sig)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    unsigned char *sig_try = NULL, *verif = NULL;
 
     if ((md_alg != MBEDTLS_MD_NONE || hashlen != 0) && hash == NULL) {
         return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
@@ -2508,36 +2522,10 @@ int mbedtls_rsa_rsassa_pkcs1_v15_sign(mbedtls_rsa_context *ctx,
     }
 
     /* Private key operation
-     *
-     * In order to prevent Lenstra's attack, make the signature in a
-     * temporary buffer and check it before returning it.
      */
-
-    sig_try = mbedtls_calloc(1, ctx->len);
-    if (sig_try == NULL) {
-        return MBEDTLS_ERR_MPI_ALLOC_FAILED;
-    }
-
-    verif = mbedtls_calloc(1, ctx->len);
-    if (verif == NULL) {
-        mbedtls_free(sig_try);
-        return MBEDTLS_ERR_MPI_ALLOC_FAILED;
-    }
-
-    MBEDTLS_MPI_CHK(mbedtls_rsa_private(ctx, f_rng, p_rng, sig, sig_try));
-    MBEDTLS_MPI_CHK(mbedtls_rsa_public(ctx, sig_try, verif));
-
-    if (mbedtls_ct_memcmp(verif, sig, ctx->len) != 0) {
-        ret = MBEDTLS_ERR_RSA_PRIVATE_FAILED;
-        goto cleanup;
-    }
-
-    memcpy(sig, sig_try, ctx->len);
+    MBEDTLS_MPI_CHK(mbedtls_rsa_private(ctx, f_rng, p_rng, sig, sig));
 
 cleanup:
-    mbedtls_zeroize_and_free(sig_try, ctx->len);
-    mbedtls_zeroize_and_free(verif, ctx->len);
-
     if (ret != 0) {
         memset(sig, '!', ctx->len);
     }
