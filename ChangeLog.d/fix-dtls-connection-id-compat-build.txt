@@ -1,0 +1,3 @@
+Bugfix
+   * Fix a compilation warning in ssl.h when MBEDTLS_SSL_DTLS_CONNECTION_ID
+     and MBEDTLS_SSL_DTLS_CONNECTION_ID_COMPAT are not defined. Fixes #10207.

@@ -656,10 +656,16 @@
 #define MBEDTLS_TLS_EXT_SIG_ALG_CERT                50 /* RFC 8446 TLS 1.3 */
 #define MBEDTLS_TLS_EXT_KEY_SHARE                   51 /* RFC 8446 TLS 1.3 */
 
+/*
+ * MBEDTLS_TLS_EXT_CID is required only when
+ * MBEDTLS_SSL_DTLS_CONNECTION_ID is defined.
+ */
+#if defined(MBEDTLS_SSL_DTLS_CONNECTION_ID)
 #if MBEDTLS_SSL_DTLS_CONNECTION_ID_COMPAT == 0
 #define MBEDTLS_TLS_EXT_CID                         54 /* RFC 9146 DTLS 1.2 CID */
 #else
 #define MBEDTLS_TLS_EXT_CID                        254 /* Pre-RFC 9146 DTLS 1.2 CID */
+#endif
 #endif
 
 #define MBEDTLS_TLS_EXT_ECJPAKE_KKPP               256 /* experimental */
