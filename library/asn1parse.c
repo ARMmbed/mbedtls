@@ -66,6 +66,10 @@ int mbedtls_asn1_get_tag(unsigned char **p,
         return MBEDTLS_ERR_ASN1_OUT_OF_DATA;
     }
 
+    if (MBEDTLS_ASN1_TAG_VALUE_MASK == (**p & MBEDTLS_ASN1_TAG_VALUE_MASK)) {
+        return MBEDTLS_ERR_ASN1_UNEXPECTED_TAG;
+    }
+
     if (**p != tag) {
         return MBEDTLS_ERR_ASN1_UNEXPECTED_TAG;
     }
