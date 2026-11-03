@@ -1,0 +1,7 @@
+Bugfix
+   * Fix mbedtls_ssl_set_hostname(ssl, NULL) causing the connection to
+     fail when compiled with some versions of IAR in configurations
+     with MBEDTLS_SSL_SERVER_NAME_INDICATION disabled. Also fix
+     mbedtls_ssl_set_hostname(ssl, "") which could disable hostname
+     verification instead of requiring an empty hostname when compiled
+     with some optimizing compilers. Fixes #10842.

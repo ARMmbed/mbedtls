@@ -2789,7 +2789,7 @@ void mbedtls_ssl_conf_groups(mbedtls_ssl_config *conf,
  * mbedtls_ssl_set_hostname() has been called with `NULL`.
  * If mbedtls_ssl_set_hostname() has never been called on `ssl`, then
  * `ssl->hostname == NULL`. */
-static const char *const ssl_hostname_skip_cn_verification = "";
+static const char *const ssl_hostname_skip_cn_verification[] = { 0 };
 
 #if defined(MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED)
 /** Whether mbedtls_ssl_set_hostname() has been called.
@@ -2820,7 +2820,7 @@ static
 #endif
 const char *mbedtls_ssl_get_hostname_pointer(const mbedtls_ssl_context *ssl)
 {
-    if (ssl->hostname == ssl_hostname_skip_cn_verification) {
+    if (ssl->hostname == (char *) ssl_hostname_skip_cn_verification) {
         return NULL;
     }
     return ssl->hostname;
@@ -2830,7 +2830,7 @@ const char *mbedtls_ssl_get_hostname_pointer(const mbedtls_ssl_context *ssl)
 static void mbedtls_ssl_free_hostname(mbedtls_ssl_context *ssl)
 {
     if (ssl->hostname != NULL &&
-        ssl->hostname != ssl_hostname_skip_cn_verification) {
+        ssl->hostname != (char *) ssl_hostname_skip_cn_verification) {
         mbedtls_zeroize_and_free(ssl->hostname, strlen(ssl->hostname));
     }
     ssl->hostname = NULL;
