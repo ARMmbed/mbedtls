@@ -400,10 +400,10 @@ static inline uint64_t mbedtls_bswap64(uint64_t x)
 
 #if !defined(__BYTE_ORDER__)
 
-#if defined(__LITTLE_ENDIAN__)
+#if defined(__LITTLE_ENDIAN__) && (__LITTLE_ENDIAN__ == 1)
 /* IAR defines __xxx_ENDIAN__, but not __BYTE_ORDER__ */
 #define MBEDTLS_IS_BIG_ENDIAN 0
-#elif defined(__BIG_ENDIAN__)
+#elif defined(__BIG_ENDIAN__) && (__BIG_ENDIAN__ == 1)
 #define MBEDTLS_IS_BIG_ENDIAN 1
 #else
 static const uint16_t mbedtls_byte_order_detector = { 0x100 };
