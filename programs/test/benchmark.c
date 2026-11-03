@@ -363,6 +363,20 @@ static unsigned long mbedtls_timing_hardclock(void)
 #endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
           __GNUC__ && __ia64__ */
 
+#if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&      \
+    defined(__GNUC__) && defined(__xtensa__)
+
+#define HAVE_HARDCLOCK
+
+static unsigned long mbedtls_timing_hardclock(void)
+{
+    unsigned int ccount;
+    asm volatile ("rsr %0, ccount" : "=r" (ccount));
+    return ccount;
+}
+#endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
+          __GNUC__ && __xtensa__ */
+
 #if !defined(HAVE_HARDCLOCK) && defined(_WIN32) && \
     !defined(EFIX64) && !defined(EFI32)
 
