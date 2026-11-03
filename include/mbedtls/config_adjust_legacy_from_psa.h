@@ -859,6 +859,12 @@
 #endif
 #endif /* PSA_WANT_ALG_GCM */
 
+#if defined(PSA_WANT_ALG_XTS)
+#if !defined(MBEDTLS_PSA_ACCEL_ALG_XTS)
+#define MBEDTLS_PSA_BUILTIN_ALG_XTS 1
+#endif
+#endif /* PSA_WANT_ALG_XTS */
+
 #if defined(PSA_WANT_ALG_CHACHA20_POLY1305)
 #if !defined(MBEDTLS_PSA_ACCEL_ALG_CHACHA20_POLY1305)
 #if defined(PSA_WANT_KEY_TYPE_CHACHA20)

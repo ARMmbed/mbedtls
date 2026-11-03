@@ -175,6 +175,11 @@ psa_status_t mbedtls_cipher_values_from_psa(
                 *mode = MBEDTLS_MODE_CBC;
                 break;
 #endif
+#if defined(MBEDTLS_PSA_BUILTIN_ALG_XTS)
+            case PSA_ALG_XTS:
+                *mode = MBEDTLS_MODE_XTS;
+                break;
+#endif
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_CCM_STAR_NO_TAG)
             case PSA_ALG_CCM_STAR_NO_TAG:
                 *mode = MBEDTLS_MODE_CCM_STAR_NO_TAG;
