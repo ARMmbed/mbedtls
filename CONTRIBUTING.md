@@ -10,6 +10,7 @@ More details on all of these points may be found in the sections below.
 - [Sign-off](#license-and-copyright): all commits must be signed off.
 - [Tests](#tests): please ensure the PR includes adequate tests.
 - [Changelog](#documentation): if needed, please provide a changelog entry.
+- [development](#development-branch): please ensure the PR is against the development branch.
 - [Backports](#long-term-support-branches): provide a backport if needed (it's fine to wait until the main PR is accepted).
 
 Coding Standards
@@ -52,6 +53,15 @@ It would be highly appreciated if contributions are backported to LTS branches i
 
 The list of maintained branches can be found in the [Current Branches section
 of BRANCHES.md](BRANCHES.md#current-branches).
+
+development branch
+------------------
+
+development branch is where all development happens. Some PRs will be backported into the LTS branches, but not all. So all PRs must first start with development. We won't merge a PR into development if we want backport PRs and they are not present. Very specifically, gatekeepers should merge all PRs at the same time. 
+
+Now, some people will create the backports at the same time as the main PR. If changes are required, this means extra work.
+
+It is fine to wait until we are happy with a PR before creating backports. But it's usually best to start with a PR against development (obviously there are special cases of issues that are only in an LTS branch, but ignoring that for the sake of a generally applicable rule) and then create backport PRs if required or requested. 
 
 Tests
 -----
