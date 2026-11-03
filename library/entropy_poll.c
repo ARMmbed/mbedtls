@@ -42,6 +42,10 @@
 #include <bcrypt.h>
 #include <intsafe.h>
 
+#if defined(_MSC_VER)
+#pragma comment( lib, "bcrypt.lib" )
+#endif /* _MSC_VER */
+
 int mbedtls_platform_entropy_poll(void *data, unsigned char *output, size_t len,
                                   size_t *olen)
 {
