@@ -156,7 +156,7 @@ void base64_encode_hex(data_t *src, char *dst, int dst_buf_size,
     unsigned char *res = NULL;
     size_t len;
 
-    res = mbedtls_test_zero_alloc(dst_buf_size);
+    TEST_CALLOC(res, dst_buf_size);
 
     TEST_CF_SECRET(src->x, src->len);
     TEST_ASSERT(mbedtls_base64_encode(res, dst_buf_size, &len, src->x, src->len) == result);
@@ -183,7 +183,7 @@ void base64_decode_hex(char *src, data_t *dst, int dst_buf_size,
     unsigned char *res = NULL;
     size_t len;
 
-    res = mbedtls_test_zero_alloc(dst_buf_size);
+    TEST_CALLOC(res, dst_buf_size);
 
     TEST_ASSERT(mbedtls_base64_decode(res, dst_buf_size, &len, (unsigned char *) src,
                                       strlen(src)) == result);
