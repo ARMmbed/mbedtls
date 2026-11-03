@@ -1,0 +1,4 @@
+Bugfix
+   * library/pk_internal.h: Fix 'MBEDTLS_PSA_MAX_EC_PUBKEY_LENGTH' and
+     'MBEDTLS_PSA_MAX_EC_KEY_PAIR_LENGTH' are not defined errors when
+     building in a configuration that does not enable PSA.

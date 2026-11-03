@@ -61,13 +61,17 @@
 #endif
 
 #if defined(PK_EXPORT_KEYS_ON_THE_STACK)
-/* We know for ECC, pubkey are longer than privkeys, but double check.
- * Also, take the maximum size of legacy and PSA, as PSA might be disabled. */
+/* Take the maximum size of legacy ECP and PSA EC sizes.
+ * PSA might be disabled, so guard the PSA-specific macros. */
+#if defined(MBEDTLS_PSA_CRYPTO_CLIENT)
 #define PK_EXPORT_KEY_STACK_BUFFER_SIZE  MBEDTLS_PSA_MAX_EC_PUBKEY_LENGTH
 #if PK_EXPORT_KEY_STACK_BUFFER_SIZE < MBEDTLS_PSA_MAX_EC_KEY_PAIR_LENGTH
 #undef PK_EXPORT_KEY_STACK_BUFFER_SIZE
 #define PK_EXPORT_KEY_STACK_BUFFER_SIZE  MBEDTLS_PSA_MAX_EC_KEY_PAIR_LENGTH
 #endif
+#else
+#define PK_EXPORT_KEY_STACK_BUFFER_SIZE  0
+#endif /* MBEDTLS_PSA_CRYPTO_CLIENT */
 #if PK_EXPORT_KEY_STACK_BUFFER_SIZE < MBEDTLS_ECP_MAX_BYTES
 #undef PK_EXPORT_KEY_STACK_BUFFER_SIZE
 #define PK_EXPORT_KEY_STACK_BUFFER_SIZE  MBEDTLS_ECP_MAX_BYTES
