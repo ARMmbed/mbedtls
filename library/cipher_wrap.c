@@ -48,10 +48,6 @@
 #include "mbedtls/ccm.h"
 #endif
 
-#if defined(MBEDTLS_NIST_KW_C)
-#include "mbedtls/nist_kw.h"
-#endif
-
 #if defined(MBEDTLS_CIPHER_NULL_CIPHER)
 #include <string.h>
 #endif
@@ -100,9 +96,6 @@ enum mbedtls_cipher_base_index {
 #endif
 #if defined(MBEDTLS_GCM_C) && defined(MBEDTLS_CAMELLIA_C)
     MBEDTLS_CIPHER_BASE_INDEX_GCM_CAMELLIA,
-#endif
-#if defined(MBEDTLS_NIST_KW_C)
-    MBEDTLS_CIPHER_BASE_INDEX_KW_AES,
 #endif
 #if defined(MBEDTLS_CIPHER_NULL_CIPHER)
     MBEDTLS_CIPHER_BASE_INDEX_NULL_BASE,
@@ -2119,136 +2112,6 @@ static const mbedtls_cipher_info_t null_cipher_info = {
 };
 #endif /* defined(MBEDTLS_CIPHER_NULL_CIPHER) */
 
-#if defined(MBEDTLS_NIST_KW_C)
-static void *kw_ctx_alloc(void)
-{
-    void *ctx = mbedtls_calloc(1, sizeof(mbedtls_nist_kw_context));
-
-    if (ctx != NULL) {
-        mbedtls_nist_kw_init((mbedtls_nist_kw_context *) ctx);
-    }
-
-    return ctx;
-}
-
-static void kw_ctx_free(void *ctx)
-{
-    mbedtls_nist_kw_free(ctx);
-    mbedtls_free(ctx);
-}
-
-static int kw_aes_setkey_wrap(void *ctx, const unsigned char *key,
-                              unsigned int key_bitlen)
-{
-    return mbedtls_nist_kw_setkey((mbedtls_nist_kw_context *) ctx,
-                                  MBEDTLS_CIPHER_ID_AES, key, key_bitlen, 1);
-}
-
-static int kw_aes_setkey_unwrap(void *ctx, const unsigned char *key,
-                                unsigned int key_bitlen)
-{
-    return mbedtls_nist_kw_setkey((mbedtls_nist_kw_context *) ctx,
-                                  MBEDTLS_CIPHER_ID_AES, key, key_bitlen, 0);
-}
-
-static const mbedtls_cipher_base_t kw_aes_info = {
-    MBEDTLS_CIPHER_ID_AES,
-    NULL,
-#if defined(MBEDTLS_CIPHER_MODE_CBC)
-    NULL,
-#endif
-#if defined(MBEDTLS_CIPHER_MODE_CFB)
-    NULL,
-#endif
-#if defined(MBEDTLS_CIPHER_MODE_OFB)
-    NULL,
-#endif
-#if defined(MBEDTLS_CIPHER_MODE_CTR)
-    NULL,
-#endif
-#if defined(MBEDTLS_CIPHER_MODE_XTS)
-    NULL,
-#endif
-#if defined(MBEDTLS_CIPHER_MODE_STREAM)
-    NULL,
-#endif
-    kw_aes_setkey_wrap,
-    kw_aes_setkey_unwrap,
-    kw_ctx_alloc,
-    kw_ctx_free,
-};
-
-static const mbedtls_cipher_info_t aes_128_nist_kw_info = {
-    "AES-128-KW",
-    16,
-    0 >> MBEDTLS_IV_SIZE_SHIFT,
-    128 >> MBEDTLS_KEY_BITLEN_SHIFT,
-    MBEDTLS_MODE_KW,
-    MBEDTLS_CIPHER_AES_128_KW,
-    0,
-    MBEDTLS_CIPHER_BASE_INDEX_KW_AES
-};
-
-#if !defined(MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH)
-static const mbedtls_cipher_info_t aes_192_nist_kw_info = {
-    "AES-192-KW",
-    16,
-    0 >> MBEDTLS_IV_SIZE_SHIFT,
-    192 >> MBEDTLS_KEY_BITLEN_SHIFT,
-    MBEDTLS_MODE_KW,
-    MBEDTLS_CIPHER_AES_192_KW,
-    0,
-    MBEDTLS_CIPHER_BASE_INDEX_KW_AES
-};
-
-static const mbedtls_cipher_info_t aes_256_nist_kw_info = {
-    "AES-256-KW",
-    16,
-    0 >> MBEDTLS_IV_SIZE_SHIFT,
-    256 >> MBEDTLS_KEY_BITLEN_SHIFT,
-    MBEDTLS_MODE_KW,
-    MBEDTLS_CIPHER_AES_256_KW,
-    0,
-    MBEDTLS_CIPHER_BASE_INDEX_KW_AES
-};
-#endif
-
-static const mbedtls_cipher_info_t aes_128_nist_kwp_info = {
-    "AES-128-KWP",
-    16,
-    0 >> MBEDTLS_IV_SIZE_SHIFT,
-    128 >> MBEDTLS_KEY_BITLEN_SHIFT,
-    MBEDTLS_MODE_KWP,
-    MBEDTLS_CIPHER_AES_128_KWP,
-    0,
-    MBEDTLS_CIPHER_BASE_INDEX_KW_AES
-};
-
-#if !defined(MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH)
-static const mbedtls_cipher_info_t aes_192_nist_kwp_info = {
-    "AES-192-KWP",
-    16,
-    0 >> MBEDTLS_IV_SIZE_SHIFT,
-    192 >> MBEDTLS_KEY_BITLEN_SHIFT,
-    MBEDTLS_MODE_KWP,
-    MBEDTLS_CIPHER_AES_192_KWP,
-    0,
-    MBEDTLS_CIPHER_BASE_INDEX_KW_AES
-};
-
-static const mbedtls_cipher_info_t aes_256_nist_kwp_info = {
-    "AES-256-KWP",
-    16,
-    0 >> MBEDTLS_IV_SIZE_SHIFT,
-    256 >> MBEDTLS_KEY_BITLEN_SHIFT,
-    MBEDTLS_MODE_KWP,
-    MBEDTLS_CIPHER_AES_256_KWP,
-    0,
-    MBEDTLS_CIPHER_BASE_INDEX_KW_AES
-};
-#endif
-#endif /* MBEDTLS_NIST_KW_C */
-
 const mbedtls_cipher_definition_t mbedtls_cipher_definitions[] =
 {
 #if defined(MBEDTLS_AES_C)
@@ -2401,19 +2264,6 @@ const mbedtls_cipher_definition_t mbedtls_cipher_definitions[] =
     { MBEDTLS_CIPHER_CHACHA20_POLY1305,    &chachapoly_info },
 #endif
 
-#if defined(MBEDTLS_NIST_KW_C)
-    { MBEDTLS_CIPHER_AES_128_KW,          &aes_128_nist_kw_info },
-#if !defined(MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH)
-    { MBEDTLS_CIPHER_AES_192_KW,          &aes_192_nist_kw_info },
-    { MBEDTLS_CIPHER_AES_256_KW,          &aes_256_nist_kw_info },
-#endif
-    { MBEDTLS_CIPHER_AES_128_KWP,         &aes_128_nist_kwp_info },
-#if !defined(MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH)
-    { MBEDTLS_CIPHER_AES_192_KWP,         &aes_192_nist_kwp_info },
-    { MBEDTLS_CIPHER_AES_256_KWP,         &aes_256_nist_kwp_info },
-#endif
-#endif
-
 #if defined(MBEDTLS_CIPHER_NULL_CIPHER)
     { MBEDTLS_CIPHER_NULL,                 &null_cipher_info },
 #endif /* MBEDTLS_CIPHER_NULL_CIPHER */
@@ -2467,9 +2317,6 @@ const mbedtls_cipher_base_t * const mbedtls_cipher_base_lookup_table[] = {
 #endif
 #if defined(MBEDTLS_GCM_C) && defined(MBEDTLS_CAMELLIA_C)
     [MBEDTLS_CIPHER_BASE_INDEX_GCM_CAMELLIA] = &gcm_camellia_info,
-#endif
-#if defined(MBEDTLS_NIST_KW_C)
-    [MBEDTLS_CIPHER_BASE_INDEX_KW_AES] = &kw_aes_info,
 #endif
 #if defined(MBEDTLS_CIPHER_NULL_CIPHER)
     [MBEDTLS_CIPHER_BASE_INDEX_NULL_BASE] = &null_base_info,

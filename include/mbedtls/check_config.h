@@ -113,10 +113,6 @@
 #error "MBEDTLS_CMAC_C defined, but not all prerequisites"
 #endif
 
-#if defined(MBEDTLS_NIST_KW_C) && \
-    ( !defined(MBEDTLS_AES_C) || !defined(MBEDTLS_CIPHER_C) )
-#error "MBEDTLS_NIST_KW_C defined, but not all prerequisites"
-#endif
 
 #if defined(MBEDTLS_BLOCK_CIPHER_NO_DECRYPT) && defined(MBEDTLS_PSA_CRYPTO_CONFIG)
 #if defined(PSA_WANT_ALG_CBC_NO_PADDING)

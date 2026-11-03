@@ -621,7 +621,7 @@ void mbedtls_cipher_free(mbedtls_cipher_context_t *ctx);
  *                      non-AEAD modes;
  *                      - mbedtls_cipher_auth_encrypt_ext() or
  *                      mbedtls_cipher_auth_decrypt_ext() for one-shot
- *                      processing with AEAD modes or NIST_KW;
+ *                      processing with AEAD modes;
  *                      - for multi-part processing, see the documentation of
  *                      mbedtls_cipher_reset().
  *
@@ -1135,26 +1135,24 @@ int mbedtls_cipher_crypt(mbedtls_cipher_context_t *ctx,
                          const unsigned char *input, size_t ilen,
                          unsigned char *output, size_t *olen);
 
-#if defined(MBEDTLS_CIPHER_MODE_AEAD) || defined(MBEDTLS_NIST_KW_C)
+#if defined(MBEDTLS_CIPHER_MODE_AEAD)
 /**
- * \brief               The authenticated encryption (AEAD/NIST_KW) function.
+ * \brief               The authenticated encryption (AEAD) function.
  *
  * \note                For AEAD modes, the tag will be appended to the
  *                      ciphertext, as recommended by RFC 5116.
- *                      (NIST_KW doesn't have a separate tag.)
  *
  * \param ctx           The generic cipher context. This must be initialized and
- *                      bound to a key, with an AEAD algorithm or NIST_KW.
+ *                      bound to a key, with an AEAD algorithm.
  * \param iv            The nonce to use. This must be a readable buffer of
  *                      at least \p iv_len Bytes and may be \c NULL if \p
  *                      iv_len is \c 0.
  * \param iv_len        The length of the nonce. For AEAD ciphers, this must
  *                      satisfy the constraints imposed by the cipher used.
- *                      For NIST_KW, this must be \c 0.
  * \param ad            The additional data to authenticate. This must be a
  *                      readable buffer of at least \p ad_len Bytes, and may
  *                      be \c NULL is \p ad_len is \c 0.
- * \param ad_len        The length of \p ad. For NIST_KW, this must be \c 0.
+ * \param ad_len        The length of \p ad
  * \param input         The buffer holding the input data. This must be a
  *                      readable buffer of at least \p ilen Bytes, and may be
  *                      \c NULL if \p ilen is \c 0.
@@ -1164,7 +1162,6 @@ int mbedtls_cipher_crypt(mbedtls_cipher_context_t *ctx,
  *                      must not be \c NULL.
  * \param output_len    The length of the \p output buffer in Bytes. For AEAD
  *                      ciphers, this must be at least \p ilen + \p tag_len.
- *                      For NIST_KW, this must be at least \p ilen + 8
  *                      (rounded up to a multiple of 8 if KWP is used);
  *                      \p ilen + 15 is always a safe value.
  * \param olen          This will be filled with the actual number of Bytes
@@ -1173,7 +1170,6 @@ int mbedtls_cipher_crypt(mbedtls_cipher_context_t *ctx,
  * \param tag_len       The desired length of the authentication tag. For AEAD
  *                      ciphers, this must match the constraints imposed by
  *                      the cipher used, and in particular must not be \c 0.
- *                      For NIST_KW, this must be \c 0.
  *
  * \return              \c 0 on success.
  * \return              #MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA on
@@ -1188,7 +1184,7 @@ int mbedtls_cipher_auth_encrypt_ext(mbedtls_cipher_context_t *ctx,
                                     size_t *olen, size_t tag_len);
 
 /**
- * \brief               The authenticated encryption (AEAD/NIST_KW) function.
+ * \brief               The authenticated encryption (AEAD) function.
  *
  * \note                If the data is not authentic, then the output buffer
  *                      is zeroed out to prevent the unauthentic plaintext being
@@ -1196,39 +1192,34 @@ int mbedtls_cipher_auth_encrypt_ext(mbedtls_cipher_context_t *ctx,
  *
  * \note                For AEAD modes, the tag must be appended to the
  *                      ciphertext, as recommended by RFC 5116.
- *                      (NIST_KW doesn't have a separate tag.)
  *
  * \param ctx           The generic cipher context. This must be initialized and
- *                      bound to a key, with an AEAD algorithm or NIST_KW.
+ *                      bound to a key, with an AEAD algorithm.
  * \param iv            The nonce to use. This must be a readable buffer of
  *                      at least \p iv_len Bytes and may be \c NULL if \p
  *                      iv_len is \c 0.
  * \param iv_len        The length of the nonce. For AEAD ciphers, this must
  *                      satisfy the constraints imposed by the cipher used.
- *                      For NIST_KW, this must be \c 0.
  * \param ad            The additional data to authenticate. This must be a
  *                      readable buffer of at least \p ad_len Bytes, and may
  *                      be \c NULL is \p ad_len is \c 0.
- * \param ad_len        The length of \p ad. For NIST_KW, this must be \c 0.
+ * \param ad_len        The length of \p ad.
  * \param input         The buffer holding the input data. This must be a
  *                      readable buffer of at least \p ilen Bytes, and may be
  *                      \c NULL if \p ilen is \c 0.
  * \param ilen          The length of the input data. For AEAD ciphers this
- *                      must be at least \p tag_len. For NIST_KW this must be
- *                      at least \c 8.
+ *                      must be at least \p tag_len.
  * \param output        The buffer for the output data. This must be a
  *                      writable buffer of at least \p output_len Bytes, and
  *                      may be \c NULL if \p output_len is \c 0.
  * \param output_len    The length of the \p output buffer in Bytes. For AEAD
  *                      ciphers, this must be at least \p ilen - \p tag_len.
- *                      For NIST_KW, this must be at least \p ilen - 8.
  * \param olen          This will be filled with the actual number of Bytes
  *                      written to the \p output buffer. This must point to a
  *                      writable object of type \c size_t.
  * \param tag_len       The actual length of the authentication tag. For AEAD
  *                      ciphers, this must match the constraints imposed by
  *                      the cipher used, and in particular must not be \c 0.
- *                      For NIST_KW, this must be \c 0.
  *
  * \return              \c 0 on success.
  * \return              #MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA on
@@ -1242,7 +1233,7 @@ int mbedtls_cipher_auth_decrypt_ext(mbedtls_cipher_context_t *ctx,
                                     const unsigned char *input, size_t ilen,
                                     unsigned char *output, size_t output_len,
                                     size_t *olen, size_t tag_len);
-#endif /* MBEDTLS_CIPHER_MODE_AEAD || MBEDTLS_NIST_KW_C */
+#endif /* MBEDTLS_CIPHER_MODE_AEAD */
 #ifdef __cplusplus
 }
 #endif

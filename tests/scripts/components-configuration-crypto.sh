@@ -665,6 +665,9 @@ component_test_full_no_ccm_star_no_tag () {
     scripts/config.py -f "$CRYPTO_CONFIG_H" unset PSA_WANT_ALG_CFB
     scripts/config.py -f "$CRYPTO_CONFIG_H" unset PSA_WANT_ALG_OFB
     scripts/config.py -f "$CRYPTO_CONFIG_H" unset PSA_WANT_ALG_ECB_NO_PADDING
+    # NOTE unsettting PSA_WANT_ALG_ECB_NO_PADDING without unsetting NIST_KW_C will
+    # mean PSA_WANT_ALG_ECB_NO_PADDING is re-enabled, so disabling it also.
+    scripts/config.py -f "$CRYPTO_CONFIG_H" unset MBEDTLS_NIST_KW_C
     scripts/config.py -f "$CRYPTO_CONFIG_H" unset PSA_WANT_ALG_CBC_NO_PADDING
     scripts/config.py -f "$CRYPTO_CONFIG_H" unset PSA_WANT_ALG_CBC_PKCS7
 

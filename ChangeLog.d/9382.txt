@@ -1,0 +1,5 @@
+API changes
+   * Align the mbedtls_nist_kw_wrap() and mbedtls_nist_kw_unwrap() functions
+     with the PSA Crypto API. The functions mbedtls_nist_kw_wrap() and
+     mbedtls_nist_kw_unwrap() now take a PSA key identifier instead of a
+     plain-text key via a custom context.
