@@ -49,6 +49,7 @@ void mbedtls_x509write_csr_free(mbedtls_x509write_csr *ctx)
 
     mbedtls_asn1_free_named_data_list(&ctx->subject);
     mbedtls_asn1_free_named_data_list(&ctx->extensions);
+    mbedtls_asn1_free_named_data_list(&ctx->attributes);
 
     mbedtls_platform_zeroize(ctx, sizeof(mbedtls_x509write_csr));
 }
@@ -77,6 +78,13 @@ int mbedtls_x509write_csr_set_extension(mbedtls_x509write_csr *ctx,
 {
     return mbedtls_x509_set_extension(&ctx->extensions, oid, oid_len,
                                       critical, val, val_len);
+}
+int mbedtls_x509write_csr_set_attribute(mbedtls_x509write_csr *ctx,
+                                        const char *oid, size_t oid_len,
+                                        const unsigned char *val, size_t val_len, const uint8_t val_tag)
+{
+    return mbedtls_x509_set_attribute(&ctx->attributes, oid, oid_len,
+                                      val, val_len, val_tag);
 }
 
 int mbedtls_x509write_csr_set_subject_alternative_name(mbedtls_x509write_csr *ctx,
@@ -132,6 +140,26 @@ int mbedtls_x509write_csr_set_ns_cert_type(mbedtls_x509write_csr *ctx,
     return 0;
 }
 
+int mbedtls_x509write_csr_set_challenge_password(mbedtls_x509write_csr *ctx,
+                                                 char *chal_pw,
+                                                 size_t chal_pw_len,
+                                                 int printable)
+{
+    if (chal_pw_len == 0 || chal_pw == NULL) {
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+    }
+
+    /* pkcs-9-ub-challengePassword INTEGER ::= pkcs-9-ub-pkcs9String */
+    if (chal_pw_len > MBEDTLS_X509_MAX_PKCS9_STR) {
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+    }
+
+    mbedtls_x509write_csr_set_attribute(ctx,
+                                        MBEDTLS_OID_PKCS9_CSR_CHAL_PW, MBEDTLS_OID_SIZE ( MBEDTLS_OID_PKCS9_CSR_CHAL_PW ),
+                                        (unsigned char *)chal_pw, chal_pw_len,
+                                        (printable ? MBEDTLS_ASN1_PRINTABLE_STRING : MBEDTLS_ASN1_UTF8_STRING ));
+    return 0;
+}
 static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
                                       unsigned char *buf,
                                       size_t size,
@@ -182,6 +210,9 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
                                  &c, buf,
                                  MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
     }
+
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_x509_write_attributes(&c, buf,
+                                                            ctx->attributes));
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(&c, buf, len));
     MBEDTLS_ASN1_CHK_ADD(len,

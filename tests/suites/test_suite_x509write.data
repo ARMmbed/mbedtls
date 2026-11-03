@@ -1,30 +1,30 @@
 Certificate Request check Server1 SHA1
 depends_on:MBEDTLS_MD_CAN_SHA1:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha1":MBEDTLS_MD_SHA1:0:0:0:0:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha1":MBEDTLS_MD_SHA1:0:0:0:0:0:0:0
 
 Certificate Request check Server1 SHA224
 depends_on:MBEDTLS_MD_CAN_SHA224:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha224":MBEDTLS_MD_SHA224:0:0:0:0:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha224":MBEDTLS_MD_SHA224:0:0:0:0:0:0:0
 
 Certificate Request check Server1 SHA256
 depends_on:MBEDTLS_MD_CAN_SHA256:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha256":MBEDTLS_MD_SHA256:0:0:0:0:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha256":MBEDTLS_MD_SHA256:0:0:0:0:0:0:0
 
 Certificate Request check Server1 SHA384
 depends_on:MBEDTLS_MD_CAN_SHA384:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha384":MBEDTLS_MD_SHA384:0:0:0:0:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha384":MBEDTLS_MD_SHA384:0:0:0:0:0:0:0
 
 Certificate Request check Server1 SHA512
 depends_on:MBEDTLS_MD_CAN_SHA512:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha512":MBEDTLS_MD_SHA512:0:0:0:0:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha512":MBEDTLS_MD_SHA512:0:0:0:0:0:0:0
 
 Certificate Request check Server1 MD5
 depends_on:MBEDTLS_MD_CAN_MD5:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.md5":MBEDTLS_MD_MD5:0:0:0:0:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.md5":MBEDTLS_MD_MD5:0:0:0:0:0:0:0
 
 Certificate Request check Server1 key_usage
 depends_on:MBEDTLS_MD_CAN_SHA1:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.key_usage":MBEDTLS_MD_SHA1:MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_NON_REPUDIATION | MBEDTLS_X509_KU_KEY_ENCIPHERMENT:1:0:0:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.key_usage":MBEDTLS_MD_SHA1:MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_NON_REPUDIATION | MBEDTLS_X509_KU_KEY_ENCIPHERMENT:1:0:0:0:0:0
 
 Certificate Request check opaque Server1 key_usage
 depends_on:MBEDTLS_MD_CAN_SHA1:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
@@ -32,27 +32,31 @@ x509_csr_check_opaque:"../framework/data_files/server1.key":MBEDTLS_MD_SHA1:MBED
 
 Certificate Request check Server1 key_usage empty
 depends_on:MBEDTLS_MD_CAN_SHA1:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.key_usage_empty":MBEDTLS_MD_SHA1:0:1:0:0:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.key_usage_empty":MBEDTLS_MD_SHA1:0:1:0:0:0:0:0
 
 Certificate Request check Server1 ns_cert_type
 depends_on:MBEDTLS_MD_CAN_SHA1:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.cert_type":MBEDTLS_MD_SHA1:0:0:MBEDTLS_X509_NS_CERT_TYPE_SSL_SERVER:1:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.cert_type":MBEDTLS_MD_SHA1:0:0:MBEDTLS_X509_NS_CERT_TYPE_SSL_SERVER:1:0:0:0
 
 Certificate Request check Server1 ns_cert_type empty
 depends_on:MBEDTLS_MD_CAN_SHA1:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.cert_type_empty":MBEDTLS_MD_SHA1:0:0:0:1:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.cert_type_empty":MBEDTLS_MD_SHA1:0:0:0:1:0:0:0
 
 Certificate Request check Server1 key_usage + ns_cert_type
 depends_on:MBEDTLS_MD_CAN_SHA1:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.ku-ct":MBEDTLS_MD_SHA1:MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_NON_REPUDIATION | MBEDTLS_X509_KU_KEY_ENCIPHERMENT:1:MBEDTLS_X509_NS_CERT_TYPE_SSL_SERVER:1:0
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.ku-ct":MBEDTLS_MD_SHA1:MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_NON_REPUDIATION | MBEDTLS_X509_KU_KEY_ENCIPHERMENT:1:MBEDTLS_X509_NS_CERT_TYPE_SSL_SERVER:1:0:0:0
 
 Certificate Request check Server5 ECDSA, key_usage
 depends_on:MBEDTLS_MD_CAN_SHA1:MBEDTLS_PK_CAN_ECDSA_SIGN:MBEDTLS_ECDSA_DETERMINISTIC:MBEDTLS_ECP_HAVE_SECP256R1
-x509_csr_check:"../framework/data_files/server5.key":"../framework/data_files/server5.req.ku.sha1":MBEDTLS_MD_SHA1:MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_NON_REPUDIATION:1:0:0:0
+x509_csr_check:"../framework/data_files/server5.key":"../framework/data_files/server5.req.ku.sha1":MBEDTLS_MD_SHA1:MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_NON_REPUDIATION:1:0:0:0:0:0
 
 Certificate Request check Server1, set_extension
 depends_on:MBEDTLS_MD_CAN_SHA256:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
-x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha256.ext":MBEDTLS_MD_SHA256:0:0:0:0:1
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.sha256.ext":MBEDTLS_MD_SHA256:0:0:0:0:1:0:0
+
+Certificate Request check Server1, set_challenge_password
+depends_on:PSA_WANT_ALG_SHA_256:MBEDTLS_RSA_C:MBEDTLS_PKCS1_V15
+x509_csr_check:"../framework/data_files/server1.key":"../framework/data_files/server1.req.pw":MBEDTLS_MD_SHA256:0:0:0:0:0:1:abcde
 
 Certificate Request check opaque Server5 ECDSA, key_usage
 depends_on:MBEDTLS_MD_CAN_SHA256:MBEDTLS_PK_CAN_ECDSA_SIGN:MBEDTLS_ECP_HAVE_SECP256R1

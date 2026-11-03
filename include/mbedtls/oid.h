@@ -340,6 +340,7 @@
 /*
  * PKCS#8 OIDs
  */
+#define MBEDTLS_OID_PKCS9_CSR_CHAL_PW           MBEDTLS_OID_PKCS9 "\x07" /**< challenge password OBJECT IDENTIFIER ::= {pkcs-9 7 } */
 #define MBEDTLS_OID_PKCS9_CSR_EXT_REQ           MBEDTLS_OID_PKCS9 "\x0e" /**< extensionRequest OBJECT IDENTIFIER ::= {pkcs-9 14} */
 
 /*

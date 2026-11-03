@@ -404,6 +404,26 @@ int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, 
     return 0;
 }
 
+int mbedtls_x509_set_attribute(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len,
+                               const unsigned char *val, size_t val_len, const uint8_t val_tag)
+{
+    mbedtls_asn1_named_data *cur;
+
+    if (val_len > (SIZE_MAX  - 1)) {
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+    }
+
+    if ((cur = mbedtls_asn1_store_named_data(head, oid, oid_len,
+                                             val, val_len )) == NULL) {
+        return MBEDTLS_ERR_X509_ALLOC_FAILED;
+    }
+
+    memcpy(cur->val.p, val, val_len);
+    cur->val.tag = val_tag;
+
+    return 0;
+}
+
 /*
  *  RelativeDistinguishedName ::=
  *    SET OF AttributeTypeAndValue
@@ -542,6 +562,33 @@ static int x509_write_extension(unsigned char **p, unsigned char *start,
     return (int) len;
 }
 
+static int x509_write_attribute(unsigned char **p, unsigned char *start,
+                                mbedtls_asn1_named_data *ext)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len = 0;
+
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tagged_string(p, start,
+                                                               ext->val.tag,
+                                                               (const char *)ext->val.p,
+                                                               ext->val.len));
+
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start,
+                                                     MBEDTLS_ASN1_CONSTRUCTED |
+                                                     MBEDTLS_ASN1_SET));
+
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_oid(p, start, (const char *) ext->oid.p,
+                                                     ext->oid.len));
+
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start,
+                                                     MBEDTLS_ASN1_CONSTRUCTED |
+                                                     MBEDTLS_ASN1_SEQUENCE));
+
+    return (int) len;
+}
+
 /*
  * Extension  ::=  SEQUENCE  {
  *     extnID      OBJECT IDENTIFIER,
@@ -567,4 +614,18 @@ int mbedtls_x509_write_extensions(unsigned char **p, unsigned char *start,
     return (int) len;
 }
 
+int mbedtls_x509_write_attributes(unsigned char **p, unsigned char *start,
+                                  mbedtls_asn1_named_data *first)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len = 0;
+    mbedtls_asn1_named_data *cur_att = first;
+
+    while (cur_att != NULL) {
+        MBEDTLS_ASN1_CHK_ADD(len, x509_write_attribute(p, start, cur_att));
+        cur_att = cur_att->next;
+    }
+
+    return (int) len;
+}
 #endif /* MBEDTLS_X509_CREATE_C */

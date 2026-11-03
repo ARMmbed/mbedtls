@@ -52,7 +52,11 @@ int mbedtls_x509_key_size_helper(char *buf, size_t buf_size, const char *name);
 int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len,
                                int critical, const unsigned char *val,
                                size_t val_len);
+int mbedtls_x509_set_attribute(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len,
+                               const unsigned char *val, size_t val_len, const uint8_t val_tag);
 int mbedtls_x509_write_extensions(unsigned char **p, unsigned char *start,
+                                  mbedtls_asn1_named_data *first);
+int mbedtls_x509_write_attributes(unsigned char **p, unsigned char *start,
                                   mbedtls_asn1_named_data *first);
 int mbedtls_x509_write_names(unsigned char **p, unsigned char *start,
                              mbedtls_asn1_named_data *first);

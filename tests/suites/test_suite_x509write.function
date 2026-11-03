@@ -146,7 +146,8 @@ static int csr_set_extended_key_usage(mbedtls_x509write_csr *ctx,
 /* BEGIN_CASE depends_on:MBEDTLS_PEM_WRITE_C:MBEDTLS_X509_CSR_WRITE_C */
 void x509_csr_check(char *key_file, char *cert_req_check_file, int md_type,
                     int key_usage, int set_key_usage, int cert_type,
-                    int set_cert_type, int set_extension)
+                    int set_cert_type, int set_extension,
+                    int chal_pw, char *set_chal_pw )
 {
     mbedtls_pk_context key;
     mbedtls_x509write_csr req;
@@ -220,6 +221,9 @@ void x509_csr_check(char *key_file, char *cert_req_check_file, int md_type,
     }
     if (set_cert_type != 0) {
         TEST_ASSERT(mbedtls_x509write_csr_set_ns_cert_type(&req, cert_type) == 0);
+    }
+    if (chal_pw != 0) {
+        TEST_ASSERT(mbedtls_x509write_csr_set_challenge_password(&req, set_chal_pw, strlen(set_chal_pw), 0 ) == 0);
     }
     if (set_extension != 0) {
         TEST_ASSERT(csr_set_extended_key_usage(&req, MBEDTLS_OID_SERVER_AUTH,

@@ -196,6 +196,7 @@
 #define MBEDTLS_X509_FORMAT_PEM                 2
 
 #define MBEDTLS_X509_MAX_DN_NAME_SIZE         256 /**< Maximum value size of a DN entry */
+#define MBEDTLS_X509_MAX_PKCS9_STR            255 /** pkcs-9-ub-pkcs9String INTEGER ::= 255 */
 
 #ifdef __cplusplus
 extern "C" {
