@@ -1,0 +1,3 @@
+Bugfix
+   * Fix a bug in pk_parse_key_pkcs8_unencrypted_der() where parsing of a pkcs8
+     unencrypted private key with Attributes field is failing. Fixes #9422.

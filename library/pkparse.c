@@ -843,7 +843,18 @@ static int pk_parse_key_pkcs8_unencrypted_der(
 #endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
     return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
 
-    end = p + len;
+    p = p + len;
+    if (p != end) {
+        /*
+         * Is 'attributes' present?
+         */
+        if ((ret = mbedtls_asn1_get_tag(&p, end, &len,
+                                        MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED |
+                                        0)) != 0) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_KEY_INVALID_FORMAT, ret);
+        }
+    }
+
     if (end != (key + keylen)) {
         return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_KEY_INVALID_FORMAT,
                                  MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
