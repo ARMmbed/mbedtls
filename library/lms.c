@@ -177,6 +177,10 @@ static int create_merkle_internal_value(const mbedtls_lms_parameters_t *params,
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     size_t output_hash_len;
     unsigned char r_node_idx_bytes[4];
+    /* out may alias left_node or right_node (mbedtls_lms_verify() walks the
+     * path in place), so hash into a local buffer and only write out at exit,
+     * after both inputs have been consumed. */
+    unsigned char node[MBEDTLS_LMS_M_NODE_BYTES_MAX];
 
     op = psa_hash_operation_init();
     status = psa_hash_setup(&op, PSA_ALG_SHA_256);
@@ -213,7 +217,7 @@ static int create_merkle_internal_value(const mbedtls_lms_parameters_t *params,
         goto exit;
     }
 
-    status = psa_hash_finish(&op, out, MBEDTLS_LMS_M_NODE_BYTES(params->type),
+    status = psa_hash_finish(&op, node, MBEDTLS_LMS_M_NODE_BYTES(params->type),
                              &output_hash_len);
     if (status != PSA_SUCCESS) {
         goto exit;
@@ -221,6 +225,13 @@ static int create_merkle_internal_value(const mbedtls_lms_parameters_t *params,
 
 exit:
     psa_hash_abort(&op);
+
+    if (status == PSA_SUCCESS) {
+        memcpy(out, node, MBEDTLS_LMS_M_NODE_BYTES(params->type));
+    } else {
+        memset(out, 0, MBEDTLS_LMS_M_NODE_BYTES(params->type));
+    }
+    mbedtls_platform_zeroize(node, sizeof(node));
 
     return PSA_TO_MBEDTLS_ERR(status);
 }
