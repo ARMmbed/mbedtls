@@ -1,0 +1,6 @@
+Bugfix
+   * Make the TLS 1.2 server to not reject a Client Key Exchange message which
+     has a zero-length PSK identity hint (as allowed by RFC 4279). TLS clients
+     usually pass an empty PSK identity hint when the server accepts only a
+     single pre-shared key. This fix only affects TLS 1.2 servers using PSK
+     based ciphersuites.

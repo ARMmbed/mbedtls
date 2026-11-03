@@ -3519,7 +3519,7 @@ static int ssl_parse_client_psk_identity(mbedtls_ssl_context *ssl, unsigned char
     n = MBEDTLS_GET_UINT16_BE(*p, 0);
     *p += 2;
 
-    if (n == 0 || n > end - *p) {
+    if (n > end - *p) {
         MBEDTLS_SSL_DEBUG_MSG(1, ("bad client key exchange message"));
         return MBEDTLS_ERR_SSL_DECODE_ERROR;
     }
