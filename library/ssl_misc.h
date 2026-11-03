@@ -2544,9 +2544,6 @@ static inline int mbedtls_ssl_sig_alg_is_received(const mbedtls_ssl_context *ssl
                                                   uint16_t own_sig_alg)
 {
     const uint16_t *sig_alg = ssl->handshake->received_sig_algs;
-    if (sig_alg == NULL) {
-        return 0;
-    }
 
     for (; *sig_alg != MBEDTLS_TLS_SIG_NONE; sig_alg++) {
         if (*sig_alg == own_sig_alg) {
