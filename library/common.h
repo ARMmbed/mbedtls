@@ -332,7 +332,8 @@ static inline void mbedtls_xor_no_simd(unsigned char *r,
         uint32_t x = mbedtls_get_unaligned_uint32(a + i) ^ mbedtls_get_unaligned_uint32(b + i);
         mbedtls_put_unaligned_uint32(r + i, x);
     }
-#if defined(__IAR_SYSTEMS_ICC__)
+#if defined(__IAR_SYSTEMS_ICC__) || \
+    (defined(MBEDTLS_ARCH_IS_ARM32) && defined(MBEDTLS_COMPILER_IS_GCC) && MBEDTLS_GCC_VERSION >= 150300)
     if (n % 4 == 0) {
         return;
     }
