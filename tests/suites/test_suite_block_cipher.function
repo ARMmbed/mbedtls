@@ -23,14 +23,17 @@
  */
 
 /* BEGIN_CASE depends_on:VALID_CIPHER_ID */
-void invalid()
+void invalid(int do_psa_init)
 {
     /* That size is valid for a key or an input/output block. */
     unsigned char buf[16] = { 0 };
 
     mbedtls_block_cipher_context_t ctx;
-
     mbedtls_block_cipher_init(&ctx);
+
+    if (do_psa_init) {
+        PSA_INIT();
+    }
 
     /* Bad parameters to setup */
     TEST_EQUAL(MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA,
@@ -55,24 +58,30 @@ void invalid()
     TEST_EQUAL(0, mbedtls_block_cipher_setup(&ctx, VALID_CIPHER_ID));
 
     /* Bad parameters to setkey() */
-    TEST_EQUAL(BADKEY_ERROR,
+    int badkey_error = (do_psa_init ? MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA :
+                        BADKEY_ERROR);
+    TEST_EQUAL(badkey_error,
                mbedtls_block_cipher_setkey(&ctx, buf, 42));
 
 exit:
     mbedtls_block_cipher_free(&ctx);
+    PSA_DONE();
 }
 /* END_CASE */
 
 /* BEGIN_CASE */
-void test_vec(int cipher_id_arg, data_t *key, data_t *input, data_t *outref)
+void test_vec(int do_psa_init,
+              int cipher_id_arg, data_t *key, data_t *input, data_t *outref)
 {
     mbedtls_block_cipher_context_t ctx;
+    mbedtls_block_cipher_init(&ctx);
     mbedtls_cipher_id_t cipher_id = cipher_id_arg;
     unsigned char output[BLOCK_SIZE];
-
-    mbedtls_block_cipher_init(&ctx);
-
     memset(output, 0x00, sizeof(output));
+
+    if (do_psa_init) {
+        PSA_INIT();
+    }
 
     TEST_EQUAL(0, mbedtls_block_cipher_setup(&ctx, cipher_id));
     TEST_EQUAL(0, mbedtls_block_cipher_setkey(&ctx, key->x, 8 * key->len));
@@ -90,6 +99,7 @@ void test_vec(int cipher_id_arg, data_t *key, data_t *input, data_t *outref)
 
 exit:
     mbedtls_block_cipher_free(&ctx);
+    PSA_DONE();
 }
 /* END_CASE */
 
