@@ -39,7 +39,7 @@ static int verify_int(char *str, intmax_t *p_value)
     /* Limit the range to long: for large integers, the test framework will
      * use expressions anyway. */
     long value = strtol(str, &end, 0);
-    if (errno == EINVAL || *end != '\0') {
+    if (*end != '\0' || end == str) {
         mbedtls_fprintf(stderr,
                         "Expected integer for parameter and got: %s\n", str);
         return KEY_VALUE_MAPPING_NOT_FOUND;

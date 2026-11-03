@@ -1,0 +1,2 @@
+Bugfix
+   * Fix some IAR warnings. Fixes #10648.

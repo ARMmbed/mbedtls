@@ -158,12 +158,6 @@ void mbedtls_byteswap(char *input_str, int size, char *expected_str)
 /* BEGIN_CASE */
 void get_byte()
 {
-    uint8_t data[16];
-
-    for (size_t i = 0; i < sizeof(data); i++) {
-        data[i] = (uint8_t) i;
-    }
-
     uint64_t u64 = 0x0706050403020100;
     for (size_t b = 0; b < 8; b++) {
         uint8_t expected = b;

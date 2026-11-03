@@ -836,8 +836,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
 
                 /* Error didn't trigger, make test fail */
                 if (inject_error == 1) {
-                    TEST_ASSERT(
-                        !"One of the last psa_pake_input() calls should have returned the expected error.");
+                    TEST_FAIL(
+                        "One of the last psa_pake_input() calls should have returned the expected error.");
                 }
             }
 
@@ -942,8 +942,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
 
                 /* Error didn't trigger, make test fail */
                 if (inject_error == 1) {
-                    TEST_ASSERT(
-                        !"One of the last psa_pake_input() calls should have returned the expected error.");
+                    TEST_FAIL(
+                        "One of the last psa_pake_input() calls should have returned the expected error.");
                 }
             }
 
@@ -1010,8 +1010,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
 
             /* Error didn't trigger, make test fail */
             if (inject_error == 2) {
-                TEST_ASSERT(
-                    !"One of the last psa_pake_input() calls should have returned the expected error.");
+                TEST_FAIL(
+                    "One of the last psa_pake_input() calls should have returned the expected error.");
             }
 
             break;
@@ -1077,8 +1077,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
 
                 /* Error didn't trigger, make test fail */
                 if (inject_error == 3) {
-                    TEST_ASSERT(
-                        !"One of the last psa_pake_input() calls should have returned the expected error.");
+                    TEST_FAIL(
+                        "One of the last psa_pake_input() calls should have returned the expected error.");
                 }
             }
 
@@ -1137,8 +1137,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
 
                 /* Error didn't trigger, make test fail */
                 if (inject_error == 3) {
-                    TEST_ASSERT(
-                        !"One of the last psa_pake_input() calls should have returned the expected error.");
+                    TEST_FAIL(
+                        "One of the last psa_pake_input() calls should have returned the expected error.");
                 }
             }
 
@@ -1177,8 +1177,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
 
             /* Error didn't trigger, make test fail */
             if (inject_error == 4) {
-                TEST_ASSERT(
-                    !"One of the last psa_pake_input() calls should have returned the expected error.");
+                TEST_FAIL(
+                    "One of the last psa_pake_input() calls should have returned the expected error.");
             }
 
             break;

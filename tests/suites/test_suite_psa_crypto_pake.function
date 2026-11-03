@@ -252,8 +252,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
                 /* Error didn't trigger, make test fail */
                 if ((err_stage >= ERR_INJECT_ROUND1_SERVER_KEY_SHARE_PART1) &&
                     (err_stage <= ERR_INJECT_ROUND1_SERVER_ZK_PROOF_PART2)) {
-                    TEST_ASSERT(
-                        !"One of the last psa_pake_input() calls should have returned the expected error.");
+                    TEST_FAIL(
+                        "One of the last psa_pake_input() calls should have returned the expected error.");
                 }
             }
 
@@ -346,8 +346,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
                 /* Error didn't trigger, make test fail */
                 if ((err_stage >= ERR_INJECT_ROUND1_SERVER_KEY_SHARE_PART1) &&
                     (err_stage <= ERR_INJECT_ROUND1_SERVER_ZK_PROOF_PART2)) {
-                    TEST_ASSERT(
-                        !"One of the last psa_pake_input() calls should have returned the expected error.");
+                    TEST_FAIL(
+                        "One of the last psa_pake_input() calls should have returned the expected error.");
                 }
             }
 
@@ -379,8 +379,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
             /* Error didn't trigger, make test fail */
             if ((err_stage >= ERR_INJECT_ROUND1_CLIENT_KEY_SHARE_PART1) &&
                 (err_stage <= ERR_INJECT_ROUND1_CLIENT_ZK_PROOF_PART2)) {
-                TEST_ASSERT(
-                    !"One of the last psa_pake_input() calls should have returned the expected error.");
+                TEST_FAIL(
+                    "One of the last psa_pake_input() calls should have returned the expected error.");
             }
 
             break;
@@ -435,8 +435,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
                 /* Error didn't trigger, make test fail */
                 if ((err_stage >= ERR_INJECT_ROUND2_SERVER_KEY_SHARE) &&
                     (err_stage <= ERR_INJECT_ROUND2_SERVER_ZK_PROOF)) {
-                    TEST_ASSERT(
-                        !"One of the last psa_pake_input() calls should have returned the expected error.");
+                    TEST_FAIL(
+                        "One of the last psa_pake_input() calls should have returned the expected error.");
                 }
             }
 
@@ -499,8 +499,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
                 /* Error didn't trigger, make test fail */
                 if ((err_stage >= ERR_INJECT_ROUND2_SERVER_KEY_SHARE) &&
                     (err_stage <= ERR_INJECT_ROUND2_SERVER_ZK_PROOF)) {
-                    TEST_ASSERT(
-                        !"One of the last psa_pake_input() calls should have returned the expected error.");
+                    TEST_FAIL(
+                        "One of the last psa_pake_input() calls should have returned the expected error.");
                 }
             }
 
@@ -526,8 +526,8 @@ static void ecjpake_do_round(psa_algorithm_t alg, unsigned int primitive,
             /* Error didn't trigger, make test fail */
             if ((err_stage >= ERR_INJECT_ROUND2_CLIENT_KEY_SHARE) &&
                 (err_stage <= ERR_INJECT_ROUND2_CLIENT_ZK_PROOF)) {
-                TEST_ASSERT(
-                    !"One of the last psa_pake_input() calls should have returned the expected error.");
+                TEST_FAIL(
+                    "One of the last psa_pake_input() calls should have returned the expected error.");
             }
 
             break;

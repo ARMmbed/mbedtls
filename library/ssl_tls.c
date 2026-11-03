@@ -10211,7 +10211,7 @@ int mbedtls_ssl_export_keying_material(mbedtls_ssl_context *ssl,
 
     int ciphersuite_id = mbedtls_ssl_get_ciphersuite_id_from_ssl(ssl);
     const mbedtls_ssl_ciphersuite_t *ciphersuite = mbedtls_ssl_ciphersuite_from_id(ciphersuite_id);
-    const mbedtls_md_type_t hash_alg = ciphersuite->mac;
+    const mbedtls_md_type_t hash_alg = (mbedtls_md_type_t) ciphersuite->mac;
 
     switch (mbedtls_ssl_get_version_number(ssl)) {
 #if defined(MBEDTLS_SSL_PROTO_TLS1_2)

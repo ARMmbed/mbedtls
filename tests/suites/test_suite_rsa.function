@@ -1190,7 +1190,7 @@ void mbedtls_rsa_validate_params(char *input_N,
                                             have_D ? &D : NULL,
                                             have_E ? &E : NULL,
                                             prng ? mbedtls_test_rnd_std_rand : NULL,
-                                            prng ? NULL : NULL) == result);
+                                            NULL) == result);
 
 exit:
     mbedtls_mpi_free(&N);

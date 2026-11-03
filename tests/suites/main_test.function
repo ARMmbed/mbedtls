@@ -34,6 +34,12 @@
 #endif
 #endif
 
+#if defined(__IAR_SYSTEMS_ICC__)
+/* With IAR, enable support for ::FILE functions in stdio.h.
+ */
+#define _DLIB_FILE_DESCRIPTOR 1
+#endif
+
 #include "mbedtls/build_info.h"
 
 /* Test code may use deprecated identifiers only if the preprocessor symbol
@@ -56,6 +62,24 @@ __MBEDTLS_TEST_TEMPLATE__TEST_COMMON_HELPERS
 /*----------------------------------------------------------------------------*/
 /* Test Suite Code */
 
+
+#if defined(__IAR_SYSTEMS_ICC__)
+/* Suppress a very overeager warning from IAR: it dislikes a forward goto
+ * that bypasses the initialization of a variable, even if that variable
+ * is not used after the jump. (This is perfectly valid C; it would only
+ * be invalid C if jumping into a block from outside that block.)
+ */
+#pragma diag_suppress=Pe546 // transfer of control bypasses initialization
+
+/* Temporarily suppress a perfectly reasonable warning from IAR that
+ * comes up very often in our unit tests: silent conversion of int to
+ * an enum type.
+ *
+ * Remove this when https://github.com/Mbed-TLS/TF-PSA-Crypto/issues/707
+ * is fixed.
+ */
+#pragma diag_suppress=Pe188 // enumerated type mixed with another type
+#endif
 
 #define TEST_SUITE_ACTIVE
 
@@ -220,7 +244,6 @@ static int check_test(size_t func_idx)
 
     return ret;
 }
-
 
 __MBEDTLS_TEST_TEMPLATE__PLATFORM_CODE
 

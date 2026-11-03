@@ -580,7 +580,7 @@ void ecdh_context_grp(int id)
     mbedtls_ecdh_init(&srv);
     TEST_ASSERT(mbedtls_ecdh_setup(&srv, id) == 0);
 
-    /* Test the retrieved group id matches/*/
+    /* Test the retrieved group id matches */
     TEST_ASSERT((int) mbedtls_ecdh_get_grp_id(&srv) == id);
 
 exit:
