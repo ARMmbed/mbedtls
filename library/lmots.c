@@ -127,6 +127,9 @@ static int create_digit_array_with_checksum(const mbedtls_lmots_parameters_t *pa
     size_t output_hash_len;
     unsigned short checksum;
 
+    /* Always zeroize the output buffer because it may contain data from the previous invocation */
+    memset(out, 0, MBEDTLS_LMOTS_N_HASH_LEN(params->type) + CHECKSUM_LEN);
+
     status = psa_hash_setup(&op, PSA_ALG_SHA_256);
     if (status != PSA_SUCCESS) {
         goto exit;
@@ -221,6 +224,11 @@ static int hash_digit_array(const mbedtls_lmots_parameters_t *params,
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     size_t output_hash_len;
     unsigned char tmp_hash[MBEDTLS_LMOTS_N_HASH_LEN_MAX];
+
+    /* Always zeroize the output buffer because it may contain data from the previous invocation */
+    memset(output, 0,
+           (size_t) MBEDTLS_LMOTS_P_SIG_DIGIT_COUNT(params->type) *
+           MBEDTLS_LMOTS_N_HASH_LEN(params->type));
 
     for (i_digit_idx = 0;
          i_digit_idx < MBEDTLS_LMOTS_P_SIG_DIGIT_COUNT(params->type);
@@ -318,6 +326,9 @@ static int public_key_from_hashed_digit_array(const mbedtls_lmots_parameters_t *
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     size_t output_hash_len;
 
+    /* Always zeroize the output buffer because it may contain data from the previous invocation */
+    memset(pub_key, 0, MBEDTLS_LMOTS_N_HASH_LEN(params->type));
+
     status = psa_hash_setup(&op, PSA_ALG_SHA_256);
     if (status != PSA_SUCCESS) {
         goto exit;
@@ -352,10 +363,11 @@ static int public_key_from_hashed_digit_array(const mbedtls_lmots_parameters_t *
                              MBEDTLS_LMOTS_N_HASH_LEN(params->type),
                              &output_hash_len);
     if (status != PSA_SUCCESS) {
+        goto exit;
+    }
 
 exit:
-        psa_hash_abort(&op);
-    }
+    psa_hash_abort(&op);
 
     return PSA_TO_MBEDTLS_ERR(status);
 }
