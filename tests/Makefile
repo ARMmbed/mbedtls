@@ -72,8 +72,10 @@ opt-testcases/tls13-compat.sh: ../framework/scripts/generate_tls13_compat_tests.
 GENERATED_FILES += opt-testcases/tls13-compat.sh
 ssl-opt: opt-testcases/tls13-compat.sh
 
-.PHONY: generated_files
+.PHONY: generated_files list_generated_files
 generated_files: $(GENERATED_FILES)
+list_generated_files:
+	@for x in $(GENERATED_FILES); do echo "$$x"; done
 
 # generate_bignum_tests.py and generate_psa_tests.py spend more time analyzing
 # inputs than generating outputs. Its inputs are the same no matter which files

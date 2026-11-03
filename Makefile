@@ -56,11 +56,17 @@ programs/%: FORCE
 tests/%: FORCE
 	$(MAKE) -C tests $*
 
-.PHONY: generated_files
+.PHONY: generated_files list_generated_files
 generated_files: library/generated_files
 generated_files: programs/generated_files
 generated_files: tests/generated_files
 generated_files: visualc_files
+
+list_generated_files:
+	@$(MAKE) --no-print-directory -C library list_generated_files | sed 's!^!library/!'
+	@$(MAKE) --no-print-directory -C programs list_generated_files | sed 's!^!programs/!'
+	@$(MAKE) --no-print-directory -C tests list_generated_files | sed 's!^!tests/!'
+	@scripts/generate_visualc_files.pl --list
 
 # Set GEN_FILES to the empty string to disable dependencies on generated
 # source files. Then `make generated_files` will only build files that
@@ -86,8 +92,15 @@ gen_file_dep = |
 endif
 
 .PHONY: visualc_files
-VISUALC_FILES = visualc/VS2017/mbedTLS.sln visualc/VS2017/mbedTLS.vcxproj
-# TODO: $(app).vcxproj for each $(app) in programs/
+ifdef GEN_FILES
+# Complete list. Requires perl, so make sure we don't execute this line
+# when GEN_FILES is off.
+VISUALC_FILES := $(shell $(PERL) scripts/generate_visualc_files.pl --list)
+else
+# Incomplete list, just enough to generate the files if they're all absent
+# but not to generate files for new apps.
+VISUALC_FILES := visualc/VS2017/mbedTLS.sln visualc/VS2017/mbedTLS.vcxproj
+endif
 visualc_files: $(VISUALC_FILES)
 
 # Ensure that the .c files that generate_visualc_files.pl enumerates are

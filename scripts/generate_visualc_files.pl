@@ -13,6 +13,12 @@ use warnings;
 use strict;
 use Digest::MD5 'md5_hex';
 
+my $help = <<EOF;
+Usage: $0 [--help|--list]
+Generate Visual Studio solutions and project files from templates.
+Must be run from the Mbed TLS root or the scripts directory.
+EOF
+
 my $vsx_dir = "visualc/VS2017";
 my $vsx_ext = "vcxproj";
 my $vsx_app_tpl_file = "scripts/data_files/vs2017-app-template.$vsx_ext";
@@ -266,6 +272,25 @@ sub main {
     if( ! check_dirs() ) {
         chdir '..' or die;
         check_dirs or die "Must be run from Mbed TLS root or scripts dir\n";
+    }
+
+    if (@ARGV == 0) {
+        # normal operation, code below
+    } elsif (@ARGV == 1 && $ARGV[0] eq '--help') {
+        print $help;
+        exit;
+    } elsif (@ARGV == 1 && $ARGV[0] eq '--list') {
+        my @app_list = get_app_list();
+        my @project_list = map {s!.*/!!; "$_.$vsx_ext"} @app_list;
+        foreach (@project_list) {
+            print "$vsx_dir/$_\n";
+        }
+        print "$vsx_main_file\n";
+        print "$vsx_sln_file\n";
+        exit;
+    } else {
+        print STDERR $help;
+        exit 120;
     }
 
     # Remove old files to ensure that, for example, project files from deleted

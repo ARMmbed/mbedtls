@@ -131,9 +131,11 @@ fuzz: ${MBEDLIBS} ${MBEDTLS_TEST_OBJS}
 ${MBEDTLS_TEST_OBJS}:
 	$(MAKE) -C ../tests mbedtls_test
 
-.PHONY: generated_files
 GENERATED_FILES = psa/psa_constant_names_generated.c test/query_config.c
+.PHONY: generated_files list_generated_files
 generated_files: $(GENERATED_FILES)
+list_generated_files:
+	@for x in $(GENERATED_FILES); do echo "$$x"; done
 
 psa/psa_constant_names_generated.c: $(gen_file_dep) ../scripts/generate_psa_constants.py
 psa/psa_constant_names_generated.c: $(gen_file_dep) ../include/psa/crypto_values.h
