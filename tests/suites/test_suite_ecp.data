@@ -33,6 +33,26 @@ ECP curve info #8
 depends_on:MBEDTLS_ECP_DP_SECP192R1_ENABLED
 mbedtls_ecp_curve_info:MBEDTLS_ECP_DP_SECP192R1:19:192:"secp192r1"
 
+ECP curve info secp256k1
+depends_on:MBEDTLS_ECP_DP_SECP256K1_ENABLED
+mbedtls_ecp_curve_info:MBEDTLS_ECP_DP_SECP256K1:22:256:"secp256k1"
+
+ECP curve info secp224k1
+depends_on:MBEDTLS_ECP_DP_SECP224K1_ENABLED
+mbedtls_ecp_curve_info:MBEDTLS_ECP_DP_SECP224K1:20:224:"secp224k1"
+
+ECP curve info secp192k1
+depends_on:MBEDTLS_ECP_DP_SECP192K1_ENABLED
+mbedtls_ecp_curve_info:MBEDTLS_ECP_DP_SECP192K1:18:192:"secp192k1"
+
+ECP curve info Curve25519
+depends_on:MBEDTLS_ECP_DP_CURVE25519_ENABLED
+mbedtls_ecp_curve_info:MBEDTLS_ECP_DP_CURVE25519:29:256:"x25519"
+
+ECP curve info Curve448
+depends_on:MBEDTLS_ECP_DP_CURVE448_ENABLED
+mbedtls_ecp_curve_info:MBEDTLS_ECP_DP_CURVE448:30:448:"x448"
+
 ECP check pubkey Curve25519 #1 (biggest)
 depends_on:MBEDTLS_ECP_DP_CURVE25519_ENABLED
 ecp_check_pub:MBEDTLS_ECP_DP_CURVE25519:"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF":"0":"1":0
