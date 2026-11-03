@@ -17,8 +17,14 @@
 int mbedtls_test_random(void *p_rng, unsigned char *output, size_t output_len)
 {
     (void) p_rng;
-    for (size_t i = 0; i < output_len; i++) {
-        output[i] = rand();
+    while (output_len > 0) {
+        #if (RAND_MAX >= 0x00FFFFFF)
+        *output = (unsigned char) (rand() >> 16);
+        #else
+        *output = (unsigned char) rand() ; /* e. g. Visual C */
+        #endif
+        output += 1;
+        output_len -= 1;
     }
 
     return 0;

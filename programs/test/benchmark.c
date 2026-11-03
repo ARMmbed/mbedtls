@@ -455,23 +455,18 @@ static void mbedtls_set_alarm(int seconds)
 
 static int myrand(void *rng_state, unsigned char *output, size_t len)
 {
-    size_t use_len;
-    int rnd;
-
     if (rng_state != NULL) {
         rng_state  = NULL;
     }
 
     while (len > 0) {
-        use_len = len;
-        if (use_len > sizeof(int)) {
-            use_len = sizeof(int);
-        }
-
-        rnd = rand();
-        memcpy(output, &rnd, use_len);
-        output += use_len;
-        len -= use_len;
+        #if (RAND_MAX >= 0x00FFFFFF)
+        *output = (unsigned char) (rand() >> 16);
+        #else
+        *output = (unsigned char) rand() ; /* e. g. Visual C */
+        #endif
+        output += 1;
+        len -= 1;
     }
 
     return 0;

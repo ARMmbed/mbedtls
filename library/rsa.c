@@ -2945,14 +2945,18 @@ void mbedtls_rsa_free(mbedtls_rsa_context *ctx)
 static int myrand(void *rng_state, unsigned char *output, size_t len)
 {
 #if !defined(__OpenBSD__) && !defined(__NetBSD__)
-    size_t i;
-
     if (rng_state != NULL) {
         rng_state  = NULL;
     }
 
-    for (i = 0; i < len; ++i) {
-        output[i] = rand();
+    while (len > 0) {
+        #if (RAND_MAX >= 0x00FFFFFF)
+        *output = (unsigned char) (rand() >> 16);
+        #else
+        *output = (unsigned char) rand() ; /* e. g. Visual C */
+        #endif
+        output += 1;
+        len -= 1;
     }
 #else
     if (rng_state != NULL) {

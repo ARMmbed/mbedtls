@@ -48,14 +48,19 @@ mbedtls_time_t dummy_constant_time(mbedtls_time_t *time)
 #if !defined(MBEDTLS_TEST_USE_PSA_CRYPTO_RNG)
 static int dummy_entropy(void *data, unsigned char *output, size_t len)
 {
-    size_t i;
     int ret;
     (void) data;
 
     ret = mbedtls_entropy_func(data, output, len);
-    for (i = 0; i < len; i++) {
-        //replace result with pseudo random
-        output[i] = (unsigned char) rand();
+    //replace result with pseudo random
+    while (len > 0) {
+        #if (RAND_MAX >= 0x00FFFFFF)
+        *output = (unsigned char) (rand() >> 16);
+        #else
+        *output = (unsigned char) rand() ; /* e. g. Visual C */
+        #endif
+        output += 1;
+        len -= 1;
     }
     return ret;
 }

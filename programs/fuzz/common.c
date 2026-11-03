@@ -59,7 +59,6 @@ int fuzz_recv(void *ctx, unsigned char *buf, size_t len)
 int dummy_random(void *p_rng, unsigned char *output, size_t output_len)
 {
     int ret;
-    size_t i;
 
 #if defined(MBEDTLS_CTR_DRBG_C)
     //mbedtls_ctr_drbg_random requires a valid mbedtls_ctr_drbg_context in p_rng
@@ -74,24 +73,35 @@ int dummy_random(void *p_rng, unsigned char *output, size_t output_len)
     (void) p_rng;
     ret = 0;
 #endif
-    for (i = 0; i < output_len; i++) {
-        //replace result with pseudo random
-        output[i] = (unsigned char) rand();
+    //replace result with pseudo random
+    while (output_len > 0) {
+        #if (RAND_MAX >= 0x00FFFFFF)
+        *output = (unsigned char) (rand() >> 16);
+        #else
+        *output = (unsigned char) rand() ; /* e. g. Visual C */
+        #endif
+        output += 1;
+        output_len -= 1;
     }
     return ret;
 }
 
 int dummy_entropy(void *data, unsigned char *output, size_t len)
 {
-    size_t i;
     (void) data;
 
     //use mbedtls_entropy_func to find bugs in it
     //test performance impact of entropy
     //ret = mbedtls_entropy_func(data, output, len);
-    for (i = 0; i < len; i++) {
-        //replace result with pseudo random
-        output[i] = (unsigned char) rand();
+    //replace result with pseudo random
+    while (len > 0) {
+        #if (RAND_MAX >= 0x00FFFFFF)
+        *output = (unsigned char) (rand() >> 16);
+        #else
+        *output = (unsigned char) rand() ; /* e. g. Visual C */
+        #endif
+        output += 1;
+        len -= 1;
     }
     return 0;
 }
