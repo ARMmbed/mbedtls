@@ -1,3 +1,30 @@
+Constant-flow instrumentation: NOP
+cf_instrumentation:CF_INSTRUMENTATION_NOP
+
+Constant-flow instrumentation: memcpy
+cf_instrumentation:CF_INSTRUMENTATION_MEMCPY
+
+Constant-flow instrumentation: memmove
+cf_instrumentation:CF_INSTRUMENTATION_MEMMOVE
+
+Constant-flow instrumentation: copy with for loop
+cf_instrumentation:CF_INSTRUMENTATION_COPY_LOOP
+
+# Detect sanitizers where a secret value may not be passed to a function.
+# Such sanitizers cause false positives in most of the other constant-flow
+# tests.
+# This is the case with MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN when building
+# with Clang >=16 with just -fsanitize=memory. The fix is to pass the
+# additional option -fno-sanitize-memory-param-retval to clang.
+Constant-flow instrumentation: copy through function
+cf_instrumentation:CF_INSTRUMENTATION_COPY_THROUGH_FUNCTION
+
+Constant-flow instrumentation: memset
+cf_instrumentation:CF_INSTRUMENTATION_MEMSET
+
+Constant-flow instrumentation: mbedtls_platform_zeroize
+cf_instrumentation:CF_INSTRUMENTATION_ZEROIZE
+
 # these are the numbers we'd get with an empty plaintext and truncated HMAC
 Constant-flow memcpy from offset: small
 mbedtls_ct_memcpy_offset:0:5:10

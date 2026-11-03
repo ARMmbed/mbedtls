@@ -139,7 +139,7 @@ find_package(Threads)
 # If this is the root project add longer list of available CMAKE_BUILD_TYPE values
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}
-        CACHE STRING "Choose the type of build: None Debug Release Coverage ASan ASanDbg MemSan MemSanDbg Check CheckFull TSan TSanDbg"
+        CACHE STRING "Choose the type of build: None Debug Release Coverage ASan ASanDbg CFMemSan CFMemSanDbg MemSan MemSanDbg Check CheckFull TSan TSanDbg"
         FORCE)
 endif()
 
@@ -369,6 +369,14 @@ if(CMAKE_COMPILER_IS_CLANG)
     set(CMAKE_C_FLAGS_TSAN        "-fsanitize=thread -O3")
     set(CMAKE_C_FLAGS_TSANDBG     "-fsanitize=thread -O1 -g3 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
     set(CMAKE_C_FLAGS_CHECK       "-Os")
+
+    set(CMAKE_C_FLAGS_CFMEMSAN   "${CMAKE_C_FLAGS_MEMSAN} -DMBEDTLS_TEST_CONSTANT_FLOW_MEMSAN")
+    set(CMAKE_C_FLAGS_CFMEMSANDBG "${CMAKE_C_FLAGS_MEMSANDBG} -DMBEDTLS_TEST_CONSTANT_FLOW_MEMSAN")
+    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER 16.0.0)
+        set(CMAKE_C_FLAGS_CFMEMSAN "${CMAKE_C_FLAGS_CFMEMSAN} -fno-sanitize-memory-param-retval")
+        set(CMAKE_C_FLAGS_CFMEMSANDBG "${CMAKE_C_FLAGS_CFMEMSANDBG} -fno-sanitize-memory-param-retval")
+    endif()
+
 endif(CMAKE_COMPILER_IS_CLANG)
 
 if(CMAKE_COMPILER_IS_IAR)

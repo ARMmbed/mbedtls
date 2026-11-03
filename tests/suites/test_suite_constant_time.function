@@ -19,7 +19,97 @@
 #include <constant_time_internal.h>
 
 #include <test/constant_flow.h>
+
+/* Which kind of smoke test cf_instrumentation will do. */
+typedef enum {
+    CF_INSTRUMENTATION_NOP,
+    CF_INSTRUMENTATION_MEMCPY,
+    CF_INSTRUMENTATION_MEMMOVE,
+    CF_INSTRUMENTATION_COPY_LOOP,
+    CF_INSTRUMENTATION_COPY_THROUGH_FUNCTION,
+    CF_INSTRUMENTATION_MEMSET,
+    CF_INSTRUMENTATION_ZEROIZE,
+} cf_instrumentation_method_t;
+
+/* A function that is non-inlined on GCC-like compilers, including Clang.
+ * Use this to implement CF_INSTRUMENTATION_COPY_THROUGH_FUNCTION.
+ */
+#if defined(__has_attribute)
+#if __has_attribute(noinline)
+__attribute__((noinline))
+#endif
+#endif
+static unsigned char u8_identity_function(unsigned char c)
+{
+    return c;
+}
+
 /* END_HEADER */
+
+/* BEGIN_CASE */
+/* Test the constant-flow instrumentation. If this test function fails,
+ * something is wrong with the constant-flow instrumentation. */
+void cf_instrumentation(int method)
+{
+    unsigned char a[42] = { 0 };
+    unsigned char *p = NULL;
+
+    /* Set the buffer at p to some not-all-zero pattern,
+     * unless using the NOP method. */
+    TEST_CALLOC(p, sizeof(a));
+    if (method != CF_INSTRUMENTATION_NOP) {
+        for (size_t i = 0; i < sizeof(a); i++) {
+            p[i] = i & 0xff;
+        }
+    }
+
+    TEST_CF_SECRET(&a, sizeof(a));
+    TEST_CF_SECRET(p, sizeof(a));
+
+    /* Set the buffer at p to all-zero, possibly using a, in constant time. */
+    switch (method) {
+        case CF_INSTRUMENTATION_NOP:
+            /* p is already zero per above. */
+            break;
+        case CF_INSTRUMENTATION_MEMCPY:
+            memcpy(p, a, sizeof(a));
+            break;
+        case CF_INSTRUMENTATION_MEMMOVE:
+            memmove(p, a, sizeof(a));
+            break;
+        case CF_INSTRUMENTATION_COPY_LOOP:
+            for (size_t i = 0; i < sizeof(a); i++) {
+                p[i] = a[i];
+            }
+            break;
+        case CF_INSTRUMENTATION_COPY_THROUGH_FUNCTION:
+            for (size_t i = 0; i < sizeof(a); i++) {
+                p[i] = u8_identity_function(a[i]);
+            }
+            break;
+        case CF_INSTRUMENTATION_MEMSET:
+            memset(p, 0, sizeof(a));
+            break;
+        case CF_INSTRUMENTATION_ZEROIZE:
+            mbedtls_platform_zeroize(p, sizeof(a));
+            break;
+        default:
+            TEST_CF_PUBLIC(&a, sizeof(a));
+            TEST_CF_PUBLIC(p, sizeof(a));
+            TEST_FAIL("Unknown instrumentation method");
+    }
+
+    /* Check that the buffer at p is now all-zero, not in constant time.
+     * If this triggers a constant-flow violation, TEST_CF_PUBLIC isn't
+     * doing its job. */
+    TEST_CF_PUBLIC(&a, sizeof(a));
+    TEST_CF_PUBLIC(p, sizeof(a));
+    ASSERT_COMPARE(a, sizeof(a), p, sizeof(a));
+
+exit:
+    mbedtls_free(p);
+}
+/* END_CASE */
 
 /* BEGIN_CASE */
 void mbedtls_ct_memcmp_null()

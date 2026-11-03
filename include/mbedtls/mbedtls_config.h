@@ -2112,8 +2112,10 @@
  * clang's MemorySanitizer. This causes some existing tests to also test
  * this non-functional property of the code under test.
  *
- * This setting requires compiling with clang -fsanitize=memory. The test
- * suites can then be run normally.
+ * This setting requires compiling with
+ * `clang -fsanitize=memory -fno-sanitize-memory-param-retval` with Clang 16
+ * and above, or `clang -fsanitize=memory` with older Clang.
+ * The test suites can then be run normally.
  *
  * \warning This macro is only used for extended testing; it is not considered
  * part of the library's API, so it may change or disappear at any time.
