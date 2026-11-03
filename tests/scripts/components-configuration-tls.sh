@@ -539,6 +539,7 @@ component_full_without_ecdhe_ecdsa_and_tls13 () {
 component_build_no_ssl_srv () {
     msg "build: full config except SSL server, make, gcc" # ~ 30s
     scripts/config.py full
+    scripts/config.py unset DEBUG_C
     scripts/config.py unset MBEDTLS_SSL_SRV_C
     make CC=gcc CFLAGS='-Werror -Wall -Wextra -O1 -Wmissing-prototypes'
 }
@@ -546,6 +547,7 @@ component_build_no_ssl_srv () {
 component_build_no_ssl_cli () {
     msg "build: full config except SSL client, make, gcc" # ~ 30s
     scripts/config.py full
+    scripts/config.py unset DEBUG_C
     scripts/config.py unset MBEDTLS_SSL_CLI_C
     make CC=gcc CFLAGS='-Werror -Wall -Wextra -O1 -Wmissing-prototypes'
 }
