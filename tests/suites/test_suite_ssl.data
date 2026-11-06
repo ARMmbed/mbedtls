@@ -3420,6 +3420,9 @@ ssl_ecjpake_set_password:1
 Test Elliptic curves' info parsing
 elliptic_curve_get_properties
 
+TLS 1.3 export session clears application secrets
+tls13_export_session_clears_app_secrets
+
 TLS 1.3 resume session with ticket
 tls13_resume_session_with_ticket
 

@@ -4999,6 +4999,43 @@ exit:
 /* END_CASE */
 
 /* BEGIN_CASE depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_SRV_C:MBEDTLS_TEST_AT_LEAST_ONE_TLS1_3_CIPHERSUITE:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL_ENABLED:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384:PSA_HAVE_ALG_ECDSA_VERIFY:MBEDTLS_SSL_SESSION_TICKETS */
+void tls13_export_session_clears_app_secrets()
+{
+    int ret = -1;
+    mbedtls_test_handshake_test_options client_options;
+    mbedtls_test_handshake_test_options server_options;
+    mbedtls_ssl_session exported_session;
+    mbedtls_ssl_tls13_application_secrets zero_secrets;
+
+    mbedtls_test_init_handshake_options(&client_options);
+    mbedtls_test_init_handshake_options(&server_options);
+    mbedtls_ssl_session_init(&exported_session);
+    memset(&zero_secrets, 0, sizeof(zero_secrets));
+
+    PSA_INIT();
+
+    client_options.pk_alg = MBEDTLS_PK_ECDSA;
+    server_options.pk_alg = MBEDTLS_PK_ECDSA;
+
+    /* Full TLS 1.3 handshake with a ticket, then export the session. */
+    ret = mbedtls_test_get_tls13_ticket(&client_options, &server_options,
+                                        &exported_session);
+    TEST_EQUAL(ret, 0);
+
+    /* The exported session must not carry the connection's secrets. */
+    TEST_MEMORY_COMPARE(&exported_session.app_secrets,
+                        sizeof(exported_session.app_secrets),
+                        &zero_secrets, sizeof(zero_secrets));
+
+exit:
+    mbedtls_ssl_session_free(&exported_session);
+    mbedtls_test_free_handshake_options(&client_options);
+    mbedtls_test_free_handshake_options(&server_options);
+    PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_SRV_C:MBEDTLS_TEST_AT_LEAST_ONE_TLS1_3_CIPHERSUITE:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL_ENABLED:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384:PSA_HAVE_ALG_ECDSA_VERIFY:MBEDTLS_SSL_SESSION_TICKETS */
 void tls13_resume_session_with_ticket()
 {
     int ret = -1;

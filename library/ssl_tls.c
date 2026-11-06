@@ -3053,6 +3053,14 @@ int mbedtls_ssl_get_session(const mbedtls_ssl_context *ssl,
         return ret;
     }
 
+#if defined(MBEDTLS_SSL_PROTO_TLS1_3)
+    /* These belong to the connection, not the exported session, and are not
+     * needed to resume. Clear them. */
+    if (dst->tls_version == MBEDTLS_SSL_VERSION_TLS1_3) {
+        mbedtls_platform_zeroize(&dst->app_secrets, sizeof(dst->app_secrets));
+    }
+#endif /* MBEDTLS_SSL_PROTO_TLS1_3 */
+
     /* Remember that we've exported the session. */
     ssl->session->exported = 1;
     return 0;
