@@ -889,7 +889,9 @@ static int x509_get_crt_ext(unsigned char **p,
     }
 
     end = crt->v3_ext.p + crt->v3_ext.len;
-    while (*p < end) {
+
+    /* Extensions ::= SEQUENCE SIZE (1..MAX) OF Extension */
+    do {
         /*
          * Extension  ::=  SEQUENCE  {
          *      extnID      OBJECT IDENTIFIER,
@@ -1068,7 +1070,7 @@ static int x509_get_crt_ext(unsigned char **p,
                     *p = end_ext_octet;
                 }
         }
-    }
+    } while (*p < end);
 
     if (*p != end) {
         return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
