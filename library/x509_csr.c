@@ -405,6 +405,12 @@ static int mbedtls_x509_csr_parse_der_internal(mbedtls_x509_csr *csr,
 
     p += len;
 
+    if (p != end) {
+        mbedtls_x509_csr_free(csr);
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_FORMAT,
+                                 MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+    }
+
     end = csr->raw.p + csr->raw.len;
 
     /*

@@ -1,0 +1,6 @@
+Bugfix
+   * Reject a certificate signing request whose CertificationRequestInfo
+     length runs past the fields it contains, instead of accepting it and
+     reporting a CertificationRequestInfo (mbedtls_x509_csr::cri) that
+     covers the signature. The certificate and CRL parsers already rejected
+     the equivalent input.
