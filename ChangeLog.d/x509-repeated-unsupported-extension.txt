@@ -1,0 +1,5 @@
+Bugfix
+   * Reject X.509 certificates that contain the same extension more than
+     once when Mbed TLS has no built-in parser for that extension, whether
+     or not an extension callback handles it. Repeated extensions that Mbed
+     TLS parses itself were already rejected. Fixes #4069.
