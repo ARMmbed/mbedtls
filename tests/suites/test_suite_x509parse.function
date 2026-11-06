@@ -58,6 +58,14 @@ const mbedtls_x509_crt_profile profile_rsa3072 =
     3072,
 };
 
+const mbedtls_x509_crt_profile profile_ecdsa_only =
+{
+    0xFFFFFFFF, /* Any MD        */
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_PK_SIGALG_ECDSA),
+    0xFFFFFFFF, /* Any curve     */
+    1024,
+};
+
 const mbedtls_x509_crt_profile profile_sha512 =
 {
     MBEDTLS_X509_ID_FLAG(MBEDTLS_MD_SHA512),
@@ -1530,6 +1538,8 @@ void mbedtls_x509_crt_verify_chain(char *chain_paths, char *trusted_ca,
         profile = &profile_rsa3072;
     } else if (strcmp(profile_name, "sha512") == 0) {
         profile = &profile_sha512;
+    } else if (strcmp(profile_name, "ecdsa_only") == 0) {
+        profile = &profile_ecdsa_only;
     }
 
     res = mbedtls_x509_crt_verify_with_profile(&chain, &trusted, NULL, profile,
