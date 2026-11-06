@@ -272,14 +272,18 @@ component_build_no_ssl_srv () {
     msg "build: full config except SSL server, make, gcc" # ~ 30s
     scripts/config.py full
     scripts/config.py unset MBEDTLS_SSL_SRV_C
+    scripts/config.py unset MBEDTLS_DEBUG_C
     $MAKE_COMMAND CC=gcc CFLAGS='-Werror -Wall -Wextra -O1 -Wmissing-prototypes'
+    ! nm library/libmbedtls.a | sed 's/.* //' | grep -x -F mbedtls_debug_print_buf
 }
 
 component_build_no_ssl_cli () {
     msg "build: full config except SSL client, make, gcc" # ~ 30s
     scripts/config.py full
     scripts/config.py unset MBEDTLS_SSL_CLI_C
+    scripts/config.py unset MBEDTLS_DEBUG_C
     $MAKE_COMMAND CC=gcc CFLAGS='-Werror -Wall -Wextra -O1 -Wmissing-prototypes'
+    ! nm library/libmbedtls.a | sed 's/.* //' | grep -x -F mbedtls_debug_print_buf
 }
 
 component_test_no_max_fragment_length () {
