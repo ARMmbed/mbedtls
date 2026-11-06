@@ -179,11 +179,11 @@ void pkcs7_verify(char *pkcs7_file,
         TEST_EQUAL(res, 0);
     }
 
-    res = stat(filetobesigned, &st);
-    TEST_EQUAL(res, 0);
-
     file = fopen(filetobesigned, "rb");
     TEST_ASSERT(file != NULL);
+
+    res = fstat(fileno(file), &st);
+    TEST_EQUAL(res, 0);
 
     datalen = st.st_size;
     /* Special-case for zero-length input so that data will be non-NULL */
