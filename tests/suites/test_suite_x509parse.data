@@ -3202,6 +3202,9 @@ X509 File parse (RSASSA-PSS, MGF1 hash alg != message hash alg)
 depends_on:MBEDTLS_PEM_PARSE_C:MBEDTLS_X509_RSASSA_PSS_SUPPORT:PSA_WANT_ALG_SHA_256:PSA_WANT_ALG_SHA_224:PSA_WANT_ALG_SHA_1
 x509parse_crt_file:"../framework/data_files/server9-bad-mgfhash.crt":MBEDTLS_ERR_X509_INVALID_ALG
 
+X509 File parse (Certificate serial number is zero, RFC 5280 violation)
+x509parse_crt_file:"../framework/data_files/parse_input/cert_serial_zero.crt":MBEDTLS_ERR_X509_INVALID_SERIAL
+
 X509 File parse & read the ca_istrue field (Not Set)
 depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:MBEDTLS_HAVE_TIME_DATE:PSA_WANT_ALG_SHA_1
 mbedtls_x509_get_ca_istrue:"../framework/data_files/parse_input/server1.crt":0
