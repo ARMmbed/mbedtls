@@ -723,6 +723,63 @@ exit:
 /* END_CASE */
 
 /* BEGIN_CASE depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C:MBEDTLS_X509_CRL_PARSE_C */
+void x509_verify_two_crls(char *crt_file, char *ca_file,
+                          char *crl_file1, char *crl_file2,
+                          int result, int flags_result,
+                          char *profile_str)
+{
+    mbedtls_x509_crt   crt;
+    mbedtls_x509_crt   ca;
+    mbedtls_x509_crl   crl;
+    uint32_t           flags = 0;
+    int                res;
+    const mbedtls_x509_crt_profile *profile;
+
+    mbedtls_x509_crt_init(&crt);
+    mbedtls_x509_crt_init(&ca);
+    mbedtls_x509_crl_init(&crl);
+    MD_OR_USE_PSA_INIT();
+
+    if (strcmp(profile_str, "") == 0) {
+        profile = &mbedtls_x509_crt_profile_default;
+    } else if (strcmp(profile_str, "next") == 0) {
+        profile = &mbedtls_x509_crt_profile_next;
+    } else if (strcmp(profile_str, "suite_b") == 0) {
+        profile = &mbedtls_x509_crt_profile_suiteb;
+    } else if (strcmp(profile_str, "compat") == 0) {
+        profile = &compat_profile;
+    } else if (strcmp(profile_str, "all") == 0) {
+        profile = &profile_all;
+    } else {
+        TEST_FAIL("Unknown algorithm profile");
+    }
+
+    TEST_EQUAL(mbedtls_x509_crt_parse_file(&crt, crt_file), 0);
+    TEST_EQUAL(mbedtls_x509_crt_parse_file(&ca, ca_file), 0);
+    TEST_EQUAL(mbedtls_x509_crl_parse_file(&crl, crl_file1), 0);
+    TEST_EQUAL(mbedtls_x509_crl_parse_file(&crl, crl_file2), 0);
+
+    res = mbedtls_x509_crt_verify_with_profile(&crt,
+                                               &ca,
+                                               &crl,
+                                               profile,
+                                               NULL,
+                                               &flags,
+                                               NULL,
+                                               NULL);
+
+    TEST_EQUAL(res, result);
+    TEST_EQUAL(flags, (uint32_t) flags_result);
+
+exit:
+    mbedtls_x509_crt_free(&crt);
+    mbedtls_x509_crt_free(&ca);
+    mbedtls_x509_crl_free(&crl);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C:MBEDTLS_X509_CRL_PARSE_C */
 void x509_verify(char *crt_file, char *ca_file, char *crl_file,
                  char *cn_name_str, int result, int flags_result,
                  char *profile_str,

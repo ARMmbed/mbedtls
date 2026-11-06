@@ -627,6 +627,22 @@ X509 CRT verification #5''' (Revoked Cert, differing upper and lower case)
 depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_1:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY:MBEDTLS_HAVE_TIME_DATE
 x509_verify:"../framework/data_files/server1.crt":"../framework/data_files/test-ca_uppercase.crt":"../framework/data_files/crl.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_REVOKED:"compat":"NULL"
 
+X509 CRT verification #5a (Valid Cert, Expired and Valid CRLs)
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_1:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY:MBEDTLS_HAVE_TIME_DATE
+x509_verify_two_crls:"../framework/data_files/server2.crt":"../framework/data_files/test-ca.crt":"../framework/data_files/crl_expired.pem":"../framework/data_files/crl.pem":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCRL_EXPIRED:"compat"
+
+X509 CRT verification #5b (Valid Cert, Valid and Expired CRLs)
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_1:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY:MBEDTLS_HAVE_TIME_DATE
+x509_verify_two_crls:"../framework/data_files/server2.crt":"../framework/data_files/test-ca.crt":"../framework/data_files/crl.pem":"../framework/data_files/crl_expired.pem":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCRL_EXPIRED:"compat"
+
+X509 CRT verification #5c (Valid Cert, Future and Valid CRLs)
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_1:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384:MBEDTLS_HAVE_TIME_DATE
+x509_verify_two_crls:"../framework/data_files/server5.crt":"../framework/data_files/test-ca2.crt":"../framework/data_files/crl-future.pem":"../framework/data_files/crl-ec-sha1.pem":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCRL_FUTURE:"compat"
+
+X509 CRT verification #5d (Valid Cert, Valid and Future CRLs)
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_1:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384:MBEDTLS_HAVE_TIME_DATE
+x509_verify_two_crls:"../framework/data_files/server5.crt":"../framework/data_files/test-ca2.crt":"../framework/data_files/crl-ec-sha1.pem":"../framework/data_files/crl-future.pem":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCRL_FUTURE:"compat"
+
 X509 CRT verification #6 (Revoked Cert)
 depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_1:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY:MBEDTLS_HAVE_TIME_DATE
 x509_verify:"../framework/data_files/server1.crt":"../framework/data_files/test-ca.crt":"../framework/data_files/crl.pem":"PolarSSL Server 1":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_REVOKED:"compat":"NULL"

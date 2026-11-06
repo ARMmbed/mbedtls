@@ -629,6 +629,11 @@ int mbedtls_x509_crt_verify_info(char *buf, size_t size, const char *prefix,
  *                 all trusted CAs. If no CRL is provided for the CA that was
  *                 used to sign the certificate, CRL verification is skipped
  *                 silently, that is *without* setting any flag.
+ *                 If multiple CRLs are provided for the same CA, all CRLs
+ *                 matching the CA are checked. Flags from matching CRLs are
+ *                 cumulative, so an expired or not-yet-valid CRL can set
+ *                 #MBEDTLS_X509_BADCRL_EXPIRED or #MBEDTLS_X509_BADCRL_FUTURE
+ *                 even if another matching CRL is currently valid.
  *
  * \note           The \c trust_ca list can contain two types of certificates:
  *                 (1) those of trusted root CAs, so that certificates
