@@ -262,6 +262,11 @@ static int x509_get_entries(unsigned char **p,
             return ret;
         }
 
+        if (*p != end2) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_FORMAT,
+                                     MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+        }
+
         if (*p < end) {
             cur_entry->next = mbedtls_calloc(1, sizeof(mbedtls_x509_crl_entry));
 

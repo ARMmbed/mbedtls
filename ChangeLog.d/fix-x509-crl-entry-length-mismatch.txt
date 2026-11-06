@@ -1,0 +1,9 @@
+Bugfix
+   * Fix x509_get_entries() (used by mbedtls_x509_crl_parse()) not
+     checking that a revoked-certificate entry's serial number,
+     revocation date and optional crlEntryExtensions fully consume
+     the entry's own declared SEQUENCE length. A CRL entry with a
+     declared length longer than the sum of its actual fields could
+     have the extra trailing bytes silently reinterpreted as one or
+     more additional, attacker-influenced CRL entries, instead of
+     being rejected as malformed.
