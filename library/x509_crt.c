@@ -389,31 +389,30 @@ static int x509_get_version(unsigned char **p,
                             const unsigned char *end,
                             int *ver)
 {
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    size_t len;
+    unsigned char raw_ver = 0;
+    unsigned char const prefix[4] = {
+        MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 0,
+        3,
+        MBEDTLS_ASN1_INTEGER,
+        1,
+    };
 
-    if ((ret = mbedtls_asn1_get_tag(p, end, &len,
-                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED |
-                                    0)) != 0) {
-        if (ret == MBEDTLS_ERR_ASN1_UNEXPECTED_TAG) {
-            *ver = 0;
-            return 0;
+    if ((end - *p) < 6) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_VERSION,
+                                 MBEDTLS_ERR_ASN1_OUT_OF_DATA);
+    }
+    if (memcmp(*p, prefix, sizeof(prefix)) == 0) {
+        raw_ver = (*p)[4];
+        if (raw_ver > 2) {
+            return MBEDTLS_ERR_X509_UNKNOWN_VERSION;
         }
 
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_FORMAT, ret);
+        if (raw_ver <= 0) {
+            return MBEDTLS_ERR_X509_INVALID_VERSION;
+        }
+        *p += 5;
     }
-
-    end = *p + len;
-
-    if ((ret = mbedtls_asn1_get_int(p, end, ver)) != 0) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_VERSION, ret);
-    }
-
-    if (*p != end) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_VERSION,
-                                 MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
-    }
-
+    *ver = raw_ver + 1;
     return 0;
 }
 
@@ -1168,13 +1167,6 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
         mbedtls_x509_crt_free(crt);
         return ret;
     }
-
-    if (crt->version < 0 || crt->version > 2) {
-        mbedtls_x509_crt_free(crt);
-        return MBEDTLS_ERR_X509_UNKNOWN_VERSION;
-    }
-
-    crt->version++;
 
     if ((ret = mbedtls_x509_get_sig_alg(&crt->sig_oid, &sig_params1,
                                         &crt->sig_md, &crt->sig_pk)) != 0) {
