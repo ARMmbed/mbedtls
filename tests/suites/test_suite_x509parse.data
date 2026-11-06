@@ -2789,8 +2789,8 @@ x509_oid_numstr:"2b06010505070301":"1.3.6.1.5.5.7.3.1":17:PSA_ERROR_BUFFER_TOO_S
 X509 OID numstring #4 (larger number)
 x509_oid_numstr:"2a864886f70d":"1.2.840.113549":15:14
 
-X509 OID numstring #5 (arithmetic overflow)
-x509_oid_numstr:"2a8648f9f8f7f6f5f4f3f2f1f001":"":100:MBEDTLS_ERR_ASN1_INVALID_DATA
+X509 OID numstring #5 (subidentifier > 32 bits)
+x509_oid_numstr:"2a8648f9f8f7f6f5f4f3f2f1f001":"1.2.840.143967032551602640418817":100:32
 
 X509 CRT keyUsage #1 (no extension, expected KU)
 depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_1
@@ -3547,15 +3547,20 @@ oid_get_numeric_string:"50":0:"2.0"
 OID get numeric string - 1 byte first subidentifier beyond 2.39
 oid_get_numeric_string:"7f":0:"2.47"
 
-# Encodes the number 0x0400000000 as a subidentifier which overflows 32-bits
-OID get numeric string - 32-bit overflow
-oid_get_numeric_string:"C080808000":MBEDTLS_ERR_ASN1_INVALID_DATA:""
+# Encodes the number 0x0400000000 (17179869184) as a subidentifier (> 32 bits)
+OID get numeric string - subidentifier > 32-bit first component
+oid_get_numeric_string:"C080808000":0:"2.17179869104"
 
-OID get numeric string - 32-bit overflow, second subidentifier
-oid_get_numeric_string:"2BC080808000":MBEDTLS_ERR_ASN1_INVALID_DATA:""
+OID get numeric string - subidentifier > 32-bit second component
+oid_get_numeric_string:"2BC080808000":0:"1.3.17179869184"
+
+# ITU-T X.667 clause 8 UUID arc: 2.25.329800735698586629295641978511506172918
+OID get numeric string - 128-bit UUID subidentifier (X.667)
+oid_get_numeric_string:"6983F09DA7EBCFDEE0C7A1A7B2C0948CC8F9D776":0:"2.25.329800735698586629295641978511506172918"
 
 OID get numeric string - overlong encoding
 oid_get_numeric_string:"8001":MBEDTLS_ERR_ASN1_INVALID_DATA:""
 
 OID get numeric string - overlong encoding, second subidentifier
 oid_get_numeric_string:"2B8001":MBEDTLS_ERR_ASN1_INVALID_DATA:""
+

@@ -815,6 +815,77 @@ static char nibble_to_hex_digit(int i)
     return (i < 10) ? (i + '0') : (i - 10 + 'A');
 }
 
+#define OID_MAX_SUBID_LEN 64
+
+/* Convert a base-128 encoded OID subidentifier to decimal digits.
+ * If subtract > 0, subtract it first (used for the first subidentifier where
+ * value >= 80: value = 2 * 40 + c2 => c2 = value - 80).
+ * Returns the number of characters written on success, or a negative error code. */
+static int oid_subid_to_dec(char *buf, size_t size,
+                            const unsigned char *subid, size_t len,
+                            unsigned int subtract)
+{
+    unsigned char digits[OID_MAX_SUBID_LEN];
+    char dec_buf[OID_MAX_SUBID_LEN * 3];
+    size_t dec_count = 0;
+    size_t start = 0;
+
+    if (len > OID_MAX_SUBID_LEN) {
+        return MBEDTLS_ERR_ASN1_INVALID_DATA;
+    }
+
+    for (size_t i = 0; i < len; i++) {
+        digits[i] = subid[i] & 0x7F;
+    }
+
+    if (subtract > 0) {
+        unsigned int borrow = subtract;
+        for (size_t i = len; i > 0; i--) {
+            if (digits[i - 1] >= borrow) {
+                digits[i - 1] -= (unsigned char) borrow;
+                borrow = 0;
+                break;
+            } else {
+                digits[i - 1] = (unsigned char) (digits[i - 1] + 128 - borrow);
+                borrow = 1;
+            }
+        }
+    }
+
+    while (start < len && digits[start] == 0) {
+        start++;
+    }
+
+    if (start == len) {
+        dec_buf[dec_count++] = '0';
+    } else {
+        while (start < len) {
+            unsigned int rem = 0;
+            for (size_t i = start; i < len; i++) {
+                unsigned int cur = (rem << 7) | digits[i];
+                digits[i] = (unsigned char) (cur / 10);
+                rem = cur % 10;
+            }
+            dec_buf[dec_count++] = (char) ('0' + rem);
+            while (start < len && digits[start] == 0) {
+                start++;
+            }
+        }
+    }
+
+    /* Check if buf can hold the digits plus null terminator */
+    if (dec_count >= size) {
+        return PSA_ERROR_BUFFER_TOO_SMALL;
+    }
+
+    for (size_t i = 0; i < dec_count; i++) {
+        buf[i] = dec_buf[dec_count - 1 - i];
+    }
+    buf[dec_count] = '\0';
+
+    return (int) dec_count;
+}
+
 /* Return the x.y.z.... style numeric string for the given OID */
 int mbedtls_oid_get_numeric_string(char *buf, size_t size,
                                    const mbedtls_asn1_buf *oid)
@@ -822,7 +893,7 @@ int mbedtls_oid_get_numeric_string(char *buf, size_t size,
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     char *p = buf;
     size_t n = size;
-    unsigned int value = 0;
+    size_t i = 0;
 
     if (size > INT_MAX) {
         /* Avoid overflow computing return value */
@@ -834,22 +905,41 @@ int mbedtls_oid_get_numeric_string(char *buf, size_t size,
         return MBEDTLS_ERR_ASN1_OUT_OF_DATA;
     }
 
-    for (size_t i = 0; i < oid->len; i++) {
-        /* Prevent overflow in value. */
-        if (value > (UINT_MAX >> 7)) {
-            return MBEDTLS_ERR_ASN1_INVALID_DATA;
-        }
-        if ((value == 0) && ((oid->p[i]) == 0x80)) {
-            /* Overlong encoding is not allowed */
+    while (i < oid->len) {
+        size_t subid_start = i;
+        size_t subid_len;
+        unsigned int value = 0;
+        int overflow = 0;
+        int is_first = (n == size);
+
+        /* Overlong encoding is not allowed */
+        if (oid->p[subid_start] == 0x80) {
             return MBEDTLS_ERR_ASN1_INVALID_DATA;
         }
 
-        value <<= 7;
-        value |= oid->p[i] & 0x7F;
+        while (i < oid->len && (oid->p[i] & 0x80) != 0) {
+            i++;
+        }
 
-        if (!(oid->p[i] & 0x80)) {
-            /* Last byte */
-            if (n == size) {
+        if (i == oid->len) {
+            /* Unterminated subidentifier */
+            return MBEDTLS_ERR_ASN1_OUT_OF_DATA;
+        }
+
+        subid_len = i - subid_start + 1;
+        i++;
+
+        /* Try computing value in unsigned int (fast path) */
+        for (size_t j = subid_start; j < subid_start + subid_len; j++) {
+            if (value > (UINT_MAX >> 7)) {
+                overflow = 1;
+                break;
+            }
+            value = (value << 7) | (oid->p[j] & 0x7F);
+        }
+
+        if (!overflow) {
+            if (is_first) {
                 int component1;
                 unsigned int component2;
                 /* First subidentifier contains first two OID components */
@@ -872,14 +962,30 @@ int mbedtls_oid_get_numeric_string(char *buf, size_t size,
             }
             n -= (size_t) ret;
             p += ret;
-            value = 0;
+        } else {
+            size_t prefix_len = is_first ? 2 : 1;
+            if (n <= prefix_len) {
+                return PSA_ERROR_BUFFER_TOO_SMALL;
+            }
+            if (is_first) {
+                *p++ = '2';
+                *p++ = '.';
+            } else {
+                *p++ = '.';
+            }
+            n -= prefix_len;
+
+            ret = oid_subid_to_dec(p, n, &oid->p[subid_start], subid_len,
+                                   is_first ? 80 : 0);
+            if (ret < 0) {
+                return ret;
+            }
+            p += ret;
+            n -= (size_t) ret;
         }
     }
 
-    if (value != 0) {
-        /* Unterminated subidentifier */
-        return MBEDTLS_ERR_ASN1_OUT_OF_DATA;
-    }
+    *p = '\0';
 
     return (int) (size - n);
 }

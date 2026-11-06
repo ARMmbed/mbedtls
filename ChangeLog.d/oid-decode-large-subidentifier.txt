@@ -1,0 +1,3 @@
+Bugfix
+   * In mbedtls_oid_get_numeric_string(), allow OID subidentifiers wider
+     than 32 bits instead of rejecting them as invalid ASN.1 data. Fixes #11001.
