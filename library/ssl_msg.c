@@ -5300,6 +5300,9 @@ size_t mbedtls_ssl_get_bytes_avail(const mbedtls_ssl_context *ssl)
 
 int mbedtls_ssl_check_pending(const mbedtls_ssl_context *ssl)
 {
+    if( ssl == NULL || ssl->conf == NULL )
+        return( MBEDTLS_ERR_SSL_BAD_INPUT_DATA );
+
     /*
      * Case A: We're currently holding back
      * a message for further processing.
