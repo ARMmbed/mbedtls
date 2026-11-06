@@ -135,7 +135,7 @@ int main(void)
     "                             DNS:value\n"            \
     "                             URI:value\n"            \
     "                             RFC822:value\n"         \
-    "                             IP:value (Only IPv4 is supported)\n" \
+    "                             IP:value (IPv4 or IPv6)\n" \
     "                             DN:list of comma separated key=value pairs\n" \
     "    authority_identifier=%%s default: 1\n"             \
     "                            Possible values: 0, 1\n"   \
@@ -316,7 +316,6 @@ int main(int argc, char *argv[])
     size_t serial_len;
     mbedtls_asn1_sequence *ext_key_usage;
     mbedtls_x509_san_list *cur, *prev;
-    uint8_t ip[4] = { 0 };
     /*
      * Set to sane values
      */
@@ -642,15 +641,24 @@ usage:
                     cur->node.type = MBEDTLS_X509_SAN_DNS_NAME;
                 } else if (strcmp(q, "IP") == 0) {
                     size_t ip_addr_len = 0;
+                    /* Each entry needs its own buffer, because the list is
+                     * only written once all entries have been parsed.
+                     * mbedtls_x509_crt_parse_cn_inet_pton() needs 16 bytes. */
+                    unsigned char *ip = mbedtls_calloc(1, 16);
+                    if (ip == NULL) {
+                        mbedtls_printf("Not enough memory for subjectAltName list\n");
+                        goto exit;
+                    }
                     cur->node.type = MBEDTLS_X509_SAN_IP_ADDRESS;
                     ip_addr_len = mbedtls_x509_crt_parse_cn_inet_pton(subtype_value, ip);
                     if (ip_addr_len == 0) {
                         mbedtls_printf("mbedtls_x509_crt_parse_cn_inet_pton failed to parse %s\n",
                                        subtype_value);
+                        mbedtls_free(ip);
                         goto exit;
                     }
-                    cur->node.san.unstructured_name.p = (unsigned char *) ip;
-                    cur->node.san.unstructured_name.len = sizeof(ip);
+                    cur->node.san.unstructured_name.p = ip;
+                    cur->node.san.unstructured_name.len = ip_addr_len;
                 } else if (strcmp(q, "DN") == 0) {
                     cur->node.type = MBEDTLS_X509_SAN_DIRECTORY_NAME;
                     /* Work around an API mismatch between string_to_names() and
@@ -1064,6 +1072,9 @@ exit:
             mbedtls_free(dn->oid.p);
             mbedtls_free(dn->val.p);
             mbedtls_asn1_free_named_data_list(&dn->next);
+        }
+        if (cur->node.type == MBEDTLS_X509_SAN_IP_ADDRESS) {
+            mbedtls_free(cur->node.san.unstructured_name.p);
         }
         mbedtls_free(cur);
         cur = next;

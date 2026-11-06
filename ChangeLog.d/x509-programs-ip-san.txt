@@ -1,0 +1,6 @@
+Bugfix
+   * Fix a stack buffer overflow in the cert_write and cert_req sample
+     programs when an IPv6 address is given in the san parameter. IPv6
+     addresses are now written correctly.
+   * Fix the cert_write and cert_req sample programs writing the last IP
+     address for every IP entry when the san parameter has more than one.
