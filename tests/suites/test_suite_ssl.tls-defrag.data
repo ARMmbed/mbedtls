@@ -233,3 +233,40 @@ send_large_fragmented_hello:MBEDTLS_SSL_IN_BUFFER_LEN - MBEDTLS_SSL_HEADER_LEN -
 # fit in the buffer, but still add a test just in case.
 Send large fragmented ClientHello: length doesn't fit in two bytes
 send_large_fragmented_hello:0x10000:0:"requesting more data than fits":MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+# Tests for MBEDTLS_SSL_TLS_HS_LARGE_MSG: buffer resize during reassembly.
+# When max_handshake_msg_len is configured, messages that exceed the default
+# buffer are reassembled after a proactive resize. "Success" is inferred when
+# reassembly completes and the version check fails (dummy 0x2a content).
+
+# Message that previously failed ("requesting more data than fits") now
+# succeeds because the buffer is resized to accommodate it.
+Send large fragmented ClientHello with resize: previously too large, now fits
+depends_on:MBEDTLS_SSL_TLS_HS_LARGE_MSG
+send_large_fragmented_hello_with_resize:MBEDTLS_SSL_IN_BUFFER_LEN - MBEDTLS_SSL_HEADER_LEN - 3:0:MBEDTLS_SSL_IN_BUFFER_LEN * 2:"Reallocating in_buf":MBEDTLS_ERR_SSL_BAD_PROTOCOL_VERSION
+
+# Message exactly at the old limit that needed overhead space — now fits.
+Send large fragmented ClientHello with resize: overhead case now fits
+depends_on:MBEDTLS_SSL_TLS_HS_LARGE_MSG
+send_large_fragmented_hello_with_resize:MBEDTLS_SSL_IN_BUFFER_LEN - MBEDTLS_SSL_HEADER_LEN - 4:0:MBEDTLS_SSL_IN_BUFFER_LEN * 2:"Reallocating in_buf":MBEDTLS_ERR_SSL_BAD_PROTOCOL_VERSION
+
+# Message significantly larger than buffer (2x), with sufficient max configured.
+Send large fragmented ClientHello with resize: 2x buffer size
+depends_on:MBEDTLS_SSL_TLS_HS_LARGE_MSG
+send_large_fragmented_hello_with_resize:MBEDTLS_SSL_IN_BUFFER_LEN * 2:0:MBEDTLS_SSL_IN_BUFFER_LEN * 3:"Reallocating in_buf":MBEDTLS_ERR_SSL_BAD_PROTOCOL_VERSION
+
+# Message exceeds the configured max — rejected at initial fragment.
+Send large fragmented ClientHello with resize: exceeds configured max
+depends_on:MBEDTLS_SSL_TLS_HS_LARGE_MSG
+send_large_fragmented_hello_with_resize:MBEDTLS_SSL_IN_BUFFER_LEN * 2:0:MBEDTLS_SSL_IN_BUFFER_LEN:"handshake message too large":MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+# Message larger than 0xFFFF (64KB) — tests 2-byte record header capping.
+Send large fragmented ClientHello with resize: larger than 64KB
+depends_on:MBEDTLS_SSL_TLS_HS_LARGE_MSG
+send_large_fragmented_hello_with_resize:0x10001:0:0x20000:"Reallocating in_buf":MBEDTLS_ERR_SSL_BAD_PROTOCOL_VERSION
+
+# Same as 2x buffer size, but with a non-zero initial fragment (1024 bytes of
+# handshake content in the first record, then 1-byte fragments for the rest).
+Send large fragmented ClientHello with resize: 2x buffer, first_frag=1024
+depends_on:MBEDTLS_SSL_TLS_HS_LARGE_MSG
+send_large_fragmented_hello_with_resize:MBEDTLS_SSL_IN_BUFFER_LEN * 2:1024:MBEDTLS_SSL_IN_BUFFER_LEN * 3:"Reallocating in_buf":MBEDTLS_ERR_SSL_BAD_PROTOCOL_VERSION

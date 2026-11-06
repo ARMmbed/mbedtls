@@ -1566,6 +1566,11 @@ struct mbedtls_ssl_config {
 
     unsigned int MBEDTLS_PRIVATE(badmac_limit);      /*!< limit of records with a bad MAC    */
 
+#if defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
+    size_t MBEDTLS_PRIVATE(max_handshake_msg_len);  /*!< max reassembled handshake message
+                                                        length (0 = use default buffer)   */
+#endif
+
     /** User data pointer or handle.
      *
      * The library sets this to \p 0 when creating a context and does not
@@ -1721,7 +1726,7 @@ struct mbedtls_ssl_context {
     int MBEDTLS_PRIVATE(in_msgtype);             /*!< record header: message type      */
     size_t MBEDTLS_PRIVATE(in_msglen);           /*!< record header: message length    */
     size_t MBEDTLS_PRIVATE(in_left);             /*!< amount of data read so far       */
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH) || defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
     size_t MBEDTLS_PRIVATE(in_buf_len);          /*!< length of input buffer           */
 #endif
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
@@ -4381,6 +4386,29 @@ void mbedtls_ssl_conf_cert_req_ca_list(mbedtls_ssl_config *conf,
  */
 int mbedtls_ssl_conf_max_frag_len(mbedtls_ssl_config *conf, unsigned char mfl_code);
 #endif /* MBEDTLS_SSL_MAX_FRAGMENT_LENGTH */
+
+#if defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
+/**
+ * \brief          Set the maximum size of a reassembled TLS handshake message.
+ *
+ *                 When a reassembled handshake message is larger than
+ *                 MBEDTLS_SSL_IN_CONTENT_LEN, the input buffer will be
+ *                 dynamically resized to accommodate the full message.
+ *                 The enlarged buffer remains for the lifetime of the
+ *                 SSL context.
+ *
+ *                 This is TLS-only (not DTLS).
+ *
+ * \param conf     SSL configuration
+ * \param max_handshake_msg_len  Maximum handshake message length in bytes.
+ *                 Must be larger than MBEDTLS_SSL_IN_CONTENT_LEN and at most
+ *                 0xFFFFFF (the maximum expressible in a TLS handshake header).
+ *
+ * \return         0 if successful or MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+ */
+int mbedtls_ssl_conf_max_handshake_msg_len(mbedtls_ssl_config *conf,
+                                           size_t max_handshake_msg_len);
+#endif /* MBEDTLS_SSL_TLS_HS_LARGE_MSG */
 
 #if defined(MBEDTLS_SSL_SRV_C)
 /**

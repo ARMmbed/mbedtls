@@ -848,6 +848,24 @@
  */
 //#define MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH
 
+/**
+ * \def MBEDTLS_SSL_TLS_HS_LARGE_MSG
+ *
+ * Enable support for TLS handshake messages larger than
+ * MBEDTLS_SSL_IN_CONTENT_LEN. When enabled and configured at runtime
+ * via mbedtls_ssl_conf_max_handshake_msg_len(), the input buffer is
+ * dynamically resized during handshake reassembly if the reassembled
+ * message exceeds the compile-time buffer size. The enlarged buffer
+ * remains for the lifetime of the SSL context.
+ *
+ * This is useful when connecting to servers that send large Certificate
+ * messages (e.g., certificate chains with many intermediate CAs or
+ * certificates with many SANs).
+ *
+ * Requires: MBEDTLS_SSL_TLS_C
+ */
+//#define MBEDTLS_SSL_TLS_HS_LARGE_MSG
+
 //#define MBEDTLS_PSK_MAX_LEN               32 /**< Max size of TLS pre-shared keys, in bytes (default 256 or 384 bits) */
 //#define MBEDTLS_SSL_CACHE_DEFAULT_MAX_ENTRIES      50 /**< Maximum entries in cache */
 //#define MBEDTLS_SSL_CACHE_DEFAULT_TIMEOUT       86400 /**< 1 day  */

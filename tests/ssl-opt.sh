@@ -14432,6 +14432,39 @@ run_test    "Handshake defragmentation on client: len=4, server-initiated renego
             -c "found renegotiation extension" \
             -c "=> renegotiate"
 
+# Test large handshake message with buffer resize (MBEDTLS_SSL_TLS_HS_LARGE_MSG)
+# The OpenSSL server sends a large certificate (>16KB) to the Mbed TLS client,
+# which must resize its input buffer to reassemble the fragmented handshake message.
+# Large cert fixtures are in tests/data_files/ (not the framework submodule).
+LARGE_DATA_FILES_PATH=../tests/data_files
+
+requires_config_enabled MBEDTLS_SSL_TLS_HS_LARGE_MSG
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test    "Handshake defragmentation on client: large cert with buffer resize (TLS 1.2)" \
+            "$O_NEXT_SRV -tls1_2 -cert $LARGE_DATA_FILES_PATH/server_large.crt -key $LARGE_DATA_FILES_PATH/server_large.key" \
+            "$P_CLI debug_level=4 max_hs_msg_len=131072 ca_file=$DATA_FILES_PATH/test-ca2.crt" \
+            0 \
+            -c "Reallocating in_buf" \
+            -c "handshake fragment"
+
+requires_config_enabled MBEDTLS_SSL_TLS_HS_LARGE_MSG
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_3
+run_test    "Handshake defragmentation on client: large cert with buffer resize (TLS 1.3)" \
+            "$O_NEXT_SRV -tls1_3 -cert $LARGE_DATA_FILES_PATH/server_large.crt -key $LARGE_DATA_FILES_PATH/server_large.key" \
+            "$P_CLI debug_level=4 max_hs_msg_len=131072 ca_file=$DATA_FILES_PATH/test-ca2.crt" \
+            0 \
+            -c "Reallocating in_buf" \
+            -c "handshake fragment"
+
+requires_config_enabled MBEDTLS_SSL_TLS_HS_LARGE_MSG
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test    "Handshake defragmentation on client: large cert, split_send_frag=256" \
+            "$O_NEXT_SRV -tls1_2 -split_send_frag 256 -cert $LARGE_DATA_FILES_PATH/server_large.crt -key $LARGE_DATA_FILES_PATH/server_large.key" \
+            "$P_CLI debug_level=4 max_hs_msg_len=131072 ca_file=$DATA_FILES_PATH/test-ca2.crt" \
+            0 \
+            -c "Reallocating in_buf" \
+            -c "initial handshake fragment"
+
 # Test heap memory usage after handshake
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 requires_config_enabled MBEDTLS_MEMORY_DEBUG

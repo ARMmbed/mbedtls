@@ -6598,6 +6598,114 @@ exit:
 }
 /* END_CASE */
 
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_DEBUG_C:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_KEY_TYPE_ECC_KEY_PAIR_IMPORT:PSA_WANT_ALG_ECDSA_ANY:MBEDTLS_SSL_TLS_HS_LARGE_MSG */
+void send_large_fragmented_hello_with_resize(int hs_len_int,
+                                             int first_frag_content_len_int,
+                                             int max_hs_msg_len_int,
+                                             char *log_pattern,
+                                             int expected_ret)
+{
+    /* Like send_large_fragmented_hello, but configures
+     * mbedtls_ssl_conf_max_handshake_msg_len() to allow the server to
+     * dynamically resize its input buffer for large handshake messages. */
+    enum { BUFFSIZE = 16384 };
+    mbedtls_test_ssl_endpoint server, client;
+    mbedtls_platform_zeroize(&server, sizeof(server));
+    mbedtls_platform_zeroize(&client, sizeof(client));
+
+    mbedtls_test_handshake_test_options options;
+    mbedtls_test_init_handshake_options(&options);
+
+    mbedtls_test_ssl_log_pattern srv_pattern;
+    memset(&srv_pattern, 0, sizeof(srv_pattern));
+
+    unsigned char *first_frag = NULL;
+    int ret = -1;
+
+    size_t hs_len = (size_t) hs_len_int;
+    size_t first_frag_content_len = (size_t) first_frag_content_len_int;
+
+    PSA_INIT();
+
+    srv_pattern.pattern = log_pattern;
+    options.srv_log_obj = &srv_pattern;
+    options.srv_log_fun = mbedtls_test_ssl_log_analyzer;
+    mbedtls_debug_set_threshold(2);
+
+    options.pk_alg = MBEDTLS_PK_ECDSA;
+
+    ret = mbedtls_test_ssl_endpoint_init(&server, MBEDTLS_SSL_IS_SERVER,
+                                         &options);
+    TEST_EQUAL(ret, 0);
+
+    /* Configure max handshake message length for resize */
+    if (max_hs_msg_len_int > 0) {
+        ret = mbedtls_ssl_conf_max_handshake_msg_len(
+            &server.conf, (size_t) max_hs_msg_len_int);
+        TEST_EQUAL(ret, 0);
+    }
+
+    ret = mbedtls_test_ssl_endpoint_init(&client, MBEDTLS_SSL_IS_CLIENT,
+                                         &options);
+    TEST_EQUAL(ret, 0);
+
+    ret = mbedtls_test_mock_socket_connect(&server.socket, &client.socket,
+                                           BUFFSIZE);
+    TEST_EQUAL(ret, 0);
+
+    ret = mbedtls_test_move_handshake_to_state(&client.ssl, &server.ssl,
+                                               MBEDTLS_SSL_CLIENT_HELLO);
+    TEST_EQUAL(ret, 0);
+
+    /* Prepare initial fragment */
+    const size_t first_len = 5 + 4 + first_frag_content_len;
+    TEST_CALLOC(first_frag, first_len);
+    unsigned char *p = first_frag;
+    *p++ = 0x16;
+    *p++ = 0x03;
+    *p++ = 0x03;
+    *p++ = (unsigned char) (((4 + first_frag_content_len) >> 8) & 0xff);
+    *p++ = (unsigned char) (((4 + first_frag_content_len) >> 0) & 0xff);
+    *p++ = 0x01;
+    *p++ = (unsigned char) ((hs_len >> 16) & 0xff);
+    *p++ = (unsigned char) ((hs_len >>  8) & 0xff);
+    *p++ = (unsigned char) ((hs_len >>  0) & 0xff);
+    memset(p, 0x2a, first_frag_content_len);
+
+    ret = mbedtls_test_mock_tcp_send_b(&client.socket, first_frag, first_len);
+    TEST_ASSERT(ret >= 0 && (size_t) ret == first_len);
+
+    ret = mbedtls_ssl_handshake_step(&server.ssl);
+    /* The initial fragment may already trigger a rejection (e.g., when
+     * in_hslen exceeds the configured max). In that case, skip the loop. */
+    if (ret == MBEDTLS_ERR_SSL_WANT_READ) {
+        const unsigned char next[] = {
+            0x16, 0x03, 0x03, 0x00, 0x01,
+            0x2a,
+        };
+        for (size_t left = hs_len - first_frag_content_len; left != 0; left--) {
+            ret = mbedtls_test_mock_tcp_send_b(&client.socket, next, sizeof(next));
+            TEST_ASSERT(ret >= 0 && (size_t) ret == sizeof(next));
+
+            ret = mbedtls_ssl_handshake_step(&server.ssl);
+            if (ret != MBEDTLS_ERR_SSL_WANT_READ) {
+                break;
+            }
+        }
+    }
+    TEST_EQUAL(ret, expected_ret);
+    TEST_ASSERT(srv_pattern.counter >= 1);
+
+exit:
+    mbedtls_test_free_handshake_options(&options);
+    mbedtls_test_ssl_endpoint_free(&server);
+    mbedtls_test_ssl_endpoint_free(&client);
+    mbedtls_debug_set_threshold(0);
+    mbedtls_free(first_frag);
+    PSA_DONE();
+}
+/* END_CASE */
+
 /* BEGIN_CASE depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ALG_CHACHA20_POLY1305:PSA_WANT_ALG_SHA_256:MBEDTLS_TEST_HAS_ADDITIONAL_HASH:MBEDTLS_TEST_HAS_DEFAULT_EC_GROUP*/
 void send_invalid_sig_alg(int sig, int hash, int expected_ret)
 {

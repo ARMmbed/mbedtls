@@ -1856,7 +1856,7 @@ int mbedtls_ssl_fetch_input(mbedtls_ssl_context *ssl, size_t nb_want)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len;
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH) || defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
     size_t in_buf_len = ssl->in_buf_len;
 #else
     size_t in_buf_len = MBEDTLS_SSL_IN_BUFFER_LEN;
@@ -2943,6 +2943,56 @@ int mbedtls_ssl_prepare_handshake_record(mbedtls_ssl_context *ssl)
         }
 
         ssl->in_hslen = mbedtls_ssl_hs_hdr_len(ssl) + ssl_get_hs_total_len(ssl);
+
+#if defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
+        /* Resize input buffer for handshake messages exceeding the default
+         * buffer. Must happen at the initial fragment, before the reassembly
+         * loop advances in_hdr past the buffered data. */
+        if (ssl->conf->transport == MBEDTLS_SSL_TRANSPORT_STREAM &&
+            ssl->conf->max_handshake_msg_len > 0 &&
+            ssl->in_hslen > MBEDTLS_SSL_IN_CONTENT_LEN) {
+            if (ssl->in_hslen > ssl->conf->max_handshake_msg_len) {
+                MBEDTLS_SSL_DEBUG_MSG(1,
+                                      ("handshake message too large: %"
+                                       MBEDTLS_PRINTF_SIZET " > %"
+                                       MBEDTLS_PRINTF_SIZET,
+                                       ssl->in_hslen,
+                                       ssl->conf->max_handshake_msg_len));
+                return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+            }
+
+            /* Allocate to the configured max so we resize at most once. */
+            size_t needed = ssl->conf->max_handshake_msg_len
+                            + MBEDTLS_SSL_IN_BUFFER_LEN;
+            size_t cur_buf_len = ssl->in_buf_len;
+
+            if (needed > cur_buf_len) {
+                size_t in_hdr_offset = (size_t) (ssl->in_hdr - ssl->in_buf);
+
+                unsigned char *new_buf = mbedtls_calloc(1, needed);
+                if (new_buf == NULL) {
+                    MBEDTLS_SSL_DEBUG_MSG(1,
+                                          ("alloc(%" MBEDTLS_PRINTF_SIZET
+                                           " bytes) failed", needed));
+                    return MBEDTLS_ERR_SSL_ALLOC_FAILED;
+                }
+
+                memcpy(new_buf, ssl->in_buf, cur_buf_len);
+                mbedtls_zeroize_and_free(ssl->in_buf, cur_buf_len);
+
+                ssl->in_buf = new_buf;
+                ssl->in_buf_len = needed;
+
+                /* Restore in_hdr and derive all other pointers. */
+                ssl->in_hdr = ssl->in_buf + in_hdr_offset;
+                mbedtls_ssl_update_in_pointers(ssl);
+
+                MBEDTLS_SSL_DEBUG_MSG(2,
+                                      ("Reallocating in_buf to %"
+                                       MBEDTLS_PRINTF_SIZET, needed));
+            }
+        }
+#endif /* MBEDTLS_SSL_TLS_HS_LARGE_MSG */
     }
 
     MBEDTLS_SSL_DEBUG_MSG(3, ("handshake message: msglen ="
@@ -3107,7 +3157,7 @@ int mbedtls_ssl_prepare_handshake_record(mbedtls_ssl_context *ssl)
          *   after the explicit IV, but here we move it to start where the
          *   IV was.
          */
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH) || defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
         size_t const in_buf_len = ssl->in_buf_len;
 #else
         size_t const in_buf_len = MBEDTLS_SSL_IN_BUFFER_LEN;
@@ -3142,7 +3192,10 @@ int mbedtls_ssl_prepare_handshake_record(mbedtls_ssl_context *ssl)
             ssl->in_hdr = reassembled_record_start;
             mbedtls_ssl_update_in_pointers(ssl);
 
-            /* Update the record length in the fully reassembled record */
+#if !defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
+            /* Write reassembled length to the 2-byte record header field.
+             * Skipped when TLS_HS_LARGE_MSG is enabled because the value
+             * is never read back (all processing uses in_msglen). */
             if (ssl->in_msglen > 0xffff) {
                 MBEDTLS_SSL_DEBUG_MSG(1,
                                       ("Shouldn't happen: in_msglen=%"
@@ -3151,6 +3204,7 @@ int mbedtls_ssl_prepare_handshake_record(mbedtls_ssl_context *ssl)
                 return MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
             }
             MBEDTLS_PUT_UINT16_BE(ssl->in_msglen, ssl->in_len, 0);
+#endif
 
             size_t record_len = mbedtls_ssl_in_hdr_len(ssl) + ssl->in_msglen;
             (void) record_len;
@@ -4583,7 +4637,7 @@ static int ssl_load_buffered_record(mbedtls_ssl_context *ssl)
     unsigned char *rec;
     size_t rec_len;
     unsigned rec_epoch;
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH) || defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
     size_t in_buf_len = ssl->in_buf_len;
 #else
     size_t in_buf_len = MBEDTLS_SSL_IN_BUFFER_LEN;

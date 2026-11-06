@@ -231,6 +231,14 @@ int main(void)
 #define USAGE_MAX_FRAG_LEN ""
 #endif /* MBEDTLS_SSL_MAX_FRAGMENT_LENGTH */
 
+#if defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
+#define USAGE_MAX_HS_MSG_LEN                                           \
+    "    max_hs_msg_len=%%d   default: 0 (disabled)\n"                 \
+    "                        max reassembled handshake message size\n"
+#else
+#define USAGE_MAX_HS_MSG_LEN ""
+#endif /* MBEDTLS_SSL_TLS_HS_LARGE_MSG */
+
 #if defined(MBEDTLS_SSL_ALPN)
 #define USAGE_ALPN \
     "    alpn=%%s             default: \"\" (disabled)\n"   \
@@ -425,6 +433,7 @@ int main(void)
     USAGE_TICKETS                                           \
     USAGE_EAP_TLS                                           \
     USAGE_MAX_FRAG_LEN                                      \
+    USAGE_MAX_HS_MSG_LEN                                    \
     USAGE_CONTEXT_CRT_CB                                    \
     USAGE_ALPN                                              \
     USAGE_EMS                                               \
@@ -504,6 +513,7 @@ struct options {
     int set_hostname;           /* call mbedtls_ssl_set_hostname()?         */
                                 /* 0=no, 1=yes, -1=NULL */
     unsigned char mfl_code;     /* code for maximum fragment length         */
+    int max_hs_msg_len;         /* max reassembled handshake message len    */
     int trunc_hmac;             /* negotiate truncated hmac or not          */
     int recsplit;               /* enable record splitting?                 */
     int reconnect;              /* attempt to resume session                */
@@ -941,6 +951,7 @@ int main(int argc, char *argv[])
     opt.auth_mode           = DFL_AUTH_MODE;
     opt.set_hostname        = DFL_SET_HOSTNAME;
     opt.mfl_code            = DFL_MFL_CODE;
+    opt.max_hs_msg_len      = 0;
     opt.trunc_hmac          = DFL_TRUNC_HMAC;
     opt.recsplit            = DFL_RECSPLIT;
     opt.reconnect           = DFL_RECONNECT;
@@ -1350,6 +1361,8 @@ usage:
             } else {
                 goto usage;
             }
+        } else if (strcmp(p, "max_hs_msg_len") == 0) {
+            opt.max_hs_msg_len = atoi(q);
         } else if (strcmp(p, "trunc_hmac") == 0) {
             switch (atoi(q)) {
                 case 0: opt.trunc_hmac = MBEDTLS_SSL_TRUNC_HMAC_DISABLED; break;
@@ -1856,6 +1869,17 @@ usage:
         mbedtls_printf(" failed\n  ! mbedtls_ssl_conf_max_frag_len returned %d\n\n",
                        ret);
         goto exit;
+    }
+#endif
+
+#if defined(MBEDTLS_SSL_TLS_HS_LARGE_MSG)
+    if (opt.max_hs_msg_len > 0) {
+        if ((ret = mbedtls_ssl_conf_max_handshake_msg_len(
+                 &conf, (size_t) opt.max_hs_msg_len)) != 0) {
+            mbedtls_printf(" failed\n  ! mbedtls_ssl_conf_max_handshake_msg_len"
+                           " returned %d\n\n", ret);
+            goto exit;
+        }
     }
 #endif
 

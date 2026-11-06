@@ -1,0 +1,8 @@
+Features
+   * Add support for TLS handshake messages larger than
+     MBEDTLS_SSL_IN_CONTENT_LEN via the new compile-time option
+     MBEDTLS_SSL_TLS_HS_LARGE_MSG and the runtime configuration
+     function mbedtls_ssl_conf_max_handshake_msg_len(). When enabled,
+     the input buffer is dynamically resized during handshake
+     reassembly to accommodate large messages such as Certificate
+     chains with many intermediate CAs or many SANs.
