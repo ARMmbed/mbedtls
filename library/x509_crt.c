@@ -2508,7 +2508,7 @@ static int x509_crt_verify_chain(
     int signature_is_good;
     unsigned self_cnt;
     mbedtls_x509_crt *cur_trust_ca = NULL;
-    mbedtls_x509_time now;
+    mbedtls_x509_time now = { 0 };
 
 #if defined(MBEDTLS_HAVE_TIME_DATE)
     if (mbedtls_x509_time_gmtime(mbedtls_time(NULL), &now) != 0) {
