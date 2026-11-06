@@ -1,5 +1,33 @@
 Mbed TLS ChangeLog (Sorted per branch, date)
 
+= Mbed TLS x.x.x branch released xxxx-xx-xx
+
+API changes
+   * Add the public type mbedtls_pkcs7_cert and the error codes
+     MBEDTLS_ERR_PKCS7_CERT_VERIFY_FAILED and
+     MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND.
+
+   * Add the APIs mbedtls_pkcs7_signed_data_verify_ext(),
+     mbedtls_pkcs7_signed_hash_verify_ext(),
+     mbedtls_pkcs7_get_cert_count(), and mbedtls_pkcs7_get_certs().
+
+   * Update mbedtls_pkcs7_signed_data_verify() and
+     mbedtls_pkcs7_signed_hash_verify() to accept a const
+     mbedtls_pkcs7 pointer.
+
+   * mbedtls_pkcs7_signed_data_verify() and mbedtls_pkcs7_signed_hash_verify()
+     now returns MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND when the supplied
+     certificate does not match the signer certificate.
+
+Features
+   * Add support for multiple certificates embedded in PKCS #7
+     SignedData structures.
+
+   * Add support for PKCS #7 signature verification using either signer
+     certificates embedded in the PKCS #7 structure or certificates
+     supplied by the application. Certificate chain validation for
+     PKCS #7 embedded signer certificates is also supported.
+
 = Mbed TLS 4.2.0 branch released 2026-07-07
 
 Features

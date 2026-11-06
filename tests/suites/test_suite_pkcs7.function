@@ -227,3 +227,176 @@ exit:
     USE_PSA_DONE();
 }
 /* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C:PSA_HAVE_ALG_SOME_RSA_VERIFY */
+void pkcs7_verify_ext(char *pkcs7_file, char *certs_file, char *input_file,
+                      int do_hash_alg, int chain_check, int expect_ret)
+{
+    unsigned char *pkcs7_buf = NULL;
+    unsigned char *data = NULL;
+    unsigned char *hash = NULL;
+    size_t pkcs7_len = 0;
+    size_t datalen = 0;
+    size_t hashlen = 0;
+    int ret;
+    FILE *file = NULL;
+    struct stat st;
+    const mbedtls_md_info_t *md_info = NULL;
+
+    mbedtls_pkcs7 pkcs7;
+    mbedtls_x509_crt certs;
+
+    USE_PSA_INIT();
+
+    mbedtls_pkcs7_init(&pkcs7);
+    mbedtls_x509_crt_init(&certs);
+
+    /* Load PKCS7 */
+    if (strcmp(pkcs7_file, "NULL") != 0) {
+        ret = mbedtls_pk_load_file(pkcs7_file, &pkcs7_buf, &pkcs7_len);
+        TEST_EQUAL(ret, 0);
+
+        ret = mbedtls_pkcs7_parse_der(&pkcs7, pkcs7_buf, pkcs7_len);
+        TEST_EQUAL(ret, MBEDTLS_PKCS7_SIGNED_DATA);
+    }
+
+    /* Load certs */
+    if (strcmp(certs_file, "NULL") != 0) {
+        ret = mbedtls_x509_crt_parse_file(&certs, certs_file);
+        TEST_EQUAL(ret, 0);
+    }
+
+    /* Load data */
+    if (strcmp(input_file, "NULL") != 0) {
+        ret = stat(input_file, &st);
+        TEST_EQUAL(ret, 0);
+
+        datalen = st.st_size;
+        TEST_CALLOC(data, datalen == 0 ? 1 : datalen);
+
+        file = fopen(input_file, "rb");
+        TEST_ASSERT(file != NULL);
+        TEST_EQUAL(fread(data, 1, datalen, file), datalen);
+        fclose(file);
+        file = NULL;
+    }
+
+    if (do_hash_alg) {
+        md_info = mbedtls_md_info_from_type((mbedtls_md_type_t) do_hash_alg);
+        TEST_ASSERT(md_info != NULL);
+
+        hashlen = mbedtls_md_get_size(md_info);
+        TEST_CALLOC(hash, hashlen);
+
+        if (data != NULL && datalen != 0) {
+            ret = mbedtls_md(md_info, data, datalen, hash);
+            TEST_EQUAL(ret, 0);
+        }
+
+        ret = mbedtls_pkcs7_signed_hash_verify_ext(
+            strcmp(pkcs7_file, "NULL") ? &pkcs7 : NULL,
+            strcmp(certs_file, "NULL") ? &certs : NULL,  hash, hashlen,
+            chain_check);
+    } else {
+        ret = mbedtls_pkcs7_signed_data_verify_ext(
+            strcmp(pkcs7_file, "NULL") ? &pkcs7 : NULL,
+            strcmp(certs_file, "NULL") ? &certs : NULL, data, datalen,
+            chain_check);
+    }
+
+    TEST_EQUAL(ret, expect_ret);
+
+exit:
+    if (file != NULL) {
+        fclose(file);
+    }
+    mbedtls_free(hash);
+    mbedtls_free(data);
+    mbedtls_x509_crt_free(&certs);
+    mbedtls_pkcs7_free(&pkcs7);
+    mbedtls_free(pkcs7_buf);
+    USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C */
+void pkcs7_get_certs(char *pkcs7_file, int expected_ret)
+{
+    unsigned char *pkcs7_buf = NULL;
+    size_t buflen;
+    int ret;
+    char info[512];
+
+    mbedtls_pkcs7 pkcs7;
+    mbedtls_x509_crt *certs = NULL;
+
+    USE_PSA_INIT();
+
+    mbedtls_pkcs7_init(&pkcs7);
+
+    ret = mbedtls_pk_load_file(pkcs7_file, &pkcs7_buf, &buflen);
+    TEST_EQUAL(ret, 0);
+
+    ret = mbedtls_pkcs7_parse_der(&pkcs7, pkcs7_buf, buflen);
+    TEST_EQUAL(ret, MBEDTLS_PKCS7_SIGNED_DATA);
+
+    ret = mbedtls_pkcs7_get_certs(&pkcs7, &certs);
+    TEST_EQUAL(ret, expected_ret);
+
+    if (expected_ret == 0) {
+        TEST_ASSERT(certs != NULL);
+
+        /* deep copy check */
+        mbedtls_pkcs7_free(&pkcs7);
+        mbedtls_x509_crt_info(info, sizeof(info), "  ", certs);
+        TEST_ASSERT(strlen(info) > 0);
+
+        mbedtls_x509_crt_free(certs);
+        mbedtls_free(certs);
+        certs = NULL;
+    } else {
+        TEST_ASSERT(certs == NULL);
+    }
+
+exit:
+    if (certs != NULL) {
+        mbedtls_x509_crt_free(certs);
+        mbedtls_free(certs);
+    }
+    mbedtls_free(pkcs7_buf);
+    mbedtls_pkcs7_free(&pkcs7);
+    USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_FS_IO:MBEDTLS_PKCS7_C */
+void pkcs7_get_cert_count(char *pkcs7_file, int expected)
+{
+    int ret;
+    mbedtls_pkcs7 pkcs7;
+    unsigned char *buf = NULL;
+    size_t len = 0;
+
+    USE_PSA_INIT();
+
+    mbedtls_pkcs7_init(&pkcs7);
+
+    if (strcmp(pkcs7_file, "NULL") != 0) {
+        ret = mbedtls_pk_load_file(pkcs7_file, &buf, &len);
+        TEST_EQUAL(ret, 0);
+
+        ret = mbedtls_pkcs7_parse_der(&pkcs7, buf, len);
+        TEST_EQUAL(ret, MBEDTLS_PKCS7_SIGNED_DATA);
+    }
+
+    ret = mbedtls_pkcs7_get_cert_count(
+        (strcmp(pkcs7_file, "NULL") != 0) ? &pkcs7 : NULL);
+
+    TEST_EQUAL(ret, expected);
+
+exit:
+    mbedtls_pkcs7_free(&pkcs7);
+    mbedtls_free(buf);
+    USE_PSA_DONE();
+}
+/* END_CASE */

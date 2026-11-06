@@ -22,9 +22,9 @@ PKCS7 Signed Data Parse reused object from multiple signers to one signer
 depends_on:PSA_WANT_ALG_SHA_256:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY
 pkcs7_parse_reuse:"../framework/data_files/pkcs7_data_multiple_signed.der":"../framework/data_files/pkcs7_data_cert_signed_sha256.der":MBEDTLS_PKCS7_SIGNED_DATA
 
-PKCS7 Signed Data Parse Fail with multiple certs #4
+PKCS7 Signed Data Parse Pass with multiple certs #4
 depends_on:PSA_WANT_ALG_SHA_256:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY
-pkcs7_parse:"../framework/data_files/pkcs7_data_multiple_certs_signed.der":MBEDTLS_ERR_PKCS7_FEATURE_UNAVAILABLE
+pkcs7_parse:"../framework/data_files/pkcs7_data_multiple_certs_signed.der":MBEDTLS_PKCS7_SIGNED_DATA
 
 PKCS7 Signed Data Parse Fail with corrupted cert #5.0
 depends_on:PSA_WANT_ALG_SHA_256:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY
@@ -84,7 +84,7 @@ pkcs7_verify:"../framework/data_files/pkcs7_zerolendata_detached.der":"../framew
 
 PKCS7 Signed Data Verification Fail zero-len data
 depends_on:PSA_WANT_ALG_SHA_1:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
-pkcs7_verify:"../framework/data_files/pkcs7_zerolendata_detached.der":"../framework/data_files/pkcs7-rsa-sha256-2.der":"../framework/data_files/pkcs7_zerolendata.bin":0:MBEDTLS_ERR_RSA_VERIFY_FAILED
+pkcs7_verify:"../framework/data_files/pkcs7_zerolendata_detached.der":"../framework/data_files/pkcs7-rsa-sha256-2.der":"../framework/data_files/pkcs7_zerolendata.bin":0:MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND
 
 PKCS7 Signed Data Verification Pass SHA256 #9
 depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
@@ -112,7 +112,7 @@ pkcs7_verify:"../framework/data_files/pkcs7_data_cert_signed_sha512.der":"../fra
 
 PKCS7 Signed Data Verification Fail because of different certificate #12
 depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
-pkcs7_verify:"../framework/data_files/pkcs7_data_cert_signed_sha256.der":"../framework/data_files/pkcs7-rsa-sha256-2.der":"../framework/data_files/pkcs7_data.bin":0:MBEDTLS_ERR_RSA_VERIFY_FAILED
+pkcs7_verify:"../framework/data_files/pkcs7_data_cert_signed_sha256.der":"../framework/data_files/pkcs7-rsa-sha256-2.der":"../framework/data_files/pkcs7_data.bin":0:MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND
 
 PKCS7 Signed Data Verification Fail because of different data hash #13
 depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
@@ -3271,3 +3271,123 @@ pkcs7_asn1_fail:"3082049d06092a864886f70d010702a082048e3082048a020101310f300d060
 PKCS7 Parse Failure Invalid ASN1: Change length from 256 to 257 #794.0
 depends_on:PSA_WANT_ALG_SHA_256
 pkcs7_asn1_fail:"3082049d06092a864886f70d010702a082048e3082048a020101310f300d06096086480165030402010500300b06092a864886f70d0107013182046530820173020101304c3034310b3009060355040613024e4c310e300c060355040a0c05504b4353373115301306035504030c0c504b4353372043657274203102147bdeddd2444cd1cdfe5c41a8102c89b7df2e6cbf300d06096086480165030402010500300d06092a864886f70d0101010500048201005becd87195c1deff90c24c91269b55b3f069bc225c326c314c1a51786ffe14c830be4e4bc73cba36c97677b44168279be91e7cdf7c19386ae21862719d13a3a0fff0803d460962f2cda8371484873252c3d7054db8143e2b081a3816ed0804ca5099ae5fece83d5c2c3783b1988b4b46dc94e55587a107ea1546bf22d28a097f652a4066dc2965269069af2f5176bb8ce9ca6d11f96757f03204f756703587d00ad424796c92fc7aeb6f494431999eda30990e4f5773632ed258fe0276673599da6fce35cdad7726a0bb024cad996b88e0cb98854ceb5c0b6ec748d9f9ce6a6cd437858bacb814618a272ff3a415c6e07f3db0988777fdec845a97bf7d102dd030820173020101304c3034310b3009060355040613024e4c310e300c060355040a0c05504b4353373115301306035504030c0c504b435337204365727420320214564d554025af599e327079b2720ef00df37cfb7c300d06096086480165030402010500300d06092a864886f70d010101050004820100046098dc5f2b99e3bc2ed6642d7f0a61efabc15c38c76333bccceeee369a4f4a5bdda8ea59264124e429f08632683ddba17bbf262d82b6befa3b4e1480376a8c7f3c7d7e2a6779bbf18262aa857de8c20a12b6a2ce8e4d7f31dd1b195392cf6185afce34afe05896057b36e9b171b6c67ed7c2286cbfa83ff8a167c7bc7109aee7d7e1909bd384fbfc61938efca51c8993c71db317730f16e7e776867ae4fdc562d6f15de585e7b94ef496a3676367a2cbaab7b636648b0076bad5cdf1e09740ec6a451bff534efa21509f3ba77b8101b91ea7e55ddbfe1401517067d7b01a2a0879f0885c894a87cfb68c4d7ee890604881aeb97c22d1f337ef923e035a640030820173020101304c3034310b3009060355040613024e4c310e300c060355040a0c05504b4353373115301306035504030c0c504b43533720436572742033021462477298759e8e04718ae563155f3523cfb84cdb300d06096086480165030402010500300d06092a864886f70d0101010500048201016d2cbb37fd12957e5a7480ce0435e8ef6077def08ff270844de2516a4742f211d8c74690bc0948e08a296abba9285f6bb305b95b7f9408ce44e83880c719444672ec99746ba78cc4bde475319d01bde77c49d58d16d3b2e91c2e61e8303ca3d7eda3797fd8b35ca72bb14b15a24b56bb70dc13484565808110ff5db58c56f7a0435607e3c352fbf4f55106f2980fd3cd42397dbf7137ee7f1e32cd80a3b7ab12b46c169220278d7717b78a3c45d6395a130a8b58841cbc290e4f817de3a4fe16ecd077ca33a0aa25e235cc7f6655a80ba8aeec87905bb2a75459b7bcc5a133f2993493b41ffcf63cd7a391e3e6f78094ca442c80144403cb0a5f00bfc61ae880"
+
+PKCS7 Signed Data Verify Pass: zero-len data #795.0
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_zerolendata_detached-2.der":"../framework/data_files/pkcs7-rsa-sha256-leaf-1.der":"../framework/data_files/pkcs7_zerolendata.bin":0:0:0
+
+PKCS7 Signed Data Verify Fail: zero-len data #795.1
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_zerolendata_detached-2.der":"../framework/data_files/pkcs7-rsa-sha256-leaf-3.der":"../framework/data_files/pkcs7_zerolendata.bin":0:0:MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND
+
+PKCS7 Signed Data Verify Pass: Embedded leaf & Intermediate and Trusted Root cert #796.0
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256-2.der":"../framework/data_files/pkcs7-rsa-sha256-root-ca-1.pem":"../framework/data_files/pkcs7_data.bin":0:1:0
+
+PKCS7 Signed Data Verify Fail: Embedded leaf & Intermediate cert, chain check #796.1
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256-2.der":"NULL":"../framework/data_files/pkcs7_data.bin":0:1:MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA
+
+PKCS7 Signed Data Verify Fail: Invalid Root CA, chain check #796.2
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY:MBEDTLS_PEM_PARSE_C
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256-2.der":"../framework/data_files/pkcs7-rsa-sha256-root-ca-2.pem":"../framework/data_files/pkcs7_data.bin":0:1:MBEDTLS_ERR_PKCS7_CERT_VERIFY_FAILED
+
+PKCS7 Signed Data Verify Fail: Embedded leaf signer cert #797.0
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256.der":"NULL":"../framework/data_files/pkcs7_data.bin":0:0:MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA
+
+PKCS7 Signed Data Verify Pass: Trusted CA cert, chain check  #797.1
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256.der":"../framework/data_files/pkcs7-rsa-sha256-int-ca-1.der":"../framework/data_files/pkcs7_data.bin":0:1:0
+
+PKCS7 Signed Data Verify Fail: Invalid CA cert, chain check #797.2
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256.der":"../framework/data_files/pkcs7-rsa-sha256-int-ca-3.der":"../framework/data_files/pkcs7_data.bin":0:1:MBEDTLS_ERR_PKCS7_CERT_VERIFY_FAILED
+
+PKCS7 signed data verify Fail: NULL PKCS7 input #798.0
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"NULL":"../framework/data_files/pkcs7-rsa-sha256-1.pem":"../framework/data_files/pkcs7_data.bin":0:1:MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA
+
+PKCS7 signed data verify Fail: data is NULL #798.1
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256.der":"NULL":"NULL":0:1:MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA
+
+PKCS7 signed data verify Fail: Invalid chain_check input #798.2
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256.der":"NULL":"../framework/data_files/pkcs7_data.bin":0:2:MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA
+
+PKCS7 Signed Data Verify Pass: Trusted signer cert #799.0
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_without_cert.der":"../framework/data_files/pkcs7-rsa-sha256-leaf-1.der":"../framework/data_files/pkcs7_data.bin":0:0:0
+
+PKCS7 Signed Data Verify Fail: Trusted signer cert chain, chain check #799.1
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY:MBEDTLS_PEM_PARSE_C
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_without_cert.der":"../framework/data_files/pkcs7-rsa-sha256-leaf-1.der":"../framework/data_files/pkcs7_data.bin":0:1:MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND
+
+PKCS7 Signed Data Verify Pass: Multiple signers, chain check  #800.0
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256-3.der":"../framework/data_files/pkcs7-rsa-sha256-ca-chain.pem":"../framework/data_files/pkcs7_data.bin":0:1:0
+
+PKCS7 Signed Data Verify Pass: Multiple signers,Trusted Root cert, chain check #800.1
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_multi_cert_sha256.der":"../framework/data_files/pkcs7-rsa-sha256-root-ca-1.pem":"../framework/data_files/pkcs7_data.bin":0:1:0
+
+PKCS7 Signed Data Verify Pass: Multiple signers, chain check #800.2
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256-3.der":"../framework/data_files/pkcs7-rsa-sha256-int-ca-2.der":"../framework/data_files/pkcs7_data.bin":0:1:0
+
+PKCS7 Signed Data Verify Fail: Multiple signers, Invalid CA cert  #800.3
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256-3.der":"../framework/data_files/pkcs7-rsa-sha256-int-ca-3.der":"../framework/data_files/pkcs7_data.bin":0:1:MBEDTLS_ERR_PKCS7_CERT_VERIFY_FAILED
+
+PKCS7 Signed Data Hash Verify Pass: Trusted CA chain, chain check #801.0
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256.der":"../framework/data_files/pkcs7-rsa-sha256-ca-chain.pem":"../framework/data_files/pkcs7_data.bin":MBEDTLS_MD_SHA256:1:0
+
+PKCS7 Signed Data Hash Verify Fail: Invalid data input, chain check #801.1
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256.der":"../framework/data_files/pkcs7-rsa-sha256-ca-chain.pem":"../framework/data_files/pkcs7_data_1.bin":MBEDTLS_MD_SHA256:1:MBEDTLS_ERR_PKCS7_VERIFY_FAIL
+
+PKCS7 Signed Data Hash Verify Fail: Different Hash Algorithm #801.2
+depends_on:PSA_WANT_ALG_SHA_256:PSA_WANT_ALG_SHA_512:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256.der":"../framework/data_files/pkcs7-rsa-sha256-ca-chain.pem":"../framework/data_files/pkcs7_data.bin":MBEDTLS_MD_SHA512:1:MBEDTLS_ERR_PKCS7_VERIFY_FAIL
+
+PKCS7 Signed Data Verify Fail: Expired Certificate #802
+depends_on:PSA_WANT_ALG_SHA_256:MBEDTLS_HAVE_TIME_DATE
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_without_cert.der":"../framework/data_files/pkcs7-rsa-expired-2.der":"../framework/data_files/pkcs7_data.bin":0:0:MBEDTLS_ERR_PKCS7_CERT_DATE_INVALID
+
+PKCS7 Signed Data Verify Fail: Invalid Certificate KeyUsage #803
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_data_invalid_KU_cert.der":"../framework/data_files/pkcs7-rsa-sha256-invalid-leaf.der":"../framework/data_files/pkcs7_data.bin":0:0:MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND
+
+PKCS7 Signed Data Verify Pass: Root-Signed Leaf Certificate, chain check #804
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_RSA_PKCS1V15_VERIFY
+pkcs7_verify_ext:"../framework/data_files/pkcs7_signed_cert_sha256-4.der":"../framework/data_files/pkcs7-rsa-sha256-root-ca-1.pem":"../framework/data_files/pkcs7_data.bin":0:1:0
+
+PKCS7 get embedded certs: SignedData with cert #805.0
+depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C
+pkcs7_get_certs:"../framework/data_files/pkcs7_signed_cert_sha256.der":0
+
+PKCS7 get embedded certs: SignedData with multiple certs #805.1
+depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C
+pkcs7_get_certs:"../framework/data_files/pkcs7_signed_multi_cert_sha256.der":0
+
+PKCS7 get embedded certs: SignedData without certs #805.2
+depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C
+pkcs7_get_certs:"../framework/data_files/pkcs7_signed_without_cert.der":MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA
+
+PKCS7 embedded cert count: SignedData with certificates #806.0
+depends_on:MBEDTLS_FS_IO
+pkcs7_get_cert_count:"../framework/data_files/pkcs7_signed_cert_sha256.der":1
+
+PKCS7 embedded cert count: SignedData without certificates #806.1
+depends_on:MBEDTLS_FS_IO
+pkcs7_get_cert_count:"../framework/data_files/pkcs7_signed_without_cert.der":0
+
+PKCS7 embedded cert count: SignedData with multiple certs #806.2
+depends_on:MBEDTLS_FS_IO
+pkcs7_get_cert_count:"../framework/data_files/pkcs7_signed_multi_cert_sha256.der":4
+
+PKCS7 embedded cert count: NULL pkcs7 returns error #806.3
+depends_on:MBEDTLS_FS_IO
+pkcs7_get_cert_count:"NULL":MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA

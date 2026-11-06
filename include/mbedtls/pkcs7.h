@@ -63,6 +63,8 @@
 #define MBEDTLS_ERR_PKCS7_ALLOC_FAILED                     PSA_ERROR_INSUFFICIENT_MEMORY  /**< Allocation of memory failed. */
 #define MBEDTLS_ERR_PKCS7_VERIFY_FAIL                      PSA_ERROR_INVALID_SIGNATURE  /**< Verification Failed */
 #define MBEDTLS_ERR_PKCS7_CERT_DATE_INVALID                -0x5880  /**< The PKCS #7 date issued/expired dates are invalid */
+#define MBEDTLS_ERR_PKCS7_CERT_VERIFY_FAILED               -0x5900  /**< The PKCS #7 signer certificate verification failed. */
+#define MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND            -0x5980  /**< No certificate matching the PKCS#7 signer information was found. */
 /* \} name */
 
 /**
@@ -122,13 +124,22 @@ typedef struct mbedtls_pkcs7_signer_info {
 mbedtls_pkcs7_signer_info;
 
 /**
+ * Structure for holding a certificate in a PKCS #7 SignedData
+ */
+typedef struct mbedtls_pkcs7_cert {
+    mbedtls_x509_crt MBEDTLS_PRIVATE(cert);
+    struct mbedtls_pkcs7_cert *MBEDTLS_PRIVATE(next);
+}
+mbedtls_pkcs7_cert;
+
+/**
  * Structure holding the signed data section
  */
 typedef struct mbedtls_pkcs7_signed_data {
     int MBEDTLS_PRIVATE(version);
     mbedtls_pkcs7_buf MBEDTLS_PRIVATE(digest_alg_identifiers);
     int MBEDTLS_PRIVATE(no_of_certs);
-    mbedtls_x509_crt MBEDTLS_PRIVATE(certs);
+    mbedtls_pkcs7_cert *MBEDTLS_PRIVATE(certs);
     int MBEDTLS_PRIVATE(no_of_crls);
     mbedtls_x509_crl MBEDTLS_PRIVATE(crl);
     int MBEDTLS_PRIVATE(no_of_signers);
@@ -199,7 +210,7 @@ int mbedtls_pkcs7_parse_der(mbedtls_pkcs7 *pkcs7, const unsigned char *buf,
  *
  * \return         0 if the signature verifies, or a negative error code on failure.
  */
-int mbedtls_pkcs7_signed_data_verify(mbedtls_pkcs7 *pkcs7,
+int mbedtls_pkcs7_signed_data_verify(const mbedtls_pkcs7 *pkcs7,
                                      const mbedtls_x509_crt *cert,
                                      const unsigned char *data,
                                      size_t datalen);
@@ -231,9 +242,109 @@ int mbedtls_pkcs7_signed_data_verify(mbedtls_pkcs7 *pkcs7,
  *
  * \return         0 if the signature verifies, or a negative error code on failure.
  */
-int mbedtls_pkcs7_signed_hash_verify(mbedtls_pkcs7 *pkcs7,
+int mbedtls_pkcs7_signed_hash_verify(const mbedtls_pkcs7 *pkcs7,
                                      const mbedtls_x509_crt *cert,
                                      const unsigned char *hash, size_t hashlen);
+
+/**
+ * \brief                 Verify a PKCS #7 SignedData signature over plain data.
+ *
+ *                        For each signer in the PKCS#7 structure, this function verifies
+ *                        the signature over the supplied data using the digest algorithm
+ *                        specified by the signer and a matching leaf certificate.
+ *                        Verification succeeds if at least one signer signature is valid.
+ *
+ *                        The verification uses certificates provided by the caller and,
+ *                        optionally, certificates embedded within the PKCS#7 SignedData
+ *                        structure. When certificates from the PKCS#7 structure are used,
+ *                        the signer certificate chain is validated against the supplied
+ *                        trusted certificates.
+ *
+ * \param pkcs7           PKCS#7 SignedData structure containing signatures.
+ * \param trust_certs     Certificate list containing trusted leaf and CA certificates.
+ *                        CA certificates are used for certificate chain verification and
+ *                        leaf certificates are used for signature verification.
+ * \param data            Plain data on which signature has to be verified.
+ * \param datalen         Length of the \p data.
+ * \param use_pkcs7_leaf  Flag indicating whether to use the leaf certificate embedded
+ *                        in the PKCS#7 structure: set to \c 1 to enforce use of the PKCS#7
+ *                        leaf certificate, or \c 0 to use only caller-supplied certificates.
+ *
+ * \note                  This function internally calculates the hash on the supplied
+ *                        plain data for signature verification.
+ *
+ * \return                0 on success, or a negative error code on failure.
+ */
+int mbedtls_pkcs7_signed_data_verify_ext(const mbedtls_pkcs7 *pkcs7,
+                                         const mbedtls_x509_crt *trust_certs,
+                                         const unsigned char *data,
+                                         const size_t datalen,
+                                         const int use_pkcs7_leaf);
+
+/**
+ * \brief                 Verify PKCS #7 SignedData signature over a supplied hash.
+ *
+ *                        For each signer in the PKCS#7 structure, this function verifies
+ *                        the signature over the supplied message hash using the digest
+ *                        algorithm specified by the signer and a matching leaf certificate.
+ *                        Verification succeeds if at least one signer signature is valid.
+ *
+ *                        The verification uses certificates provided by the caller and,
+ *                        optionally, certificates embedded within the PKCS#7 SignedData
+ *                        structure. When certificates from the PKCS#7 structure are used,
+ *                        the signer certificate chain is validated against the supplied
+ *                        trusted certificates.
+ *
+ * \param pkcs7           PKCS #7 SignedData structure containing signatures.
+ * \param trust_certs     Certificate list containing trusted leaf and CA certificates.
+ *                        CA certificates are used for certificate chain verification and
+ *                        leaf certificates are used for signature verification.
+ * \param hash            Hash of the plain data on which signature has to be verified.
+ * \param hashlen         Length of the \p hash.
+ * \param use_pkcs7_leaf  Flag indicating whether to use the leaf certificate embedded in
+ *                        the PKCS#7 structure: set to \c 1 to enforce use of the PKCS#7
+ *                        leaf certificate, or \c 0 to use only caller-supplied certificates.
+ *
+ * \note                  This function differs from mbedtls_pkcs7_signed_data_verify_ext()
+ *                        in that the hash of the input data is provided directly by caller.
+ *
+ * \return                0 on success, or a negative error code on failure.
+ */
+int mbedtls_pkcs7_signed_hash_verify_ext(const mbedtls_pkcs7 *pkcs7,
+                                         const mbedtls_x509_crt *trust_certs,
+                                         const unsigned char *hash,
+                                         const size_t hashlen,
+                                         const int use_pkcs7_leaf);
+
+/**
+ * \brief        Return the number of certificates embedded in a PKCS #7 SignedData
+ *               structure.
+ *
+ * \param pkcs7  PKCS #7 structure containing signature and certificates.
+ *
+ * \return       Number of embedded certificates (>= 0), or
+ *               #MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA if \p pkcs7 is NULL.
+ */
+int mbedtls_pkcs7_get_cert_count(const mbedtls_pkcs7 *pkcs7);
+
+/**
+ * \brief           Extract embedded certificates from PKCS#7 SignedData.
+ *
+ * \details         Creates a new certificate chain by parsing the DER-encoded
+ *                  certificates embedded in the PKCS#7 structure. The caller
+ *                  is responsible for freeing the returned certificate chain.
+ *
+ * \param pkcs7     PKCS#7 structure containing embedded certificates.
+ * \param out_certs On success, pointer to newly allocated certificate chain.
+ *                  Caller must free with mbedtls_x509_crt_free() and mbedtls_free().
+ *
+ * \return          0 on success,
+ *                  #MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA if \p pkcs7 is NULL,
+ *                  \p out_certs is NULL, or no certificates are embedded,
+ *                  or a negative error code on failure.
+ */
+int mbedtls_pkcs7_get_certs(const mbedtls_pkcs7 *pkcs7,
+                            mbedtls_x509_crt **out_certs);
 
 /**
  * \brief          Unallocate all PKCS #7 data and zeroize the memory.

@@ -20,6 +20,7 @@
 
 #include "mbedtls/platform.h"
 #include "mbedtls/platform_util.h"
+#include <limits.h>
 
 #if defined(MBEDTLS_HAVE_TIME)
 #include "mbedtls/platform_time.h"
@@ -158,62 +159,121 @@ static int pkcs7_get_digest_algorithm_set(unsigned char **p,
 }
 
 /**
- * certificates :: SET OF ExtendedCertificateOrCertificate,
- * ExtendedCertificateOrCertificate ::= CHOICE {
- *      certificate Certificate -- x509,
- *      extendedCertificate[0] IMPLICIT ExtendedCertificate }
- * Return number of certificates added to the signed data,
- * 0 or higher is valid.
- * Return negative error code for failure.
- **/
-static int pkcs7_get_certificates(unsigned char **p, unsigned char *end,
-                                  mbedtls_x509_crt *certs)
+ * \brief           Parse and add a certificate to the certificate list.
+ *
+ * \details         Decodes a DER-encoded certificate and adds it to the
+ *                  certificate list.
+ *
+ * \param der_cert  DER-encoded certificate.
+ * \param der_len   Length of the DER-encoded certificate.
+ * \param certs     Certificate list to which the parsed certificate
+ *                  is added.
+ *
+ * \return          0 on success, or a negative error code on failure.
+ */
+static int pkcs7_parse_cert_der(const unsigned char *der_cert, size_t der_len,
+                                mbedtls_pkcs7_cert **certs)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    size_t len1 = 0;
-    size_t len2 = 0;
-    unsigned char *end_set, *end_cert, *start;
+    mbedtls_pkcs7_cert *pcert;
 
-    ret = mbedtls_asn1_get_tag(p, end, &len1, MBEDTLS_ASN1_CONSTRUCTED
-                               | MBEDTLS_ASN1_CONTEXT_SPECIFIC);
-    if (ret == MBEDTLS_ERR_ASN1_UNEXPECTED_TAG) {
-        return 0;
+    pcert = mbedtls_calloc(1, sizeof(mbedtls_pkcs7_cert));
+    if (pcert == NULL) {
+        return MBEDTLS_ERR_PKCS7_ALLOC_FAILED;
     }
+
+    mbedtls_x509_crt_init(&pcert->cert);
+
+    ret = mbedtls_x509_crt_parse_der(&pcert->cert, der_cert, der_len);
     if (ret != 0) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PKCS7_INVALID_FORMAT, ret);
-    }
-    start = *p;
-    end_set = *p + len1;
-
-    ret = mbedtls_asn1_get_tag(p, end_set, &len2, MBEDTLS_ASN1_CONSTRUCTED
-                               | MBEDTLS_ASN1_SEQUENCE);
-    if (ret != 0) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PKCS7_INVALID_CERT, ret);
-    }
-
-    end_cert = *p + len2;
-
-    /*
-     * This is to verify that there is only one signer certificate. It seems it is
-     * not easy to differentiate between the chain vs different signer's certificate.
-     * So, we support only the root certificate and the single signer.
-     * The behaviour would be improved with addition of multiple signer support.
-     */
-    if (end_cert != end_set) {
-        return MBEDTLS_ERR_PKCS7_FEATURE_UNAVAILABLE;
-    }
-
-    if ((ret = mbedtls_x509_crt_parse_der(certs, start, len1)) < 0) {
+        mbedtls_free(pcert);
         return MBEDTLS_ERR_PKCS7_INVALID_CERT;
     }
 
-    *p = end_cert;
+    if (*certs == NULL) {
+        *certs = pcert;
+    } else {
+        pcert->next = *certs;
+        *certs = pcert;
+    }
 
-    /*
-     * Since in this version we strictly support single certificate, and reaching
-     * here implies we have parsed successfully, we return 1.
-     */
-    return 1;
+    return 0;
+}
+
+/**
+ * \brief           Parse certificates from PKCS#7 SignedData.
+ *
+ * \details         Parses the SET OF ExtendedCertificateOrCertificate and
+ *                  stores them in a linked list of mbedtls_pkcs7_cert nodes.
+ *
+ *                  certificates :: SET OF ExtendedCertificateOrCertificate,
+ *                  ExtendedCertificateOrCertificate ::= CHOICE {
+ *                       certificate Certificate -- x509,
+ *                       extendedCertificate[0] IMPLICIT ExtendedCertificate
+ *                  }
+ *
+ * \param p         Input pointer to ASN.1 buffer.
+ * \param end       End of input buffer.
+ * \param certs     Certificate list.
+ *
+ * \return          Number of certificates parsed (>= 0) on success,
+ *                  or a negative error code on failure.
+ */
+static int pkcs7_get_certificates(unsigned char **p, unsigned char *end,
+                                  mbedtls_pkcs7_cert **certs)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t set_len = 0;
+    int count = 0;
+    unsigned char *end_set;
+
+    ret = mbedtls_asn1_get_tag(p, end, &set_len,
+                               MBEDTLS_ASN1_CONSTRUCTED |
+                               MBEDTLS_ASN1_CONTEXT_SPECIFIC);
+    if (ret == MBEDTLS_ERR_ASN1_UNEXPECTED_TAG) {
+        return 0;
+    } else if (ret != 0) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PKCS7_INVALID_FORMAT, ret);
+    }
+
+    end_set = *p + set_len;
+
+    while (*p < end_set && count < INT_MAX) {
+        unsigned char *elem_start = *p;
+        unsigned char *q = *p;
+        size_t cert_len = 0;
+        size_t der_len;
+
+        ret = mbedtls_asn1_get_tag(&q, end_set, &cert_len,
+                                   MBEDTLS_ASN1_CONSTRUCTED |
+                                   MBEDTLS_ASN1_SEQUENCE);
+        if (ret != 0) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PKCS7_INVALID_CERT,
+                                     ret);
+        }
+
+        if (cert_len > (size_t) (end_set - q)) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PKCS7_INVALID_FORMAT,
+                                     MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+        }
+
+        der_len = (size_t) ((q + cert_len) - elem_start);
+
+        ret = pkcs7_parse_cert_der(elem_start, der_len, certs);
+        if (ret != 0) {
+            return ret;
+        }
+
+        *p = q + cert_len;
+        count++;
+    }
+
+    if (*p != end_set) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PKCS7_INVALID_FORMAT,
+                                 MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+    }
+
+    return count;
 }
 
 /**
@@ -514,14 +574,13 @@ static int pkcs7_get_signed_data(unsigned char *buf, size_t buflen,
     }
 
     /* Look for certificates, there may or may not be any */
-    mbedtls_x509_crt_init(&signed_data->certs);
+    signed_data->certs = NULL;
     ret = pkcs7_get_certificates(&p, end, &signed_data->certs);
     if (ret < 0) {
         return ret;
     }
 
     signed_data->no_of_certs = ret;
-
     /*
      * Currently CRLs are not supported. If CRL exist, the parsing will fail
      * at next step of getting signers info and return error as invalid
@@ -638,26 +697,354 @@ out:
     return ret;
 }
 
-static int mbedtls_pkcs7_data_or_hash_verify(mbedtls_pkcs7 *pkcs7,
-                                             const mbedtls_x509_crt *cert,
-                                             const unsigned char *data,
-                                             size_t datalen,
-                                             const int is_data_hash)
+/**
+ * \brief      Decide whether a certificate should be classified as a CA.
+ *             Policy:
+ *              - If BasicConstraints present and CA=TRUE => CA
+ *              - If KeyUsage is present, require keyCertSign for CA
+ *              - If BasicConstraints absent => NOT a CA (classify as leaf)
+ *              - If BasicConstraints is present and CA=FALSE => not a CA (leaf)
+ *
+ * \param crt  Certificate to classify.
+ *
+ * \return     1 if the certificate is classified as CA, 0 otherwise.
+ */
+static int pkcs7_is_ca_cert(const mbedtls_x509_crt *crt)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    unsigned char *hash;
-    mbedtls_pk_context pk_cxt = cert->pk;
-    const mbedtls_md_info_t *md_info;
-    mbedtls_md_type_t md_alg;
-    mbedtls_pkcs7_signer_info *signer;
+    /* BasicConstraints: is CA? */
+    ret = mbedtls_x509_crt_get_ca_istrue(crt);
+    if (ret == 1) {
+        /* CA=TRUE; enforce keyCertSign only if KU exists  */
+        ret = mbedtls_x509_crt_check_key_usage(crt, MBEDTLS_X509_KU_KEY_CERT_SIGN);
+        return (ret == 0) ? 1 : 0;
+    } else {
+        /* ret == 0: BC present, CA=FALSE.  ret < 0: BasicConstraints absent) */
+        return 0;
+    }
+}
 
-    if (pkcs7->signed_data.no_of_signers == 0) {
+/**
+ * \brief           Check if the given CA certificate is a possible issuer of
+ *                  the provided certificate.
+ * \details         This function attempts to match the issuer of \p cert with
+ *                  the subject of \p ca using the following order:
+ *                  1. If both AKI keyIdentifier and SKI are present, compare them.
+ *                  2. If AKI authorityCertIssuer and authorityCertSerialNumber are
+ *                     present, compare against the CA's subject DN and serial.
+ *                  3. Fallback to comparing issuer and subject Distinguished Name (DN).
+ *
+ * \param cert      The certificate whose issuer is to be found.
+ * \param ca        Candidate CA certificate.
+ *
+ * \return          0 if \p ca is a potential issuer of \p cert, -1 otherwise.
+ */
+static int pkcs7_is_issuer_match(const mbedtls_x509_crt *cert,
+                                 const mbedtls_x509_crt *ca)
+{
+    if (cert->authority_key_id.keyIdentifier.len != 0 &&
+        ca->subject_key_id.len != 0) {
+
+        if (cert->authority_key_id.keyIdentifier.len == ca->subject_key_id.len &&
+            memcmp(cert->authority_key_id.keyIdentifier.p, ca->subject_key_id.p,
+                   ca->subject_key_id.len) == 0) {
+            return 0;
+        }
+
+        return -1;
+    }
+
+    if (cert->authority_key_id.authorityCertIssuer.buf.len != 0 &&
+        cert->authority_key_id.authorityCertSerialNumber.len != 0) {
+
+        if (cert->authority_key_id.authorityCertIssuer.buf.len == ca->subject_raw.len &&
+            memcmp(cert->authority_key_id.authorityCertIssuer.buf.p,
+                   ca->subject_raw.p, ca->subject_raw.len) == 0 &&
+            cert->authority_key_id.authorityCertSerialNumber.len == ca->serial.len &&
+            memcmp(cert->authority_key_id.authorityCertSerialNumber.p,
+                   ca->serial.p, ca->serial.len) == 0) {
+            return 0;
+        }
+
+        return -1;
+    }
+
+    if (cert->issuer_raw.len == ca->subject_raw.len &&
+        memcmp(cert->issuer_raw.p, ca->subject_raw.p,
+               cert->issuer_raw.len) == 0) {
+        return 0;
+    }
+
+    return -1;
+}
+
+/**
+ * \brief            Check if a certificate already exist in the chain
+ *                   by comparing TBSCertificate content.
+ *
+ * \param chain      The certificate chain to search
+ * \param cert       The certificate to look for
+ *
+ * \return           1 if certificate exists in chain
+ *                   0 if certificate does not exist
+ */
+static int pkcs7_is_duplicate_cert(const mbedtls_x509_crt *chain,
+                                   const mbedtls_x509_crt *cert)
+{
+    const mbedtls_x509_crt *cur;
+
+    for (cur = chain; cur != NULL; cur = cur->next) {
+        if (cur->tbs.len != cert->tbs.len) {
+            continue;
+        }
+
+        if (memcmp(cur->tbs.p, cert->tbs.p, cert->tbs.len) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief              Build CA certificate chain from embedded PKCS#7 certs.
+ *
+ * \param pkcs7_certs  Embedded certificate list (mbedtls_pkcs7_cert).
+ * \param leaf_cert    Leaf certificate to build chain for.
+ * \param ca_chain     On success, pointer to CA chain (caller must free).
+ *
+ * \return             0 on success, or a negative error code on failure.
+ */
+static int pkcs7_build_ca_chain(const mbedtls_pkcs7_cert *pkcs7_certs,
+                                const mbedtls_x509_crt *leaf_cert,
+                                mbedtls_x509_crt **ca_chain)
+{
+    const mbedtls_x509_crt *current = leaf_cert;
+    const mbedtls_pkcs7_cert *embedded_cert;
+    mbedtls_x509_crt *chain = NULL;
+    int ret;
+    size_t depth = 0;
+
+    *ca_chain = NULL;
+
+    while (depth < MBEDTLS_X509_MAX_INTERMEDIATE_CA && current != NULL) {
+        int found = 0;
+
+        for (embedded_cert = pkcs7_certs; embedded_cert != NULL;
+             embedded_cert = embedded_cert->next) {
+            const mbedtls_x509_crt *issuer = &embedded_cert->cert;
+
+            if (issuer->raw.p == NULL || issuer->raw.len == 0) {
+                continue;
+            }
+
+            if (issuer == current) {
+                continue;
+            }
+
+            if (pkcs7_is_ca_cert(issuer) != 1) {
+                continue;
+            }
+
+            if (pkcs7_is_issuer_match(current, issuer) == 0) {
+                if (pkcs7_is_duplicate_cert(chain, issuer)) {
+                    continue;
+                }
+
+                if (chain == NULL) {
+                    chain = mbedtls_calloc(1, sizeof(mbedtls_x509_crt));
+                    if (chain == NULL) {
+                        ret =  MBEDTLS_ERR_PKCS7_ALLOC_FAILED;
+                        goto cleanup;
+                    }
+                    mbedtls_x509_crt_init(chain);
+                }
+
+                ret = mbedtls_x509_crt_parse_der(chain, issuer->raw.p, issuer->raw.len);
+                if (ret != 0) {
+                    goto cleanup;
+                }
+
+                current = issuer;
+                found = 1;
+                depth++;
+                break;
+            }
+        }
+
+        if (!found) {
+            break;
+        }
+    }
+
+    *ca_chain = chain;
+    return 0;
+
+cleanup:
+    if (chain != NULL) {
+        mbedtls_x509_crt_free(chain);
+        mbedtls_free(chain);
+    }
+    return ret;
+}
+
+/**
+ * \brief              Verify certificate chain against trusted anchors.
+ *
+ * \details            Builds CA chain from embedded PKCS#7 certs and verifies
+ *                     the complete chain against trust anchors.
+ *
+ * \note               mbedtls_x509_crt_verify() accepts mixed list of trusted
+ *                     CAs and trusted leaf certs.
+ *
+ * \param pkcs7_certs    Embedded certificate list
+ * \param leaf_cert      Leaf certificate to verify.
+ * \param trust_anchors  Trust anchors: root CAs and/or trusted leaf certs.
+ *
+ * \return               0 on success, or a negative error code on failure.
+ */
+static int pkcs7_verify_chain(const mbedtls_pkcs7_cert *pkcs7_certs,
+                              mbedtls_x509_crt *leaf_cert,
+                              const mbedtls_x509_crt *trust_anchors)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    mbedtls_x509_crt *ca_chain = NULL;
+    uint32_t flags = 0;
+
+    ret = pkcs7_build_ca_chain(pkcs7_certs, leaf_cert, &ca_chain);
+    if (ret != 0) {
+        return ret;
+    }
+
+    leaf_cert->next = ca_chain;
+    ret = mbedtls_x509_crt_verify(leaf_cert, (mbedtls_x509_crt *) trust_anchors,
+                                  NULL, NULL, &flags, NULL, NULL);
+
+    leaf_cert->next = NULL;
+
+    if (ca_chain != NULL) {
+        mbedtls_x509_crt_free(ca_chain);
+        mbedtls_free(ca_chain);
+    }
+
+    if (ret != 0 || flags != 0) {
+        return MBEDTLS_ERR_PKCS7_CERT_VERIFY_FAILED;
+    }
+
+    return 0;
+}
+
+/**
+ * \brief           Check if certificate matches signer info.
+ *
+ * \details         Validates certificate date, matches serial/issuer,
+ *                  and checks key usage for digital signature.
+ *
+ * \param cert      Certificate to check.
+ * \param signer    Signer info to match against.
+ *
+ * \return          0 if match, or a negative error code otherwise.
+ */
+static int pkcs7_check_cert_with_signer(const mbedtls_x509_crt *cert,
+                                        const mbedtls_pkcs7_signer_info *signer)
+{
+    if (cert->raw.p == NULL || cert->raw.len == 0) {
         return MBEDTLS_ERR_PKCS7_INVALID_CERT;
     }
 
     if (mbedtls_x509_time_is_past(&cert->valid_to) ||
         mbedtls_x509_time_is_future(&cert->valid_from)) {
         return MBEDTLS_ERR_PKCS7_CERT_DATE_INVALID;
+    }
+
+    if (cert->serial.len != signer->serial.len ||
+        memcmp(cert->serial.p, signer->serial.p, signer->serial.len) != 0) {
+        return MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND;
+    }
+
+    if (cert->issuer_raw.len != signer->issuer_raw.len ||
+        memcmp(cert->issuer_raw.p, signer->issuer_raw.p,
+               signer->issuer_raw.len) != 0) {
+        return MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND;
+    }
+
+    if (mbedtls_x509_crt_check_key_usage(cert,
+                                         MBEDTLS_X509_KU_DIGITAL_SIGNATURE) != 0) {
+        return MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND;
+    }
+
+    return 0;
+}
+
+/**
+ * \brief                Find matching leaf certificate.
+ *
+ * \details              Searches for certificate matching signer info.
+ *                       Can search in embedded PKCS#7 certs or external chain.
+ *
+ * \param pkcs7          PKCS#7 structure (for embedded certs).
+ * \param certs          External certificate chain.
+ * \param signer         Signer info to match against.
+ * \param use_pkcs7_leaf Flag: 1=search embedded, 0=search external.
+ * \param leaf_cert      On success, pointer to matching certificate.
+ *
+ * \return               0 on success, or a negative error code on failure.
+ */
+static int pkcs7_get_leaf_cert(const mbedtls_pkcs7 *pkcs7,
+                               const mbedtls_x509_crt *certs,
+                               const mbedtls_pkcs7_signer_info *signer,
+                               const int use_pkcs7_leaf,
+                               mbedtls_x509_crt **leaf_cert)
+{
+    int ret = MBEDTLS_ERR_PKCS7_SIGNER_CERT_NOT_FOUND;
+
+    if (use_pkcs7_leaf == 1) {
+        const mbedtls_pkcs7_cert *embedded_cert = pkcs7->signed_data.certs;
+
+        while (embedded_cert != NULL) {
+            const mbedtls_x509_crt *cert = &embedded_cert->cert;
+
+            ret = pkcs7_check_cert_with_signer(cert, signer);
+            if (ret == 0) {
+                *leaf_cert = (mbedtls_x509_crt *) cert;
+                return 0;
+            }
+
+            embedded_cert = embedded_cert->next;
+        }
+    } else {
+        const mbedtls_x509_crt *cert = certs;
+
+        while (cert != NULL) {
+            ret = pkcs7_check_cert_with_signer(cert, signer);
+            if (ret == 0) {
+                *leaf_cert = (mbedtls_x509_crt *) cert;
+                return 0;
+            }
+
+            cert = cert->next;
+        }
+    }
+
+    return ret;
+}
+
+static int mbedtls_pkcs7_data_or_hash_verify(const mbedtls_pkcs7 *pkcs7,
+                                             const mbedtls_x509_crt *cert,
+                                             const unsigned char *data,
+                                             size_t datalen,
+                                             const int is_data_hash,
+                                             const int use_pkcs7_leaf)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    unsigned char *hash = NULL;
+    const mbedtls_md_info_t *md_info;
+    mbedtls_md_type_t md_alg;
+    const mbedtls_pkcs7_signer_info *signer;
+    mbedtls_x509_crt *leaf_cert = NULL;
+
+    if (pkcs7->signed_data.no_of_signers == 0) {
+        return MBEDTLS_ERR_PKCS7_INVALID_CERT;
     }
 
     ret = mbedtls_x509_oid_get_md_alg(&pkcs7->signed_data.digest_alg_identifiers, &md_alg);
@@ -705,21 +1092,26 @@ static int mbedtls_pkcs7_data_or_hash_verify(mbedtls_pkcs7 *pkcs7,
     /* assume failure */
     ret = MBEDTLS_ERR_PKCS7_VERIFY_FAIL;
 
-    /*
-     * Potential TODOs
-     * Currently we iterate over all signers and return success if any of them
-     * verify.
-     *
-     * However, we could make this better by checking against the certificate's
-     * identification and SignerIdentifier fields first. That would also allow
-     * us to distinguish between 'no signature for key' and 'signature for key
-     * failed to validate'.
-     */
     for (signer = &pkcs7->signed_data.signers; signer; signer = signer->next) {
-        ret = mbedtls_pk_verify_ext(cert->sig_pk, &pk_cxt, md_alg, hash,
-                                    mbedtls_md_get_size(md_info),
-                                    signer->sig.p, signer->sig.len);
+        if (signer->sig.p == NULL || signer->sig.len == 0) {
+            continue;
+        }
 
+        ret = pkcs7_get_leaf_cert(pkcs7, cert, signer, use_pkcs7_leaf, &leaf_cert);
+        if (ret != 0) {
+            continue;
+        }
+
+        if (use_pkcs7_leaf == 1) {
+            ret = pkcs7_verify_chain(pkcs7->signed_data.certs, leaf_cert, cert);
+            if (ret != 0) {
+                continue;
+            }
+        }
+
+        ret = mbedtls_pk_verify_ext(leaf_cert->sig_pk, &leaf_cert->pk, md_alg,
+                                    hash, mbedtls_md_get_size(md_info),
+                                    signer->sig.p, signer->sig.len);
         if (ret == 0) {
             break;
         }
@@ -730,26 +1122,106 @@ static int mbedtls_pkcs7_data_or_hash_verify(mbedtls_pkcs7 *pkcs7,
     return ret;
 }
 
-int mbedtls_pkcs7_signed_data_verify(mbedtls_pkcs7 *pkcs7,
+int mbedtls_pkcs7_signed_data_verify(const mbedtls_pkcs7 *pkcs7,
                                      const mbedtls_x509_crt *cert,
                                      const unsigned char *data,
                                      size_t datalen)
 {
-    if (data == NULL) {
+    if (data == NULL || pkcs7 == NULL || cert == NULL) {
         return MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA;
     }
-    return mbedtls_pkcs7_data_or_hash_verify(pkcs7, cert, data, datalen, 0);
+
+    return mbedtls_pkcs7_data_or_hash_verify(pkcs7, cert, data, datalen, 0, 0);
 }
 
-int mbedtls_pkcs7_signed_hash_verify(mbedtls_pkcs7 *pkcs7,
+int mbedtls_pkcs7_signed_hash_verify(const mbedtls_pkcs7 *pkcs7,
                                      const mbedtls_x509_crt *cert,
                                      const unsigned char *hash,
                                      size_t hashlen)
 {
-    if (hash == NULL) {
+    if (hash == NULL || pkcs7 == NULL || cert == NULL) {
         return MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA;
     }
-    return mbedtls_pkcs7_data_or_hash_verify(pkcs7, cert, hash, hashlen, 1);
+
+    return mbedtls_pkcs7_data_or_hash_verify(pkcs7, cert, hash, hashlen, 1, 0);
+}
+
+int mbedtls_pkcs7_signed_data_verify_ext(const mbedtls_pkcs7 *pkcs7,
+                                         const mbedtls_x509_crt *trust_certs,
+                                         const unsigned char *data,
+                                         const size_t datalen,
+                                         const int use_pkcs7_leaf)
+{
+    if (data == NULL || pkcs7 == NULL || trust_certs == NULL ||
+        (use_pkcs7_leaf != 0 && use_pkcs7_leaf != 1)) {
+        return MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA;
+    }
+
+    return mbedtls_pkcs7_data_or_hash_verify(pkcs7, trust_certs, data, datalen,
+                                             0, use_pkcs7_leaf);
+}
+
+int mbedtls_pkcs7_signed_hash_verify_ext(const mbedtls_pkcs7 *pkcs7,
+                                         const mbedtls_x509_crt *trust_certs,
+                                         const unsigned char *hash,
+                                         const size_t hashlen,
+                                         const int use_pkcs7_leaf)
+{
+    if (hash == NULL || pkcs7 == NULL || trust_certs == NULL ||
+        (use_pkcs7_leaf != 0 && use_pkcs7_leaf != 1)) {
+        return MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA;
+    }
+
+    return mbedtls_pkcs7_data_or_hash_verify(pkcs7, trust_certs, hash, hashlen,
+                                             1, use_pkcs7_leaf);
+}
+
+int mbedtls_pkcs7_get_cert_count(const mbedtls_pkcs7 *pkcs7)
+{
+    if (pkcs7 == NULL) {
+        return MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA;
+    }
+
+    return pkcs7->signed_data.no_of_certs;
+}
+
+int mbedtls_pkcs7_get_certs(const mbedtls_pkcs7 *pkcs7,
+                            mbedtls_x509_crt **out_certs)
+{
+    const mbedtls_pkcs7_cert *embedded_cert;
+    mbedtls_x509_crt *cert_chain = NULL;
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+    if (pkcs7 == NULL || out_certs == NULL) {
+        return MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA;
+    }
+
+    *out_certs = NULL;
+    if (pkcs7->signed_data.no_of_certs == 0) {
+        return MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA;
+    }
+
+    cert_chain = (mbedtls_x509_crt *) mbedtls_calloc(1, sizeof(mbedtls_x509_crt));
+    if (cert_chain == NULL) {
+        return MBEDTLS_ERR_PKCS7_ALLOC_FAILED;
+    }
+
+    mbedtls_x509_crt_init(cert_chain);
+
+    for (embedded_cert = pkcs7->signed_data.certs; embedded_cert != NULL;
+         embedded_cert = embedded_cert->next) {
+        ret = mbedtls_x509_crt_parse_der(cert_chain, embedded_cert->cert.raw.p,
+                                         embedded_cert->cert.raw.len);
+        if (ret != 0) {
+            mbedtls_x509_crt_free(cert_chain);
+            mbedtls_free(cert_chain);
+            return ret;
+        }
+    }
+
+    *out_certs = cert_chain;
+
+    return 0;
 }
 
 /*
@@ -759,6 +1231,8 @@ void mbedtls_pkcs7_free(mbedtls_pkcs7 *pkcs7)
 {
     mbedtls_pkcs7_signer_info *signer_cur;
     mbedtls_pkcs7_signer_info *signer_prev;
+    mbedtls_pkcs7_cert *cert_cur;
+    mbedtls_pkcs7_cert *cert_prev;
 
     if (pkcs7 == NULL || pkcs7->raw.p == NULL) {
         return;
@@ -766,7 +1240,16 @@ void mbedtls_pkcs7_free(mbedtls_pkcs7 *pkcs7)
 
     mbedtls_free(pkcs7->raw.p);
 
-    mbedtls_x509_crt_free(&pkcs7->signed_data.certs);
+    cert_cur = pkcs7->signed_data.certs;
+    while (cert_cur != NULL) {
+        cert_prev = cert_cur;
+        cert_cur = cert_cur->next;
+        mbedtls_x509_crt_free(&cert_prev->cert);
+        mbedtls_free(cert_prev);
+    }
+
+    pkcs7->signed_data.certs = NULL;
+
     mbedtls_x509_crl_free(&pkcs7->signed_data.crl);
 
     signer_cur = pkcs7->signed_data.signers.next;
