@@ -67,6 +67,8 @@ int main(void)
 #define DFL_AUTH_MODE           -1
 #define DFL_SET_HOSTNAME        1
 #define DFL_MFL_CODE            MBEDTLS_SSL_MAX_FRAG_LEN_NONE
+#define DFL_IN_CONTENT_LEN      0
+#define DFL_OUT_CONTENT_LEN     0
 #define DFL_TRUNC_HMAC          -1
 #define DFL_RECSPLIT            -1
 #define DFL_RECONNECT           0
@@ -230,6 +232,14 @@ int main(void)
 #else
 #define USAGE_MAX_FRAG_LEN ""
 #endif /* MBEDTLS_SSL_MAX_FRAGMENT_LENGTH */
+
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+#define USAGE_CONTENT_LEN                                               \
+    "    in_content_len=%%d   default: MBEDTLS_SSL_IN_CONTENT_LEN\n"   \
+    "    out_content_len=%%d  default: MBEDTLS_SSL_OUT_CONTENT_LEN\n"
+#else
+#define USAGE_CONTENT_LEN ""
+#endif /* MBEDTLS_SSL_RUNTIME_CONTENT_LEN */
 
 #if defined(MBEDTLS_SSL_ALPN)
 #define USAGE_ALPN \
@@ -425,6 +435,7 @@ int main(void)
     USAGE_TICKETS                                           \
     USAGE_EAP_TLS                                           \
     USAGE_MAX_FRAG_LEN                                      \
+    USAGE_CONTENT_LEN                                       \
     USAGE_CONTEXT_CRT_CB                                    \
     USAGE_ALPN                                              \
     USAGE_EMS                                               \
@@ -504,6 +515,8 @@ struct options {
     int set_hostname;           /* call mbedtls_ssl_set_hostname()?         */
                                 /* 0=no, 1=yes, -1=NULL */
     unsigned char mfl_code;     /* code for maximum fragment length         */
+    int in_content_len;         /* incoming content length (0: default)     */
+    int out_content_len;        /* outgoing content length (0: default)     */
     int trunc_hmac;             /* negotiate truncated hmac or not          */
     int recsplit;               /* enable record splitting?                 */
     int reconnect;              /* attempt to resume session                */
@@ -941,6 +954,8 @@ int main(int argc, char *argv[])
     opt.auth_mode           = DFL_AUTH_MODE;
     opt.set_hostname        = DFL_SET_HOSTNAME;
     opt.mfl_code            = DFL_MFL_CODE;
+    opt.in_content_len      = DFL_IN_CONTENT_LEN;
+    opt.out_content_len     = DFL_OUT_CONTENT_LEN;
     opt.trunc_hmac          = DFL_TRUNC_HMAC;
     opt.recsplit            = DFL_RECSPLIT;
     opt.reconnect           = DFL_RECONNECT;
@@ -1350,6 +1365,18 @@ usage:
             } else {
                 goto usage;
             }
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+        } else if (strcmp(p, "in_content_len") == 0) {
+            opt.in_content_len = atoi(q);
+            if (opt.in_content_len <= 0) {
+                goto usage;
+            }
+        } else if (strcmp(p, "out_content_len") == 0) {
+            opt.out_content_len = atoi(q);
+            if (opt.out_content_len <= 0) {
+                goto usage;
+            }
+#endif /* MBEDTLS_SSL_RUNTIME_CONTENT_LEN */
         } else if (strcmp(p, "trunc_hmac") == 0) {
             switch (atoi(q)) {
                 case 0: opt.trunc_hmac = MBEDTLS_SSL_TRUNC_HMAC_DISABLED; break;
@@ -2019,6 +2046,22 @@ usage:
         mbedtls_ssl_conf_early_data(&conf, opt.early_data);
     }
 #endif /* MBEDTLS_SSL_EARLY_DATA */
+
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+    if (opt.in_content_len != DFL_IN_CONTENT_LEN &&
+        (ret = mbedtls_ssl_set_in_content_len(&ssl, opt.in_content_len)) != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_ssl_set_in_content_len returned -0x%x\n\n",
+                       (unsigned int) -ret);
+        goto exit;
+    }
+
+    if (opt.out_content_len != DFL_OUT_CONTENT_LEN &&
+        (ret = mbedtls_ssl_set_out_content_len(&ssl, opt.out_content_len)) != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_ssl_set_out_content_len returned -0x%x\n\n",
+                       (unsigned int) -ret);
+        goto exit;
+    }
+#endif /* MBEDTLS_SSL_RUNTIME_CONTENT_LEN */
 
     if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0) {
         mbedtls_printf(" failed\n  ! mbedtls_ssl_setup returned -0x%x\n\n",

@@ -4071,6 +4071,567 @@ void resize_buffers_renegotiate_mfl(int mfl, int legacy_renegotiation,
 }
 /* END_CASE */
 
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_RUNTIME_CONTENT_LEN:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
+void ssl_runtime_content_len_default_is_noop(int dtls)
+{
+    /* MBEDTLS_SSL_RUNTIME_CONTENT_LEN promises that enabling it, without
+     * calling either setter, changes nothing. Prove it at the two places the
+     * option could leak: the lengths a fresh connection starts with, and the
+     * buffers that setting one up allocates. Then run a handshake and an
+     * application-data exchange over those buffers, and reset the connection,
+     * so that a length recorded wrongly shows up as a failure rather than as
+     * a number nobody reads. */
+    mbedtls_test_ssl_endpoint client;
+    memset(&client, 0, sizeof(client));
+    mbedtls_test_ssl_endpoint server;
+    memset(&server, 0, sizeof(server));
+    mbedtls_test_handshake_test_options options;
+    mbedtls_test_init_handshake_options(&options);
+    mbedtls_ssl_context fresh;
+    mbedtls_ssl_init(&fresh);
+
+    MD_OR_USE_PSA_INIT();
+
+    /* An initialised connection starts at the build-time maxima. */
+    TEST_EQUAL(fresh.in_content_len, MBEDTLS_SSL_IN_CONTENT_LEN);
+    TEST_EQUAL(fresh.out_content_len, MBEDTLS_SSL_OUT_CONTENT_LEN);
+
+    options.pk_alg = MBEDTLS_PK_ECDSA;
+    options.dtls = dtls;
+    if (dtls) {
+        options.expected_negotiated_version = MBEDTLS_SSL_VERSION_TLS1_2;
+    }
+
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init(&client, MBEDTLS_SSL_IS_CLIENT,
+                                              &options), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init(&server, MBEDTLS_SSL_IS_SERVER,
+                                              &options), 0);
+
+    /* Setting up a connection that asked for nothing allocates exactly what
+     * it allocated before the option existed. */
+    TEST_EQUAL(client.ssl.in_buf_len, MBEDTLS_SSL_IN_BUFFER_LEN);
+    TEST_EQUAL(client.ssl.out_buf_len, MBEDTLS_SSL_OUT_BUFFER_LEN);
+    TEST_EQUAL(server.ssl.in_buf_len, MBEDTLS_SSL_IN_BUFFER_LEN);
+    TEST_EQUAL(server.ssl.out_buf_len, MBEDTLS_SSL_OUT_BUFFER_LEN);
+
+    if (dtls) {
+        TEST_EQUAL(mbedtls_test_ssl_dtls_join_endpoints(&client, &server), 0);
+    }
+
+    /* A full handshake plus an application-data exchange over those buffers.
+     * The handshake is where the automatic-resize path, when it is compiled
+     * in, would grow the buffers; either way they must land back on the same
+     * lengths as a connection that never asked for anything. */
+    TEST_ASSERT(mbedtls_test_ssl_perform_connection(&options, &client, &server));
+
+    TEST_EQUAL(client.ssl.in_buf_len, MBEDTLS_SSL_IN_BUFFER_LEN);
+    TEST_EQUAL(client.ssl.out_buf_len, MBEDTLS_SSL_OUT_BUFFER_LEN);
+    TEST_EQUAL(server.ssl.in_buf_len, MBEDTLS_SSL_IN_BUFFER_LEN);
+    TEST_EQUAL(server.ssl.out_buf_len, MBEDTLS_SSL_OUT_BUFFER_LEN);
+
+    /* Reset uses the recorded lengths to rebase the buffers; a disagreement
+     * between what was allocated and what reset believes was allocated shows
+     * up here. */
+    TEST_EQUAL(mbedtls_ssl_session_reset(&client.ssl), 0);
+    TEST_EQUAL(client.ssl.in_buf_len, MBEDTLS_SSL_IN_BUFFER_LEN);
+    TEST_EQUAL(client.ssl.out_buf_len, MBEDTLS_SSL_OUT_BUFFER_LEN);
+    TEST_EQUAL(client.ssl.in_content_len, MBEDTLS_SSL_IN_CONTENT_LEN);
+    TEST_EQUAL(client.ssl.out_content_len, MBEDTLS_SSL_OUT_CONTENT_LEN);
+
+exit:
+    mbedtls_ssl_free(&fresh);
+    mbedtls_test_ssl_endpoint_free(&client);
+    mbedtls_test_ssl_endpoint_free(&server);
+    mbedtls_test_free_handshake_options(&options);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_RUNTIME_CONTENT_LEN:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
+void ssl_runtime_content_len_set(int outgoing, int after_setup, int len,
+                                 int expected_ret)
+{
+    /* Ask for a content length either in the window the setters allow,
+     * between configuring the connection and setting it up, or once the
+     * connection is set up (after_setup 1), or once it is set up and then
+     * recycled with mbedtls_ssl_session_reset() (after_setup 2), and check
+     * the verdict. A reset does not reopen the window. */
+    mbedtls_test_ssl_endpoint ep;
+    memset(&ep, 0, sizeof(ep));
+    mbedtls_test_handshake_test_options options;
+    mbedtls_test_init_handshake_options(&options);
+
+    MD_OR_USE_PSA_INIT();
+
+    options.pk_alg = MBEDTLS_PK_ECDSA;
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&ep, MBEDTLS_SSL_IS_CLIENT,
+                                                   &options), 0);
+    if (after_setup) {
+        TEST_EQUAL(mbedtls_test_ssl_endpoint_init_ssl(&ep, &options), 0);
+    }
+    if (after_setup == 2) {
+        TEST_EQUAL(mbedtls_ssl_session_reset(&ep.ssl), 0);
+    }
+
+    if (outgoing) {
+        TEST_EQUAL(mbedtls_ssl_set_out_content_len(&ep.ssl, len), expected_ret);
+    } else {
+        TEST_EQUAL(mbedtls_ssl_set_in_content_len(&ep.ssl, len), expected_ret);
+    }
+
+exit:
+    mbedtls_test_ssl_endpoint_free(&ep);
+    mbedtls_test_free_handshake_options(&options);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_RUNTIME_CONTENT_LEN:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
+void ssl_runtime_content_len_handshake(int version, int dtls,
+                                       int cli_in, int cli_out,
+                                       int srv_in, int srv_out,
+                                       int cli_msg_len, int expected_cli_fragments,
+                                       int srv_msg_len, int expected_srv_fragments,
+                                       int reset)
+{
+    /* Give each peer its own content lengths (0 leaves one at the build-time
+     * maximum), run a full handshake, then exchange application data. The
+     * number of records each message is split into is what shows the lengths
+     * took effect: a sender splits at its own outgoing length, and a message
+     * that arrives in one record fit the receiver's incoming length.
+     *
+     * With reset set (stream transport only), recycle both connections with
+     * mbedtls_ssl_session_reset() over fresh sockets and do it all again: a
+     * recycled connection keeps the lengths it was set up with. */
+    mbedtls_test_ssl_endpoint client;
+    memset(&client, 0, sizeof(client));
+    mbedtls_test_ssl_endpoint server;
+    memset(&server, 0, sizeof(server));
+    mbedtls_test_handshake_test_options options;
+    mbedtls_test_init_handshake_options(&options);
+
+    MD_OR_USE_PSA_INIT();
+
+    options.pk_alg = MBEDTLS_PK_ECDSA;
+    options.dtls = dtls;
+    options.client_min_version = version;
+    options.client_max_version = version;
+    options.expected_negotiated_version = version;
+    options.cli_msg_len = cli_msg_len;
+    options.expected_cli_fragments = expected_cli_fragments;
+    options.srv_msg_len = srv_msg_len;
+    options.expected_srv_fragments = expected_srv_fragments;
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&client, MBEDTLS_SSL_IS_CLIENT,
+                                                   &options), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&server, MBEDTLS_SSL_IS_SERVER,
+                                                   &options), 0);
+
+    if (cli_in != 0) {
+        TEST_EQUAL(mbedtls_ssl_set_in_content_len(&client.ssl, cli_in), 0);
+    }
+    if (cli_out != 0) {
+        TEST_EQUAL(mbedtls_ssl_set_out_content_len(&client.ssl, cli_out), 0);
+    }
+    if (srv_in != 0) {
+        TEST_EQUAL(mbedtls_ssl_set_in_content_len(&server.ssl, srv_in), 0);
+    }
+    if (srv_out != 0) {
+        TEST_EQUAL(mbedtls_ssl_set_out_content_len(&server.ssl, srv_out), 0);
+    }
+
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_ssl(&client, &options), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_ssl(&server, &options), 0);
+
+    if (dtls) {
+        TEST_EQUAL(mbedtls_test_ssl_dtls_join_endpoints(&client, &server), 0);
+    }
+
+    TEST_ASSERT(mbedtls_test_ssl_perform_connection(&options, &client, &server));
+
+    if (reset) {
+        mbedtls_test_mock_socket_close(&client.socket);
+        mbedtls_test_mock_socket_close(&server.socket);
+        TEST_EQUAL(mbedtls_ssl_session_reset(&client.ssl), 0);
+        TEST_EQUAL(mbedtls_ssl_session_reset(&server.ssl), 0);
+
+        TEST_ASSERT(mbedtls_test_ssl_perform_connection(&options, &client, &server));
+    }
+
+exit:
+    mbedtls_test_ssl_endpoint_free(&client);
+    mbedtls_test_ssl_endpoint_free(&server);
+    mbedtls_test_free_handshake_options(&options);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_RUNTIME_CONTENT_LEN:MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:MBEDTLS_SSL_PROTO_TLS1_2:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
+void ssl_runtime_content_len_resize_buffers(int dtls, int mfl, int renegotiate,
+                                            int cli_in, int cli_out,
+                                            int srv_in, int srv_out)
+{
+    /* With automatic buffer resizing as well, give each peer its own content
+     * lengths (0 leaves one at the build-time maximum) and run a handshake,
+     * optionally with a negotiated fragment length and a renegotiation, then
+     * recycle both connections with mbedtls_ssl_session_reset().
+     *
+     * Every handshake starts by growing the buffers back to full size, and
+     * full size is this connection's own length: growing to the build-time
+     * maximum would undo the saving. mbedtls_test_ssl_perform_connection()
+     * checks the buffers at each resize, including in the middle of the
+     * renegotiation; this test checks them after setup and after reset. */
+    mbedtls_test_ssl_endpoint client;
+    memset(&client, 0, sizeof(client));
+    mbedtls_test_ssl_endpoint server;
+    memset(&server, 0, sizeof(server));
+    mbedtls_test_handshake_test_options options;
+    mbedtls_test_init_handshake_options(&options);
+    /* A buffer is its content length plus a fixed overhead for the header,
+     * the crypto expansion and any connection ID. */
+    const size_t cli_in_buf_len = (cli_in ? cli_in : MBEDTLS_SSL_IN_CONTENT_LEN)
+                                  + MBEDTLS_SSL_IN_BUFFER_LEN - MBEDTLS_SSL_IN_CONTENT_LEN;
+    const size_t cli_out_buf_len = (cli_out ? cli_out : MBEDTLS_SSL_OUT_CONTENT_LEN)
+                                   + MBEDTLS_SSL_OUT_BUFFER_LEN - MBEDTLS_SSL_OUT_CONTENT_LEN;
+    const size_t srv_in_buf_len = (srv_in ? srv_in : MBEDTLS_SSL_IN_CONTENT_LEN)
+                                  + MBEDTLS_SSL_IN_BUFFER_LEN - MBEDTLS_SSL_IN_CONTENT_LEN;
+    const size_t srv_out_buf_len = (srv_out ? srv_out : MBEDTLS_SSL_OUT_CONTENT_LEN)
+                                   + MBEDTLS_SSL_OUT_BUFFER_LEN - MBEDTLS_SSL_OUT_CONTENT_LEN;
+
+    MD_OR_USE_PSA_INIT();
+
+    options.pk_alg = MBEDTLS_PK_ECDSA;
+    options.dtls = dtls;
+    options.client_min_version = MBEDTLS_SSL_VERSION_TLS1_2;
+    options.client_max_version = MBEDTLS_SSL_VERSION_TLS1_2;
+    options.expected_negotiated_version = MBEDTLS_SSL_VERSION_TLS1_2;
+    options.mfl = mfl;
+    options.renegotiate = renegotiate;
+    options.legacy_renegotiation = MBEDTLS_SSL_LEGACY_NO_RENEGOTIATION;
+    options.resize_buffers = 1;
+
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&client, MBEDTLS_SSL_IS_CLIENT,
+                                                   &options), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&server, MBEDTLS_SSL_IS_SERVER,
+                                                   &options), 0);
+
+    if (cli_in != 0) {
+        TEST_EQUAL(mbedtls_ssl_set_in_content_len(&client.ssl, cli_in), 0);
+    }
+    if (cli_out != 0) {
+        TEST_EQUAL(mbedtls_ssl_set_out_content_len(&client.ssl, cli_out), 0);
+    }
+    if (srv_in != 0) {
+        TEST_EQUAL(mbedtls_ssl_set_in_content_len(&server.ssl, srv_in), 0);
+    }
+    if (srv_out != 0) {
+        TEST_EQUAL(mbedtls_ssl_set_out_content_len(&server.ssl, srv_out), 0);
+    }
+
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_ssl(&client, &options), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_ssl(&server, &options), 0);
+
+    /* Setup allocates from the connection's lengths, then runs the grow step
+     * of the first handshake, which must leave them alone. */
+    TEST_EQUAL(client.ssl.in_buf_len, cli_in_buf_len);
+    TEST_EQUAL(client.ssl.out_buf_len, cli_out_buf_len);
+    TEST_EQUAL(server.ssl.in_buf_len, srv_in_buf_len);
+    TEST_EQUAL(server.ssl.out_buf_len, srv_out_buf_len);
+
+    if (dtls) {
+        TEST_EQUAL(mbedtls_test_ssl_dtls_join_endpoints(&client, &server), 0);
+    }
+
+    TEST_ASSERT(mbedtls_test_ssl_perform_connection(&options, &client, &server));
+
+    /* Resizing after the handshake may have shrunk the buffers further, to a
+     * negotiated fragment length, but never grown them. */
+    TEST_LE_U(client.ssl.in_buf_len, cli_in_buf_len);
+    TEST_LE_U(client.ssl.out_buf_len, cli_out_buf_len);
+    TEST_LE_U(server.ssl.in_buf_len, srv_in_buf_len);
+    TEST_LE_U(server.ssl.out_buf_len, srv_out_buf_len);
+
+    /* A reset prepares the next handshake, growing the buffers back to the
+     * connection's lengths and no further. */
+    TEST_EQUAL(mbedtls_ssl_session_reset(&client.ssl), 0);
+    TEST_EQUAL(mbedtls_ssl_session_reset(&server.ssl), 0);
+    TEST_EQUAL(client.ssl.in_buf_len, cli_in_buf_len);
+    TEST_EQUAL(client.ssl.out_buf_len, cli_out_buf_len);
+    TEST_EQUAL(server.ssl.in_buf_len, srv_in_buf_len);
+    TEST_EQUAL(server.ssl.out_buf_len, srv_out_buf_len);
+
+exit:
+    mbedtls_test_ssl_endpoint_free(&client);
+    mbedtls_test_ssl_endpoint_free(&server);
+    mbedtls_test_free_handshake_options(&options);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_RUNTIME_CONTENT_LEN:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
+void ssl_runtime_content_len_oversized_record(int version, int srv_in,
+                                              int msg_len, int expected_ret)
+{
+    /* Shrink only the server's incoming length, so that nothing on the
+     * wire tells the client (the TLS 1.3 cases therefore exclude
+     * MBEDTLS_SSL_RECORD_SIZE_LIMIT, which would), and have the full-size
+     * client send one record of msg_len bytes after the handshake. The
+     * server's verdict on that record is what shows its incoming length took
+     * effect. */
+    enum { BUFFSIZE = 17000 };
+    mbedtls_test_ssl_endpoint client;
+    memset(&client, 0, sizeof(client));
+    mbedtls_test_ssl_endpoint server;
+    memset(&server, 0, sizeof(server));
+    mbedtls_test_handshake_test_options options;
+    mbedtls_test_init_handshake_options(&options);
+    unsigned char *msg = NULL;
+    unsigned char *received = NULL;
+
+    MD_OR_USE_PSA_INIT();
+
+    TEST_CALLOC(msg, msg_len);
+    TEST_CALLOC(received, msg_len);
+    memset(msg, 'x', msg_len);
+
+    options.pk_alg = MBEDTLS_PK_ECDSA;
+    options.client_min_version = version;
+    options.client_max_version = version;
+    options.expected_negotiated_version = version;
+
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init(&client, MBEDTLS_SSL_IS_CLIENT,
+                                              &options), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&server, MBEDTLS_SSL_IS_SERVER,
+                                                   &options), 0);
+    TEST_EQUAL(mbedtls_ssl_set_in_content_len(&server.ssl, srv_in), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_ssl(&server, &options), 0);
+
+    TEST_EQUAL(mbedtls_test_mock_socket_connect(&client.socket, &server.socket,
+                                                BUFFSIZE), 0);
+    TEST_EQUAL(mbedtls_test_move_handshake_to_state(&client.ssl, &server.ssl,
+                                                    MBEDTLS_SSL_HANDSHAKE_OVER),
+               0);
+    TEST_EQUAL(mbedtls_test_move_handshake_to_state(&server.ssl, &client.ssl,
+                                                    MBEDTLS_SSL_HANDSHAKE_OVER),
+               0);
+
+    TEST_EQUAL(mbedtls_ssl_write(&client.ssl, msg, msg_len), msg_len);
+
+    if (expected_ret == 0) {
+        TEST_EQUAL(mbedtls_ssl_read(&server.ssl, received, msg_len), msg_len);
+        TEST_MEMORY_COMPARE(received, msg_len, msg, msg_len);
+    } else {
+        TEST_EQUAL(mbedtls_ssl_read(&server.ssl, received, msg_len),
+                   expected_ret);
+    }
+
+exit:
+    mbedtls_free(msg);
+    mbedtls_free(received);
+    mbedtls_test_ssl_endpoint_free(&client);
+    mbedtls_test_ssl_endpoint_free(&server);
+    mbedtls_test_free_handshake_options(&options);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_RUNTIME_CONTENT_LEN:MBEDTLS_SSL_MAX_FRAGMENT_LENGTH:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
+void ssl_runtime_content_len_setup_mfl(int endpoint, int min_version,
+                                       int in_len, int mfl, int expected_ret)
+{
+    /* A client whose configuration negotiates a fragment length above the
+     * connection's incoming length would invite records it cannot hold, so
+     * mbedtls_ssl_setup() refuses it. A client that only offers TLS 1.3 never
+     * sends a fragment length, and a server's configured fragment length only
+     * caps what it sends, so neither is a contradiction. */
+    mbedtls_test_ssl_endpoint ep;
+    memset(&ep, 0, sizeof(ep));
+    mbedtls_test_handshake_test_options options;
+    mbedtls_test_init_handshake_options(&options);
+
+    MD_OR_USE_PSA_INIT();
+
+    options.pk_alg = MBEDTLS_PK_ECDSA;
+    options.client_min_version = min_version;
+    options.server_min_version = min_version;
+    options.mfl = mfl;
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&ep, endpoint, &options), 0);
+    TEST_EQUAL(mbedtls_ssl_set_in_content_len(&ep.ssl, in_len), 0);
+
+    TEST_EQUAL(mbedtls_ssl_setup(&ep.ssl, &ep.conf), expected_ret);
+
+    if (expected_ret != 0) {
+        /* A refused connection has no buffers, and cannot be recycled the way
+         * mbedtls_test_ssl_endpoint_free() recycles a set-up one. */
+        mbedtls_ssl_free(&ep.ssl);
+        mbedtls_ssl_init(&ep.ssl);
+    }
+
+exit:
+    mbedtls_test_ssl_endpoint_free(&ep);
+    mbedtls_test_free_handshake_options(&options);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_RUNTIME_CONTENT_LEN:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
+void ssl_runtime_content_len_client_hello_ext(int version, int cli_in, int mfl,
+                                              int ext_type, int expected_ret,
+                                              int expected_value)
+{
+    /* Set the client's incoming length, have it send its ClientHello, and
+     * read the extension of type ext_type off the wire: its value (a
+     * max_fragment_length code or a record_size_limit) is what the client
+     * invites its peer to send. expected_value -1 means the extension must
+     * be absent. expected_ret is the handshake's verdict before anything is
+     * sent; 0 means the ClientHello went out and the client waits for the
+     * server. */
+    enum { BUFFSIZE = 17000 };
+    mbedtls_test_ssl_endpoint client;
+    memset(&client, 0, sizeof(client));
+    mbedtls_test_mock_socket peer;
+    mbedtls_test_mock_socket_init(&peer);
+    mbedtls_test_handshake_test_options options;
+    mbedtls_test_init_handshake_options(&options);
+    unsigned char buf[BUFFSIZE];
+    size_t len = 0;
+    size_t off = 0;
+    size_t end = 0;
+    int ext_value = -1;
+    int ret;
+
+    MD_OR_USE_PSA_INIT();
+
+    options.pk_alg = MBEDTLS_PK_ECDSA;
+    options.client_min_version = version;
+    options.client_max_version = version;
+    options.mfl = mfl;
+
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&client, MBEDTLS_SSL_IS_CLIENT,
+                                                   &options), 0);
+    TEST_EQUAL(mbedtls_ssl_set_in_content_len(&client.ssl, cli_in), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_ssl(&client, &options), 0);
+    TEST_EQUAL(mbedtls_test_mock_socket_connect(&client.socket, &peer,
+                                                BUFFSIZE), 0);
+
+    if (expected_ret != 0) {
+        TEST_EQUAL(mbedtls_ssl_handshake(&client.ssl), expected_ret);
+        TEST_EQUAL(mbedtls_test_mock_tcp_recv_nb(&peer, buf, sizeof(buf)),
+                   MBEDTLS_ERR_SSL_WANT_READ);
+        goto exit;
+    }
+
+    TEST_EQUAL(mbedtls_ssl_handshake(&client.ssl), MBEDTLS_ERR_SSL_WANT_READ);
+    ret = mbedtls_test_mock_tcp_recv_nb(&peer, buf, sizeof(buf));
+    TEST_LE_S(1, ret);
+    len = (size_t) ret;
+
+    /* Record header (5), then handshake header (4): one ClientHello record. */
+    TEST_LE_U(9, len);
+    TEST_EQUAL(buf[0], MBEDTLS_SSL_MSG_HANDSHAKE);
+    TEST_EQUAL(MBEDTLS_GET_UINT16_BE(buf, 3), len - 5);
+    TEST_EQUAL(buf[5], MBEDTLS_SSL_HS_CLIENT_HELLO);
+    /* legacy_version (2) and random (32) */
+    off = 9 + 2 + 32;
+    /* legacy_session_id */
+    TEST_LE_U(off + 1, len);
+    off += 1 + buf[off];
+    /* cipher_suites */
+    TEST_LE_U(off + 2, len);
+    off += 2 + MBEDTLS_GET_UINT16_BE(buf, off);
+    /* legacy_compression_methods */
+    TEST_LE_U(off + 1, len);
+    off += 1 + buf[off];
+    /* extensions */
+    TEST_LE_U(off + 2, len);
+    end = off + 2 + MBEDTLS_GET_UINT16_BE(buf, off);
+    TEST_EQUAL(end, len);
+    off += 2;
+    while (off < end) {
+        size_t ext_len;
+        TEST_LE_U(off + 4, end);
+        ext_len = MBEDTLS_GET_UINT16_BE(buf, off + 2);
+        TEST_LE_U(off + 4 + ext_len, end);
+        if (MBEDTLS_GET_UINT16_BE(buf, off) == ext_type) {
+            TEST_EQUAL(ext_value, -1);
+            TEST_ASSERT(ext_len == 1 || ext_len == 2);
+            ext_value = ext_len == 1 ? buf[off + 4] : MBEDTLS_GET_UINT16_BE(buf, off + 4);
+        }
+        off += 4 + ext_len;
+    }
+
+    TEST_EQUAL(ext_value, expected_value);
+
+exit:
+    mbedtls_test_ssl_endpoint_free(&client);
+    mbedtls_test_mock_socket_close(&peer);
+    mbedtls_test_free_handshake_options(&options);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_RUNTIME_CONTENT_LEN:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
+void ssl_runtime_content_len_max_payload(int version, int cli_in, int cli_out,
+                                         int mfl, int pre_handshake_out,
+                                         int expected_in, int expected_out)
+{
+    /* Give the client its own lengths (and optionally a fragment length to
+     * negotiate) and check what the public maximum-record-payload queries
+     * report on it, once set up and again once the handshake is over. The
+     * server sends no more than the client can take in, so that the
+     * handshake itself does not depend on negotiating anything. */
+    enum { BUFFSIZE = 17000 };
+    mbedtls_test_ssl_endpoint client;
+    memset(&client, 0, sizeof(client));
+    mbedtls_test_ssl_endpoint server;
+    memset(&server, 0, sizeof(server));
+    mbedtls_test_handshake_test_options options;
+    mbedtls_test_init_handshake_options(&options);
+
+    MD_OR_USE_PSA_INIT();
+
+    options.pk_alg = MBEDTLS_PK_ECDSA;
+    options.client_min_version = version;
+    options.client_max_version = version;
+    options.expected_negotiated_version = version;
+    options.mfl = mfl;
+
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&client, MBEDTLS_SSL_IS_CLIENT,
+                                                   &options), 0);
+    TEST_EQUAL(mbedtls_ssl_set_in_content_len(&client.ssl, cli_in), 0);
+    TEST_EQUAL(mbedtls_ssl_set_out_content_len(&client.ssl, cli_out), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_ssl(&client, &options), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_conf(&server, MBEDTLS_SSL_IS_SERVER,
+                                                   &options), 0);
+    TEST_EQUAL(mbedtls_ssl_set_out_content_len(&server.ssl, cli_in), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init_ssl(&server, &options), 0);
+
+    /* Before the handshake nothing is negotiated: the incoming length is the
+     * client's own, and the outgoing one is capped only by what the client
+     * itself configured. */
+    TEST_EQUAL(mbedtls_ssl_get_max_in_record_payload(&client.ssl), cli_in);
+    TEST_EQUAL(mbedtls_ssl_get_max_out_record_payload(&client.ssl),
+               pre_handshake_out);
+
+    TEST_EQUAL(mbedtls_test_mock_socket_connect(&client.socket, &server.socket,
+                                                BUFFSIZE), 0);
+    TEST_EQUAL(mbedtls_test_move_handshake_to_state(&client.ssl, &server.ssl,
+                                                    MBEDTLS_SSL_HANDSHAKE_OVER),
+               0);
+    TEST_EQUAL(mbedtls_test_move_handshake_to_state(&server.ssl, &client.ssl,
+                                                    MBEDTLS_SSL_HANDSHAKE_OVER),
+               0);
+
+    TEST_EQUAL(mbedtls_ssl_get_max_in_record_payload(&client.ssl), expected_in);
+    TEST_EQUAL(mbedtls_ssl_get_max_out_record_payload(&client.ssl), expected_out);
+
+exit:
+    mbedtls_test_ssl_endpoint_free(&client);
+    mbedtls_test_ssl_endpoint_free(&server);
+    mbedtls_test_free_handshake_options(&options);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
 /* BEGIN_CASE depends_on:MBEDTLS_SSL_HANDSHAKE_WITH_PSK_ENABLED */
 void test_multiple_psks()
 {

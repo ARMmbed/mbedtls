@@ -2404,7 +2404,7 @@ static int ssl_write_client_key_exchange(mbedtls_ssl_context *ssl)
          * The export format is an ECPoint structure as expected by TLS,
          * but we just need to add a length byte before that. */
         unsigned char *own_pubkey = ssl->out_msg + header_len + 1;
-        unsigned char *end = ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN;
+        unsigned char *end = ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl);
         size_t own_pubkey_max_len = (size_t) (end - own_pubkey);
         size_t own_pubkey_len;
 
@@ -2464,12 +2464,16 @@ static int ssl_write_client_key_exchange(mbedtls_ssl_context *ssl)
         const size_t ecpoint_max_len =
             PSA_EXPORT_PUBLIC_KEY_OUTPUT_SIZE(handshake->xxdh_psa_type,
                                               handshake->xxdh_psa_bits);
+        const size_t out_content_len = mbedtls_ssl_get_out_content_len(ssl);
 
         header_len = 4;
 
-        if (ecpoint_max_len > MBEDTLS_SSL_OUT_CONTENT_LEN - ecpoint_len_size ||
+        /* The second comparison is only reached when the first one is false,
+         * that is when ecpoint_len_size + ecpoint_max_len <= out_content_len,
+         * so neither subtraction can wrap. */
+        if (ecpoint_max_len > out_content_len - ecpoint_len_size ||
             header_len + content_len_size + ssl->conf->psk_identity_len
-            > MBEDTLS_SSL_OUT_CONTENT_LEN - ecpoint_len_size - ecpoint_max_len) {
+            > out_content_len - ecpoint_len_size - ecpoint_max_len) {
             MBEDTLS_SSL_DEBUG_MSG(1,
                                   ("psk identity too long or SSL buffer too short"));
             return MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL;
@@ -2517,7 +2521,7 @@ static int ssl_write_client_key_exchange(mbedtls_ssl_context *ssl)
          * The export format is an ECPoint structure as expected by TLS,
          * but we just need to add a length byte before that. */
         unsigned char *own_pubkey = p + 1;
-        unsigned char *end = ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN;
+        unsigned char *end = ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl);
         size_t own_pubkey_max_len = (size_t) (end - own_pubkey);
         size_t own_pubkey_len = 0;
 
@@ -2584,7 +2588,7 @@ static int ssl_write_client_key_exchange(mbedtls_ssl_context *ssl)
         header_len = 4;
         content_len = ssl->conf->psk_identity_len;
 
-        if (header_len + 2 + content_len > MBEDTLS_SSL_OUT_CONTENT_LEN) {
+        if (header_len + 2 + content_len > mbedtls_ssl_get_out_content_len(ssl)) {
             MBEDTLS_SSL_DEBUG_MSG(1,
                                   ("psk identity too long or SSL buffer too short"));
             return MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL;
@@ -2615,7 +2619,7 @@ static int ssl_write_client_key_exchange(mbedtls_ssl_context *ssl)
         header_len = 4;
 
         unsigned char *out_p = ssl->out_msg + header_len;
-        unsigned char *end_p = ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN -
+        unsigned char *end_p = ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl) -
                                header_len;
         ret = mbedtls_psa_ecjpake_write_round(&ssl->handshake->psa_pake_ctx,
                                               out_p, end_p - out_p, &content_len,
@@ -2687,11 +2691,8 @@ static int ssl_write_certificate_verify(mbedtls_ssl_context *ssl)
     mbedtls_md_type_t md_alg = MBEDTLS_MD_NONE;
     size_t hashlen;
     void *rs_ctx = NULL;
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
-    size_t out_buf_len = ssl->out_buf_len - (size_t) (ssl->out_msg - ssl->out_buf);
-#else
-    size_t out_buf_len = MBEDTLS_SSL_OUT_BUFFER_LEN - (size_t) (ssl->out_msg - ssl->out_buf);
-#endif
+    size_t out_buf_len = mbedtls_ssl_get_out_buf_len(ssl)
+                         - (size_t) (ssl->out_msg - ssl->out_buf);
 
     MBEDTLS_SSL_DEBUG_MSG(2, ("=> write certificate verify"));
 

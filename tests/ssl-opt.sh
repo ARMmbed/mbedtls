@@ -1235,6 +1235,45 @@ handshake_memory_check() {
     fi
 }
 
+# Get peak memory usage from server output and put it into the variable specified by the first argument
+handshake_peak_memory_get() {
+    OUTPUT_VARIABLE="$1"
+    OUTPUT_FILE="$2"
+
+    # Get peak memory usage from a pattern like "Heap memory usage after handshake: 23112 bytes. Peak memory usage was 33112"
+    MEM_USAGE=$(sed -n 's/.*Peak memory usage was //p' < "$OUTPUT_FILE" | grep -o "[0-9]*" | head -1)
+
+    # Check if peak memory usage was read
+    if [ -z "$MEM_USAGE" ]; then
+        echo "Error: Can not read the value of peak memory usage"
+        return 1
+    else
+        eval "$OUTPUT_VARIABLE=$MEM_USAGE"
+        return 0
+    fi
+}
+
+# Get peak memory usage from server output and check if this value
+# is not higher than the maximum given by the first argument
+handshake_peak_memory_check() {
+    MAX_MEMORY="$1"
+    OUTPUT_FILE="$2"
+
+    # Get peak memory usage
+    if ! handshake_peak_memory_get "MEMORY_USAGE" "$OUTPUT_FILE"; then
+        return 1
+    fi
+
+    # Check if peak memory usage is below max value
+    if [ "$MEMORY_USAGE" -gt "$MAX_MEMORY" ]; then
+        echo "\nFailed: Peak memory usage was $MEMORY_USAGE bytes," \
+             "but should be below $MAX_MEMORY bytes"
+        return 1
+    else
+        return 0
+    fi
+}
+
 # wait for client to terminate and set CLI_EXIT
 # must be called right after starting the client
 wait_client_done() {
@@ -1908,6 +1947,55 @@ run_tests_memory_after_handshake()
 
     SKIP_NEXT="$SKIP_THIS_TESTS"
     run_test_memory_after_handshake_with_mfl 512 "$MEMORY_USAGE_MFL_16K"
+}
+
+# Test that the server's peak memory usage falls when it shrinks its own content
+# lengths at runtime.
+#  first argument ($1) is the server's incoming content length
+#  second argument ($2) is the server's outgoing content length
+#  third argument ($3) is the server's peak memory usage with the default lengths
+run_test_memory_with_runtime_content_len()
+{
+    # The I/O buffers shrink by exactly (16384 - $1) + (16384 - $2). Require
+    # most of that saving, so that the test fails if the lengths never reach
+    # the allocation.
+    MEMORY_USAGE_LIMIT="$(( $3 - ( ( 16384 - $1 ) + ( 16384 - $2 ) ) * 9 / 10 ))"
+
+    run_test    "Handshake memory usage (runtime content length in $1, out $2)" \
+                "$P_SRV debug_level=3 auth_mode=required force_version=tls12 \
+                    in_content_len=$1 out_content_len=$2" \
+                "$P_CLI debug_level=3 \
+                    crt_file=$DATA_FILES_PATH/server5.crt key_file=$DATA_FILES_PATH/server5.key \
+                    force_ciphersuite=TLS-ECDHE-ECDSA-WITH-AES-128-CCM" \
+                0 \
+                -F "handshake_peak_memory_check $MEMORY_USAGE_LIMIT"
+}
+
+# Test that the server's peak memory usage falls when it shrinks its incoming
+# length, its outgoing length, or both
+run_tests_memory_with_runtime_content_len()
+{
+    # all tests in this sequence requires the same configuration (see requires_config_enabled())
+    SKIP_THIS_TESTS="$SKIP_NEXT"
+
+    # first test with the default lengths is to get reference memory usage
+    PEAK_MEMORY_USAGE_16K=0
+    run_test    "Handshake memory usage initial (runtime content length default)" \
+                "$P_SRV debug_level=3 auth_mode=required force_version=tls12" \
+                "$P_CLI debug_level=3 \
+                    crt_file=$DATA_FILES_PATH/server5.crt key_file=$DATA_FILES_PATH/server5.key \
+                    force_ciphersuite=TLS-ECDHE-ECDSA-WITH-AES-128-CCM" \
+                0 \
+                -F "handshake_peak_memory_get PEAK_MEMORY_USAGE_16K"
+
+    SKIP_NEXT="$SKIP_THIS_TESTS"
+    run_test_memory_with_runtime_content_len 4096 4096 "$PEAK_MEMORY_USAGE_16K"
+
+    SKIP_NEXT="$SKIP_THIS_TESTS"
+    run_test_memory_with_runtime_content_len 1024 16384 "$PEAK_MEMORY_USAGE_16K"
+
+    SKIP_NEXT="$SKIP_THIS_TESTS"
+    run_test_memory_with_runtime_content_len 16384 1024 "$PEAK_MEMORY_USAGE_16K"
 }
 
 run_test_export_keying_material() {
@@ -5133,6 +5221,105 @@ run_test    "Record Size Limit: TLS 1.3 m->m: both peer comply with record size 
             -s "Maximum incoming record payload length is 16384"
 
 # End of Record size limit tests
+
+# Tests for runtime content lengths: a client that shrinks its incoming length
+# against a full-size server. Only a negotiated max_fragment_length or
+# record_size_limit tells the server about it; without either, a record longer
+# than the client's incoming length makes the read fail cleanly, the same way
+# it does when MBEDTLS_SSL_IN_CONTENT_LEN is set to that length at build time.
+
+requires_config_enabled MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+requires_config_enabled MBEDTLS_SSL_MAX_FRAGMENT_LENGTH
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+requires_max_content_len 2048
+run_test    "Runtime content length: client in 1024, MFL 1024" \
+            "$P_SRV debug_level=3 response_size=2000" \
+            "$P_CLI debug_level=3 force_version=tls12 in_content_len=1024 max_frag_len=1024" \
+            0 \
+            -c "client hello, adding max_fragment_length extension" \
+            -s "server hello, max_fragment_length extension" \
+            -c "Maximum incoming record payload length is 1024" \
+            -s "Maximum outgoing record payload length is 1024" \
+            -s "2000 bytes written in 2 fragments" \
+            -c "1024 bytes read" \
+            -c "976 bytes read"
+
+requires_config_enabled MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+requires_config_enabled MBEDTLS_SSL_CLI_C
+requires_config_enabled MBEDTLS_SSL_SRV_C
+requires_config_enabled MBEDTLS_DEBUG_C
+requires_config_enabled MBEDTLS_SSL_RECORD_SIZE_LIMIT
+requires_config_enabled MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED
+requires_max_content_len 2048
+run_test    "Runtime content length: client in 1024, record_size_limit" \
+            "$P_SRV debug_level=3 response_size=2000" \
+            "$P_CLI debug_level=3 force_version=tls13 in_content_len=1024" \
+            0 \
+            -c "Sent RecordSizeLimit: 1024 Bytes" \
+            -s "RecordSizeLimit: 1024 Bytes" \
+            -c "Maximum incoming record payload length is 1024" \
+            -s "Maximum outgoing record payload length is 1023" \
+            -s "2000 bytes written in 2 fragments" \
+            -c "1023 bytes read" \
+            -c "977 bytes read"
+
+requires_config_enabled MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+requires_max_content_len 2048
+run_test    "Runtime content length: client in 1024, no extension, short record" \
+            "$P_SRV debug_level=3" \
+            "$P_CLI debug_level=3 force_version=tls12 in_content_len=1024" \
+            0 \
+            -C "client hello, adding max_fragment_length extension" \
+            -c "Maximum incoming record payload length is 1024" \
+            -s "Maximum outgoing record payload length is 16384" \
+            -c "[0-9]\+ bytes read"
+
+requires_config_enabled MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+requires_max_content_len 2048
+run_test    "Runtime content length: client in 1024, no extension, 1025 bytes" \
+            "$P_SRV debug_level=3 response_size=1025" \
+            "$P_CLI debug_level=3 force_version=tls12 in_content_len=1024" \
+            1 \
+            -C "client hello, adding max_fragment_length extension" \
+            -s "Maximum outgoing record payload length is 16384" \
+            -s "1025 bytes written in 1 fragments" \
+            -c "bad message length" \
+            -c "mbedtls_ssl_read returned -0x7200" \
+            -C "[0-9]\+ bytes read"
+
+requires_config_enabled MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+requires_max_content_len 2048
+run_test    "Runtime content length: client in 1024, no extension, 2000 bytes" \
+            "$P_SRV debug_level=3 response_size=2000" \
+            "$P_CLI debug_level=3 force_version=tls12 in_content_len=1024" \
+            1 \
+            -C "client hello, adding max_fragment_length extension" \
+            -s "Maximum outgoing record payload length is 16384" \
+            -s "2000 bytes written in 1 fragments" \
+            -c "requesting more data than fits" \
+            -c "mbedtls_ssl_read returned -0x87" \
+            -C "[0-9]\+ bytes read"
+
+requires_config_enabled MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+requires_config_enabled MBEDTLS_SSL_CLI_C
+requires_config_enabled MBEDTLS_SSL_SRV_C
+requires_config_disabled MBEDTLS_SSL_RECORD_SIZE_LIMIT
+requires_config_enabled MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED
+requires_max_content_len 2048
+run_test    "Runtime content length: client in 1024, TLS 1.3, no extension" \
+            "$P_SRV debug_level=3 response_size=2000" \
+            "$P_CLI debug_level=3 force_version=tls13 in_content_len=1024" \
+            1 \
+            -s "Maximum outgoing record payload length is 16383" \
+            -s "2000 bytes written in 1 fragments" \
+            -c "requesting more data than fits" \
+            -c "mbedtls_ssl_read returned -0x87" \
+            -C "[0-9]\+ bytes read"
+
+# End of runtime content length tests
 
 # Tests for renegotiation
 
@@ -14439,6 +14626,14 @@ requires_config_enabled MBEDTLS_MEMORY_BUFFER_ALLOC_C
 requires_config_enabled MBEDTLS_SSL_MAX_FRAGMENT_LENGTH
 requires_max_content_len 16384
 run_tests_memory_after_handshake
+
+# Test peak heap memory usage with runtime content lengths
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+requires_config_enabled MBEDTLS_MEMORY_DEBUG
+requires_config_enabled MBEDTLS_MEMORY_BUFFER_ALLOC_C
+requires_config_enabled MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+requires_max_content_len 16384
+run_tests_memory_with_runtime_content_len
 
 if [ "$LIST_TESTS" -eq 0 ]; then
 

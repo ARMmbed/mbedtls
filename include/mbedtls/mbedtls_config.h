@@ -844,9 +844,55 @@
  * When this option is enabled, the SSL buffer will be resized automatically
  * based on the negotiated maximum fragment length in each direction.
  *
+ * This option shrinks the buffers only once a Maximum Fragment Length
+ * negotiation has completed, so on its own it leaves the peak allocation of a
+ * connection at the build-time maximum. If you want to bound the allocation
+ * of a connection from the moment it is set up, see
+ * MBEDTLS_SSL_RUNTIME_CONTENT_LEN. The two options may be enabled together;
+ * that option describes how they combine.
+ *
  * Requires: MBEDTLS_SSL_MAX_FRAGMENT_LENGTH
  */
 //#define MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH
+
+/**
+ * \def MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+ *
+ * When this option is enabled, the maximum length of a plaintext fragment can
+ * be set per connection, at runtime, with
+ * mbedtls_ssl_set_in_content_len() and mbedtls_ssl_set_out_content_len().
+ * The connection then allocates its I/O buffers from those lengths when it is
+ * set up, so an application holding several connections can size each one for
+ * its own peer instead of for its most demanding peer.
+ *
+ * MBEDTLS_SSL_IN_CONTENT_LEN and MBEDTLS_SSL_OUT_CONTENT_LEN keep their
+ * present meaning as a hard upper bound: a connection may ask for less than
+ * the compiled maximum, never for more. The worst-case build footprint is
+ * therefore unchanged; only the runtime heap of a connection shrinks.
+ *
+ * Enabling this option without calling either setter changes nothing
+ * observable: both lengths default to the corresponding build-time maximum.
+ *
+ * How this differs from MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH:
+ * MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH shrinks the buffers automatically, once
+ * a Maximum Fragment Length has been negotiated, so a connection still
+ * allocates the build-time maximum while it is set up and handshaking.
+ * MBEDTLS_SSL_RUNTIME_CONTENT_LEN bounds the allocation from
+ * mbedtls_ssl_setup() onwards, at a length the application chooses, and does
+ * not require MBEDTLS_SSL_MAX_FRAGMENT_LENGTH. In exchange, the peer learns
+ * of a shrunk incoming length only through a negotiated extension; see
+ * mbedtls_ssl_set_in_content_len() for what happens otherwise.
+ *
+ * The two options may be enabled together: the buffers of a connection then
+ * start at its own lengths, may shrink further after a handshake to a
+ * configured or negotiated Maximum Fragment Length, and grow back at the
+ * start of each later handshake (renegotiation, or after
+ * mbedtls_ssl_session_reset()) only as far as the connection's lengths, never
+ * to the build-time maximum.
+ *
+ * Uncomment this macro to enable per-connection content lengths.
+ */
+//#define MBEDTLS_SSL_RUNTIME_CONTENT_LEN
 
 //#define MBEDTLS_PSK_MAX_LEN               32 /**< Max size of TLS pre-shared keys, in bytes (default 256 or 384 bits) */
 //#define MBEDTLS_SSL_CACHE_DEFAULT_MAX_ENTRIES      50 /**< Maximum entries in cache */

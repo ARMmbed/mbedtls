@@ -1003,8 +1003,11 @@ static int ssl_handshake_init(mbedtls_ssl_context *ssl)
 #if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
     /* If the buffers are too small - reallocate */
 
-    handle_buffer_resizing(ssl, 0, MBEDTLS_SSL_IN_BUFFER_LEN,
-                           MBEDTLS_SSL_OUT_BUFFER_LEN);
+    /* Grow back to what this connection asked for, not to the build-time
+     * maximum: growing to the maximum here would undo the saving that
+     * MBEDTLS_SSL_RUNTIME_CONTENT_LEN made at setup. */
+    handle_buffer_resizing(ssl, 0, mbedtls_ssl_compute_in_buf_len(ssl),
+                           mbedtls_ssl_compute_out_buf_len(ssl));
 #endif
 
     /* All pointers should exist and can be directly freed without issue */
@@ -1114,6 +1117,14 @@ static int ssl_cookie_check_dummy(void *ctx,
 void mbedtls_ssl_init(mbedtls_ssl_context *ssl)
 {
     memset(ssl, 0, sizeof(mbedtls_ssl_context));
+
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+    /* Default to the build-time maxima, so that enabling
+     * MBEDTLS_SSL_RUNTIME_CONTENT_LEN without calling either setter is
+     * observably a no-op. */
+    ssl->in_content_len = MBEDTLS_SSL_IN_CONTENT_LEN;
+    ssl->out_content_len = MBEDTLS_SSL_OUT_CONTENT_LEN;
+#endif
 }
 
 MBEDTLS_CHECK_RETURN_CRITICAL
@@ -1165,6 +1176,26 @@ static int ssl_conf_check(const mbedtls_ssl_context *ssl)
         return ret;
     }
 
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN) && \
+    defined(MBEDTLS_SSL_MAX_FRAGMENT_LENGTH) && defined(MBEDTLS_SSL_CLI_C)
+    /* A client proposing TLS 1.2 advertises its configured fragment length,
+     * so it must not invite records longer than this connection can take in.
+     * A server's configured fragment length only caps what it sends. */
+    if (ssl->conf->endpoint == MBEDTLS_SSL_IS_CLIENT &&
+        ssl->conf->min_tls_version <= MBEDTLS_SSL_VERSION_TLS1_2 &&
+        ssl->conf->mfl_code != MBEDTLS_SSL_MAX_FRAG_LEN_NONE) {
+        const unsigned int mfl = ssl_mfl_code_to_length(ssl->conf->mfl_code);
+        const size_t in_content_len = mbedtls_ssl_get_in_content_len(ssl);
+
+        if (mfl > in_content_len) {
+            MBEDTLS_SSL_DEBUG_MSG(1, ("max_fragment_length %u exceeds the incoming "
+                                      "content length %" MBEDTLS_PRINTF_SIZET,
+                                      mfl, in_content_len));
+            return MBEDTLS_ERR_SSL_BAD_CONFIG;
+        }
+    }
+#endif
+
     /* Space for further checks */
 
     return 0;
@@ -1178,8 +1209,8 @@ int mbedtls_ssl_setup(mbedtls_ssl_context *ssl,
                       const mbedtls_ssl_config *conf)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    size_t in_buf_len = MBEDTLS_SSL_IN_BUFFER_LEN;
-    size_t out_buf_len = MBEDTLS_SSL_OUT_BUFFER_LEN;
+    size_t in_buf_len = mbedtls_ssl_compute_in_buf_len(ssl);
+    size_t out_buf_len = mbedtls_ssl_compute_out_buf_len(ssl);
 
     ssl->conf = conf;
 
@@ -1195,7 +1226,7 @@ int mbedtls_ssl_setup(mbedtls_ssl_context *ssl,
     /* Set to NULL in case of an error condition */
     ssl->out_buf = NULL;
 
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_HAVE_BUFFER_LEN_FIELDS)
     ssl->in_buf_len = in_buf_len;
 #endif
     ssl->in_buf = mbedtls_calloc(1, in_buf_len);
@@ -1205,7 +1236,7 @@ int mbedtls_ssl_setup(mbedtls_ssl_context *ssl,
         goto error;
     }
 
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_HAVE_BUFFER_LEN_FIELDS)
     ssl->out_buf_len = out_buf_len;
 #endif
     ssl->out_buf = mbedtls_calloc(1, out_buf_len);
@@ -1234,7 +1265,7 @@ error:
 
     ssl->conf = NULL;
 
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_HAVE_BUFFER_LEN_FIELDS)
     ssl->in_buf_len = 0;
     ssl->out_buf_len = 0;
 #endif
@@ -1266,13 +1297,8 @@ error:
 void mbedtls_ssl_session_reset_msg_layer(mbedtls_ssl_context *ssl,
                                          int partial)
 {
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
-    size_t in_buf_len = ssl->in_buf_len;
-    size_t out_buf_len = ssl->out_buf_len;
-#else
-    size_t in_buf_len = MBEDTLS_SSL_IN_BUFFER_LEN;
-    size_t out_buf_len = MBEDTLS_SSL_OUT_BUFFER_LEN;
-#endif
+    size_t in_buf_len = mbedtls_ssl_get_in_buf_len(ssl);
+    size_t out_buf_len = mbedtls_ssl_get_out_buf_len(ssl);
 
 #if !defined(MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE) || !defined(MBEDTLS_SSL_SRV_C)
     partial = 0;
@@ -1500,6 +1526,39 @@ void mbedtls_ssl_set_mtu(mbedtls_ssl_context *ssl, uint16_t mtu)
     ssl->mtu = mtu;
 }
 #endif
+
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+int mbedtls_ssl_set_in_content_len(mbedtls_ssl_context *ssl, size_t len)
+{
+    /* Only before mbedtls_ssl_setup(): afterwards the buffers exist and
+     * may hold data and interior pointers sized from the current length. */
+    if (ssl->conf != NULL) {
+        return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+    }
+
+    if (len < MBEDTLS_SSL_IN_CONTENT_LEN_MIN || len > MBEDTLS_SSL_IN_CONTENT_LEN) {
+        return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+    }
+
+    ssl->in_content_len = len;
+    return 0;
+}
+
+int mbedtls_ssl_set_out_content_len(mbedtls_ssl_context *ssl, size_t len)
+{
+    /* Only before mbedtls_ssl_setup(), as for the incoming length. */
+    if (ssl->conf != NULL) {
+        return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+    }
+
+    if (len < MBEDTLS_SSL_OUT_CONTENT_LEN_MIN || len > MBEDTLS_SSL_OUT_CONTENT_LEN) {
+        return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+    }
+
+    ssl->out_content_len = len;
+    return 0;
+}
+#endif /* MBEDTLS_SSL_RUNTIME_CONTENT_LEN */
 
 void mbedtls_ssl_conf_read_timeout(mbedtls_ssl_config *conf, uint32_t timeout)
 {
@@ -1919,7 +1978,8 @@ static int ssl_conf_set_psk_identity(mbedtls_ssl_config *conf,
                                      unsigned char const *psk_identity,
                                      size_t psk_identity_len)
 {
-    /* Identity len will be encoded on two bytes */
+    /* Identity len will be encoded on two bytes.
+     * Configuration-scoped, so this checks the build-time ceiling. */
     if (psk_identity               == NULL ||
         psk_identity_len           == 0    ||
         (psk_identity_len >> 16) != 0    ||
@@ -2819,7 +2879,7 @@ const char *mbedtls_ssl_get_version(const mbedtls_ssl_context *ssl)
 
 size_t mbedtls_ssl_get_output_record_size_limit(const mbedtls_ssl_context *ssl)
 {
-    const size_t max_len = MBEDTLS_SSL_OUT_CONTENT_LEN;
+    const size_t max_len = mbedtls_ssl_get_out_content_len(ssl);
     size_t record_size_limit = max_len;
 
     if (ssl->session != NULL &&
@@ -2843,14 +2903,18 @@ size_t mbedtls_ssl_get_output_record_size_limit(const mbedtls_ssl_context *ssl)
 #if defined(MBEDTLS_SSL_MAX_FRAGMENT_LENGTH)
 size_t mbedtls_ssl_get_input_max_frag_len(const mbedtls_ssl_context *ssl)
 {
-    size_t max_len = MBEDTLS_SSL_IN_CONTENT_LEN;
+    size_t max_len = mbedtls_ssl_get_in_content_len(ssl);
     size_t read_mfl;
 
 #if defined(MBEDTLS_SSL_PROTO_TLS1_2)
     /* Use the configured MFL for the client if we're past SERVER_HELLO_DONE */
     if (ssl->conf->endpoint == MBEDTLS_SSL_IS_CLIENT &&
         ssl->state >= MBEDTLS_SSL_SERVER_HELLO_DONE) {
-        return ssl_mfl_code_to_length(ssl->conf->mfl_code);
+        read_mfl = ssl_mfl_code_to_length(ssl->conf->mfl_code);
+        if (read_mfl < max_len) {
+            max_len = read_mfl;
+        }
+        return max_len;
     }
 #endif
 
@@ -2875,12 +2939,14 @@ size_t mbedtls_ssl_get_input_max_frag_len(const mbedtls_ssl_context *ssl)
 
 size_t mbedtls_ssl_get_output_max_frag_len(const mbedtls_ssl_context *ssl)
 {
-    size_t max_len;
+    size_t max_len = mbedtls_ssl_get_out_content_len(ssl);
 
     /*
      * Assume mfl_code is correct since it was checked when set
      */
-    max_len = ssl_mfl_code_to_length(ssl->conf->mfl_code);
+    if (ssl_mfl_code_to_length(ssl->conf->mfl_code) < max_len) {
+        max_len = ssl_mfl_code_to_length(ssl->conf->mfl_code);
+    }
 
     /* Check if a smaller max length was negotiated */
     if (ssl->session_out != NULL &&
@@ -2916,7 +2982,7 @@ size_t mbedtls_ssl_get_current_mtu(const mbedtls_ssl_context *ssl)
 
 int mbedtls_ssl_get_max_out_record_payload(const mbedtls_ssl_context *ssl)
 {
-    size_t max_len = MBEDTLS_SSL_OUT_CONTENT_LEN;
+    size_t max_len = mbedtls_ssl_get_out_content_len(ssl);
 
 #if !defined(MBEDTLS_SSL_MAX_FRAGMENT_LENGTH) && \
     !defined(MBEDTLS_SSL_RECORD_SIZE_LIMIT) && \
@@ -2988,7 +3054,7 @@ int mbedtls_ssl_get_max_out_record_payload(const mbedtls_ssl_context *ssl)
 
 int mbedtls_ssl_get_max_in_record_payload(const mbedtls_ssl_context *ssl)
 {
-    size_t max_len = MBEDTLS_SSL_IN_CONTENT_LEN;
+    size_t max_len = mbedtls_ssl_get_in_content_len(ssl);
 
 #if !defined(MBEDTLS_SSL_MAX_FRAGMENT_LENGTH)
     (void) ssl;
@@ -5191,22 +5257,14 @@ void mbedtls_ssl_free(mbedtls_ssl_context *ssl)
     MBEDTLS_SSL_DEBUG_MSG(2, ("=> free"));
 
     if (ssl->out_buf != NULL) {
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
-        size_t out_buf_len = ssl->out_buf_len;
-#else
-        size_t out_buf_len = MBEDTLS_SSL_OUT_BUFFER_LEN;
-#endif
+        size_t out_buf_len = mbedtls_ssl_get_out_buf_len(ssl);
 
         mbedtls_zeroize_and_free(ssl->out_buf, out_buf_len);
         ssl->out_buf = NULL;
     }
 
     if (ssl->in_buf != NULL) {
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
-        size_t in_buf_len = ssl->in_buf_len;
-#else
-        size_t in_buf_len = MBEDTLS_SSL_IN_BUFFER_LEN;
-#endif
+        size_t in_buf_len = mbedtls_ssl_get_in_buf_len(ssl);
 
         mbedtls_zeroize_and_free(ssl->in_buf, in_buf_len);
         ssl->in_buf = NULL;
@@ -6736,13 +6794,17 @@ int mbedtls_ssl_write_certificate(mbedtls_ssl_context *ssl)
      */
     i = 7;
     crt = mbedtls_ssl_own_cert(ssl);
+    const size_t out_content_len = mbedtls_ssl_get_out_content_len(ssl);
 
     while (crt != NULL) {
         n = crt->raw.len;
-        if (n > MBEDTLS_SSL_OUT_CONTENT_LEN - 3 - i) {
+        /* Written as an addition rather than i + 3 subtracted from the
+         * outgoing length, so that a short outgoing length cannot underflow
+         * the bound into a huge value and wave the memcpy below through. */
+        if (i + 3 + n > out_content_len) {
             MBEDTLS_SSL_DEBUG_MSG(1, ("certificate too large, %" MBEDTLS_PRINTF_SIZET
                                       " > %" MBEDTLS_PRINTF_SIZET,
-                                      i + 3 + n, (size_t) MBEDTLS_SSL_OUT_CONTENT_LEN));
+                                      i + 3 + n, out_content_len));
             return MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL;
         }
 

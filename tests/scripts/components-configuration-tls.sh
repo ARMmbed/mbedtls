@@ -344,6 +344,22 @@ component_test_variable_ssl_in_out_buffer_len () {
     tests/compat.sh
 }
 
+component_test_ssl_runtime_content_len () {
+    msg "build: MBEDTLS_SSL_RUNTIME_CONTENT_LEN enabled (ASan build)"
+    scripts/config.py set MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+    CC=$ASAN_CC cmake -D CMAKE_BUILD_TYPE:String=Asan .
+    make
+
+    msg "test: MBEDTLS_SSL_RUNTIME_CONTENT_LEN enabled"
+    make test
+
+    msg "test: ssl-opt.sh, MBEDTLS_SSL_RUNTIME_CONTENT_LEN enabled"
+    tests/ssl-opt.sh
+
+    msg "test: compat.sh, MBEDTLS_SSL_RUNTIME_CONTENT_LEN enabled"
+    tests/compat.sh
+}
+
 component_test_ssl_alloc_buffer_and_mfl () {
     msg "build: default config with memory buffer allocator and MFL extension"
     scripts/config.py set MBEDTLS_MEMORY_BUFFER_ALLOC_C
@@ -359,6 +375,24 @@ component_test_ssl_alloc_buffer_and_mfl () {
 
     msg "test: MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH, MBEDTLS_MEMORY_BUFFER_ALLOC_C, MBEDTLS_MEMORY_DEBUG and MBEDTLS_SSL_MAX_FRAGMENT_LENGTH"
     tests/ssl-opt.sh -f "Handshake memory usage"
+}
+
+component_test_ssl_alloc_buffer_and_runtime_content_len () {
+    msg "build: default config with memory buffer allocator and runtime content lengths"
+    scripts/config.py set MBEDTLS_MEMORY_BUFFER_ALLOC_C
+    scripts/config.py set MBEDTLS_PLATFORM_MEMORY
+    scripts/config.py set MBEDTLS_MEMORY_DEBUG
+    scripts/config.py set MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+    scripts/config.py set MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH
+    scripts/config.py set MBEDTLS_SSL_RECORD_SIZE_LIMIT
+    cmake -DCMAKE_BUILD_TYPE:String=Release .
+    make
+
+    msg "test: MBEDTLS_SSL_RUNTIME_CONTENT_LEN, MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH, MBEDTLS_MEMORY_BUFFER_ALLOC_C and MBEDTLS_MEMORY_DEBUG"
+    make test
+
+    msg "test: ssl-opt.sh memory usage and runtime content length, MBEDTLS_SSL_RUNTIME_CONTENT_LEN and MBEDTLS_SSL_RECORD_SIZE_LIMIT"
+    tests/ssl-opt.sh -f "Handshake memory usage\|Runtime content length"
 }
 
 component_test_when_no_ciphersuites_have_mac () {

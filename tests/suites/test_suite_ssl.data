@@ -3653,3 +3653,194 @@ tls13_record_boundary_alignment:MBEDTLS_SSL_IS_SERVER:MBEDTLS_SSL_HS_FINISHED
 TLS 1.3 EndOfEarlyData record boundary alignment enforcement
 depends_on:MBEDTLS_SSL_EARLY_DATA:MBEDTLS_SSL_SESSION_TICKETS
 tls13_record_boundary_alignment:MBEDTLS_SSL_IS_SERVER:MBEDTLS_SSL_HS_END_OF_EARLY_DATA
+
+Runtime content length: enabling the option alone changes nothing, TLS
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_default_is_noop:0
+
+Runtime content length: enabling the option alone changes nothing, DTLS
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_SSL_PROTO_DTLS
+ssl_runtime_content_len_default_is_noop:1
+
+Runtime content length: incoming above the build-time ceiling is rejected
+ssl_runtime_content_len_set:0:0:MBEDTLS_SSL_IN_CONTENT_LEN + 1:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: outgoing above the build-time ceiling is rejected
+ssl_runtime_content_len_set:1:0:MBEDTLS_SSL_OUT_CONTENT_LEN + 1:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: incoming at the build-time ceiling is accepted
+ssl_runtime_content_len_set:0:0:MBEDTLS_SSL_IN_CONTENT_LEN:0
+
+Runtime content length: outgoing at the build-time ceiling is accepted
+ssl_runtime_content_len_set:1:0:MBEDTLS_SSL_OUT_CONTENT_LEN:0
+
+Runtime content length: incoming below the floor is rejected
+ssl_runtime_content_len_set:0:0:MBEDTLS_SSL_IN_CONTENT_LEN_MIN - 1:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: incoming at the floor is accepted
+ssl_runtime_content_len_set:0:0:MBEDTLS_SSL_IN_CONTENT_LEN_MIN:0
+
+Runtime content length: outgoing below the floor is rejected
+ssl_runtime_content_len_set:1:0:MBEDTLS_SSL_OUT_CONTENT_LEN_MIN - 1:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: outgoing at the floor is accepted
+ssl_runtime_content_len_set:1:0:MBEDTLS_SSL_OUT_CONTENT_LEN_MIN:0
+
+Runtime content length: zero incoming is rejected
+ssl_runtime_content_len_set:0:0:0:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: outgoing too short for a certificate header is rejected
+ssl_runtime_content_len_set:1:0:10:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: outgoing too short for a DTLS handshake header is rejected
+ssl_runtime_content_len_set:1:0:11:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: outgoing below TLS 1.3 padding granularity is rejected
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3
+ssl_runtime_content_len_set:1:0:MBEDTLS_SSL_CID_TLS1_3_PADDING_GRANULARITY - 1:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: incoming after setup is rejected
+ssl_runtime_content_len_set:0:1:MBEDTLS_SSL_IN_CONTENT_LEN / 2:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: outgoing after setup is rejected
+ssl_runtime_content_len_set:1:1:MBEDTLS_SSL_OUT_CONTENT_LEN / 2:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: incoming after session reset is rejected
+ssl_runtime_content_len_set:0:2:MBEDTLS_SSL_IN_CONTENT_LEN / 2:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: outgoing after session reset is rejected
+ssl_runtime_content_len_set:1:2:MBEDTLS_SSL_OUT_CONTENT_LEN / 2:MBEDTLS_ERR_SSL_BAD_INPUT_DATA
+
+Runtime content length: one connection, different incoming and outgoing, TLS 1.2
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_handshake:MBEDTLS_SSL_VERSION_TLS1_2:0:2048:512:0:0:1024:2:2048:1:0
+
+Runtime content length: two peers with different lengths, TLS 1.2
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_handshake:MBEDTLS_SSL_VERSION_TLS1_2:0:4096:1024:1024:4096:2048:2:4096:1:0
+
+Runtime content length: two peers with different lengths, DTLS 1.2
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_SSL_PROTO_DTLS
+ssl_runtime_content_len_handshake:MBEDTLS_SSL_VERSION_TLS1_2:1:4096:1024:1024:4096:1024:1:4096:1:0
+
+Runtime content length: DTLS 1.2 refuses a message above the outgoing length
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_SSL_PROTO_DTLS
+ssl_runtime_content_len_handshake:MBEDTLS_SSL_VERSION_TLS1_2:1:4096:1024:1024:4096:1025:0:4096:1:0
+
+Runtime content length: two peers with different lengths, TLS 1.3
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3
+ssl_runtime_content_len_handshake:MBEDTLS_SSL_VERSION_TLS1_3:0:4096:1024:1024:4096:2048:3:4095:1:0
+
+Runtime content length: lengths survive a session reset, TLS 1.2
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_handshake:MBEDTLS_SSL_VERSION_TLS1_2:0:0:1024:0:1024:2048:2:2048:2:1
+
+Runtime content length: lengths survive a session reset, TLS 1.3
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3
+ssl_runtime_content_len_handshake:MBEDTLS_SSL_VERSION_TLS1_3:0:0:1024:0:1024:2046:2:2046:2:1
+
+Runtime content length: resize, TLS 1.2
+ssl_runtime_content_len_resize_buffers:0:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:0:2048:1024:1024:2048
+
+Runtime content length: resize, MFL=512, TLS 1.2
+ssl_runtime_content_len_resize_buffers:0:MBEDTLS_SSL_MAX_FRAG_LEN_512:0:2048:1024:1024:2048
+
+Runtime content length: resize, reneg, DTLS 1.2
+depends_on:MBEDTLS_SSL_RENEGOTIATION:MBEDTLS_SSL_PROTO_DTLS
+ssl_runtime_content_len_resize_buffers:1:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:1:2048:1024:1024:2048
+
+Runtime content length: resize, MFL=512, reneg, DTLS 1.2
+depends_on:MBEDTLS_SSL_RENEGOTIATION:MBEDTLS_SSL_PROTO_DTLS
+ssl_runtime_content_len_resize_buffers:1:MBEDTLS_SSL_MAX_FRAG_LEN_512:1:2048:1024:1024:2048
+
+Runtime content length: resize, MFL above out len, reneg, DTLS 1.2
+depends_on:MBEDTLS_SSL_RENEGOTIATION:MBEDTLS_SSL_PROTO_DTLS
+ssl_runtime_content_len_resize_buffers:1:MBEDTLS_SSL_MAX_FRAG_LEN_4096:1:4096:1024:1024:2048
+
+Runtime content length: resize, server shrunk, reneg, DTLS 1.2
+depends_on:MBEDTLS_SSL_RENEGOTIATION:MBEDTLS_SSL_PROTO_DTLS
+ssl_runtime_content_len_resize_buffers:1:MBEDTLS_SSL_MAX_FRAG_LEN_1024:1:0:0:2048:1024
+
+Runtime content length: record at the incoming length is accepted, TLS 1.2
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_oversized_record:MBEDTLS_SSL_VERSION_TLS1_2:1024:1024:0
+
+Runtime content length: record above the incoming length is rejected, TLS 1.2
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_oversized_record:MBEDTLS_SSL_VERSION_TLS1_2:1024:1025:MBEDTLS_ERR_SSL_INVALID_RECORD
+
+Runtime content length: record at the incoming length is accepted, TLS 1.3
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3:!MBEDTLS_SSL_RECORD_SIZE_LIMIT
+ssl_runtime_content_len_oversized_record:MBEDTLS_SSL_VERSION_TLS1_3:1024:1024:0
+
+Runtime content length: record above the incoming length is rejected, TLS 1.3
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3:!MBEDTLS_SSL_RECORD_SIZE_LIMIT
+ssl_runtime_content_len_oversized_record:MBEDTLS_SSL_VERSION_TLS1_3:1024:1025:MBEDTLS_ERR_SSL_INVALID_RECORD
+
+Runtime content length: client setup accepts a fragment length at the incoming length
+depends_on:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_setup_mfl:MBEDTLS_SSL_IS_CLIENT:MBEDTLS_SSL_VERSION_TLS1_2:1024:MBEDTLS_SSL_MAX_FRAG_LEN_1024:0
+
+Runtime content length: client setup rejects a fragment length above the incoming length
+depends_on:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_setup_mfl:MBEDTLS_SSL_IS_CLIENT:MBEDTLS_SSL_VERSION_TLS1_2:1023:MBEDTLS_SSL_MAX_FRAG_LEN_1024:MBEDTLS_ERR_SSL_BAD_CONFIG
+
+Runtime content length: client setup rejects the largest fragment length above the incoming length
+depends_on:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_setup_mfl:MBEDTLS_SSL_IS_CLIENT:MBEDTLS_SSL_VERSION_TLS1_2:4095:MBEDTLS_SSL_MAX_FRAG_LEN_4096:MBEDTLS_ERR_SSL_BAD_CONFIG
+
+Runtime content length: client setup accepts a short incoming length without a fragment length
+depends_on:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_setup_mfl:MBEDTLS_SSL_IS_CLIENT:MBEDTLS_SSL_VERSION_TLS1_2:512:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:0
+
+Runtime content length: TLS 1.3-only client setup accepts a fragment length above the incoming length
+depends_on:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_PROTO_TLS1_3
+ssl_runtime_content_len_setup_mfl:MBEDTLS_SSL_IS_CLIENT:MBEDTLS_SSL_VERSION_TLS1_3:1023:MBEDTLS_SSL_MAX_FRAG_LEN_1024:0
+
+Runtime content length: server setup accepts a fragment length above the incoming length
+depends_on:MBEDTLS_SSL_SRV_C:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_setup_mfl:MBEDTLS_SSL_IS_SERVER:MBEDTLS_SSL_VERSION_TLS1_2:1024:MBEDTLS_SSL_MAX_FRAG_LEN_4096:0
+
+Runtime content length: ClientHello max_fragment_length at the incoming length
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_SSL_MAX_FRAGMENT_LENGTH
+ssl_runtime_content_len_client_hello_ext:MBEDTLS_SSL_VERSION_TLS1_2:1024:MBEDTLS_SSL_MAX_FRAG_LEN_1024:MBEDTLS_TLS_EXT_MAX_FRAGMENT_LENGTH:0:MBEDTLS_SSL_MAX_FRAG_LEN_1024
+
+Runtime content length: ClientHello max_fragment_length below the incoming length
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_SSL_MAX_FRAGMENT_LENGTH
+ssl_runtime_content_len_client_hello_ext:MBEDTLS_SSL_VERSION_TLS1_2:1024:MBEDTLS_SSL_MAX_FRAG_LEN_512:MBEDTLS_TLS_EXT_MAX_FRAGMENT_LENGTH:0:MBEDTLS_SSL_MAX_FRAG_LEN_512
+
+Runtime content length: ClientHello has no max_fragment_length unless configured
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_client_hello_ext:MBEDTLS_SSL_VERSION_TLS1_2:1024:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:MBEDTLS_TLS_EXT_MAX_FRAGMENT_LENGTH:0:-1
+
+Runtime content length: ClientHello record_size_limit, build-time incoming length
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_SSL_RECORD_SIZE_LIMIT
+ssl_runtime_content_len_client_hello_ext:MBEDTLS_SSL_VERSION_TLS1_3:MBEDTLS_SSL_IN_CONTENT_LEN:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:MBEDTLS_TLS_EXT_RECORD_SIZE_LIMIT:0:MBEDTLS_SSL_IN_CONTENT_LEN
+
+Runtime content length: ClientHello record_size_limit carries the incoming length
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_SSL_RECORD_SIZE_LIMIT
+ssl_runtime_content_len_client_hello_ext:MBEDTLS_SSL_VERSION_TLS1_3:1024:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:MBEDTLS_TLS_EXT_RECORD_SIZE_LIMIT:0:1024
+
+Runtime content length: ClientHello record_size_limit at the RFC 8449 minimum
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_SSL_RECORD_SIZE_LIMIT
+ssl_runtime_content_len_client_hello_ext:MBEDTLS_SSL_VERSION_TLS1_3:64:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:MBEDTLS_TLS_EXT_RECORD_SIZE_LIMIT:0:64
+
+Runtime content length: ClientHello record_size_limit below the RFC 8449 minimum is refused
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_SSL_RECORD_SIZE_LIMIT
+ssl_runtime_content_len_client_hello_ext:MBEDTLS_SSL_VERSION_TLS1_3:63:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:MBEDTLS_TLS_EXT_RECORD_SIZE_LIMIT:MBEDTLS_ERR_SSL_BAD_INPUT_DATA:-1
+
+Runtime content length: max record payload reports the connection's lengths, TLS 1.2
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2
+ssl_runtime_content_len_max_payload:MBEDTLS_SSL_VERSION_TLS1_2:2048:1024:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:1024:2048:1024
+
+Runtime content length: max record payload with a fragment length below both lengths, TLS 1.2
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_SSL_MAX_FRAGMENT_LENGTH
+ssl_runtime_content_len_max_payload:MBEDTLS_SSL_VERSION_TLS1_2:2048:1024:MBEDTLS_SSL_MAX_FRAG_LEN_512:512:512:512
+
+Runtime content length: max record payload with a fragment length at the incoming length, TLS 1.2
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_SSL_MAX_FRAGMENT_LENGTH
+ssl_runtime_content_len_max_payload:MBEDTLS_SSL_VERSION_TLS1_2:2048:4096:MBEDTLS_SSL_MAX_FRAG_LEN_2048:2048:2048:2048
+
+Runtime content length: max record payload reports the connection's lengths, TLS 1.3
+depends_on:MBEDTLS_SSL_PROTO_TLS1_3
+ssl_runtime_content_len_max_payload:MBEDTLS_SSL_VERSION_TLS1_3:2048:1024:MBEDTLS_SSL_MAX_FRAG_LEN_NONE:1024:2048:1023

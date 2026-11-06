@@ -1307,7 +1307,7 @@ int mbedtls_ssl_tls13_write_change_cipher_spec(mbedtls_ssl_context *ssl)
     /* Write CCS message */
     MBEDTLS_SSL_PROC_CHK(ssl_tls13_write_change_cipher_spec_body(
                              ssl, ssl->out_msg,
-                             ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN,
+                             ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl),
                              &ssl->out_msglen));
 
     ssl->out_msgtype = MBEDTLS_SSL_MSG_CHANGE_CIPHER_SPEC;
@@ -1746,23 +1746,31 @@ int mbedtls_ssl_tls13_write_record_size_limit_ext(mbedtls_ssl_context *ssl,
                                                   size_t *out_len)
 {
     unsigned char *p = buf;
+    const size_t record_size_limit = mbedtls_ssl_get_in_content_len(ssl);
     *out_len = 0;
 
-    MBEDTLS_STATIC_ASSERT(MBEDTLS_SSL_IN_CONTENT_LEN >= MBEDTLS_SSL_RECORD_SIZE_LIMIT_MIN,
-                          "MBEDTLS_SSL_IN_CONTENT_LEN is less than the "
-                          "minimum record size limit");
+    /* The incoming content length is a runtime value, so this bound cannot be
+     * checked at compile time. A connection that cannot hold the smallest
+     * record RFC 8449 permits has nothing valid to advertise. */
+    if (record_size_limit < MBEDTLS_SSL_RECORD_SIZE_LIMIT_MIN) {
+        MBEDTLS_SSL_DEBUG_MSG(1, ("incoming content length %" MBEDTLS_PRINTF_SIZET
+                                  " is less than the minimum record size limit %d",
+                                  record_size_limit,
+                                  MBEDTLS_SSL_RECORD_SIZE_LIMIT_MIN));
+        return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+    }
 
     MBEDTLS_SSL_CHK_BUF_PTR(p, end, 6);
 
     MBEDTLS_PUT_UINT16_BE(MBEDTLS_TLS_EXT_RECORD_SIZE_LIMIT, p, 0);
     MBEDTLS_PUT_UINT16_BE(MBEDTLS_SSL_RECORD_SIZE_LIMIT_EXTENSION_DATA_LENGTH,
                           p, 2);
-    MBEDTLS_PUT_UINT16_BE(MBEDTLS_SSL_IN_CONTENT_LEN, p, 4);
+    MBEDTLS_PUT_UINT16_BE(record_size_limit, p, 4);
 
     *out_len = 6;
 
-    MBEDTLS_SSL_DEBUG_MSG(2, ("Sent RecordSizeLimit: %d Bytes",
-                              MBEDTLS_SSL_IN_CONTENT_LEN));
+    MBEDTLS_SSL_DEBUG_MSG(2, ("Sent RecordSizeLimit: %" MBEDTLS_PRINTF_SIZET " Bytes",
+                              record_size_limit));
 
     mbedtls_ssl_tls13_set_hs_sent_ext_mask(ssl, MBEDTLS_TLS_EXT_RECORD_SIZE_LIMIT);
 

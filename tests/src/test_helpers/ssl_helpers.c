@@ -2152,9 +2152,14 @@ static int test_renegotiation(const mbedtls_test_handshake_test_options *options
     ret = mbedtls_ssl_renegotiate(&(client->ssl));
 #if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
     if (options->resize_buffers != 0) {
-        /* Ensure that the buffer sizes are appropriate before resizes */
-        TEST_EQUAL(client->ssl.out_buf_len, MBEDTLS_SSL_OUT_BUFFER_LEN);
-        TEST_EQUAL(client->ssl.in_buf_len, MBEDTLS_SSL_IN_BUFFER_LEN);
+        /* Starting the renegotiation grew the buffers back to the full size
+         * of this connection: its own content lengths, not the build-time
+         * maximum, so that MBEDTLS_SSL_RUNTIME_CONTENT_LEN keeps its saving.
+         * Without that option the two are the same. */
+        TEST_EQUAL(client->ssl.out_buf_len,
+                   mbedtls_ssl_compute_out_buf_len(&client->ssl));
+        TEST_EQUAL(client->ssl.in_buf_len,
+                   mbedtls_ssl_compute_in_buf_len(&client->ssl));
     }
 #endif
     TEST_ASSERT(ret == 0 ||
@@ -2233,9 +2238,11 @@ static int test_serialization(const mbedtls_test_handshake_test_options *options
 #endif
 #if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
     if (options->resize_buffers != 0) {
-        /* Ensure that the buffer sizes are appropriate before resizes */
-        TEST_EQUAL(server->ssl.out_buf_len, MBEDTLS_SSL_OUT_BUFFER_LEN);
-        TEST_EQUAL(server->ssl.in_buf_len, MBEDTLS_SSL_IN_BUFFER_LEN);
+        /* The freshly set up connection starts at its own full size. */
+        TEST_EQUAL(server->ssl.out_buf_len,
+                   mbedtls_ssl_compute_out_buf_len(&server->ssl));
+        TEST_EQUAL(server->ssl.in_buf_len,
+                   mbedtls_ssl_compute_in_buf_len(&server->ssl));
     }
 #endif
     TEST_EQUAL(mbedtls_ssl_context_load(&(server->ssl), context_buf,
@@ -2283,11 +2290,18 @@ int mbedtls_test_ssl_perform_connection(
 
 #if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
     if (options->resize_buffers != 0) {
-        /* Ensure that the buffer sizes are appropriate before resizes */
-        TEST_EQUAL(client->ssl.out_buf_len, MBEDTLS_SSL_OUT_BUFFER_LEN);
-        TEST_EQUAL(client->ssl.in_buf_len, MBEDTLS_SSL_IN_BUFFER_LEN);
-        TEST_EQUAL(server->ssl.out_buf_len, MBEDTLS_SSL_OUT_BUFFER_LEN);
-        TEST_EQUAL(server->ssl.in_buf_len, MBEDTLS_SSL_IN_BUFFER_LEN);
+        /* Before the handshake, including after a session reset, each
+         * buffer is the full size of its connection: its own content length,
+         * which is the build-time maximum unless
+         * MBEDTLS_SSL_RUNTIME_CONTENT_LEN shrank it. */
+        TEST_EQUAL(client->ssl.out_buf_len,
+                   mbedtls_ssl_compute_out_buf_len(&client->ssl));
+        TEST_EQUAL(client->ssl.in_buf_len,
+                   mbedtls_ssl_compute_in_buf_len(&client->ssl));
+        TEST_EQUAL(server->ssl.out_buf_len,
+                   mbedtls_ssl_compute_out_buf_len(&server->ssl));
+        TEST_EQUAL(server->ssl.in_buf_len,
+                   mbedtls_ssl_compute_in_buf_len(&server->ssl));
     }
 #endif
 

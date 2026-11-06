@@ -111,6 +111,8 @@ int main(void)
 #define DFL_CERT_REQ_CA_LIST    MBEDTLS_SSL_CERT_REQ_CA_LIST_ENABLED
 #define DFL_CERT_REQ_DN_HINT    0
 #define DFL_MFL_CODE            MBEDTLS_SSL_MAX_FRAG_LEN_NONE
+#define DFL_IN_CONTENT_LEN      0
+#define DFL_OUT_CONTENT_LEN     0
 #define DFL_TRUNC_HMAC          -1
 #define DFL_TICKETS             MBEDTLS_SSL_SESSION_TICKETS_ENABLED
 #define DFL_DUMMY_TICKET        0
@@ -345,6 +347,14 @@ int main(void)
 #define USAGE_MAX_FRAG_LEN ""
 #endif /* MBEDTLS_SSL_MAX_FRAGMENT_LENGTH */
 
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+#define USAGE_CONTENT_LEN                                               \
+    "    in_content_len=%%d   default: MBEDTLS_SSL_IN_CONTENT_LEN\n"   \
+    "    out_content_len=%%d  default: MBEDTLS_SSL_OUT_CONTENT_LEN\n"
+#else
+#define USAGE_CONTENT_LEN ""
+#endif /* MBEDTLS_SSL_RUNTIME_CONTENT_LEN */
+
 #if defined(MBEDTLS_SSL_ALPN)
 #define USAGE_ALPN \
     "    alpn=%%s             default: \"\" (disabled)\n"   \
@@ -550,6 +560,7 @@ int main(void)
     USAGE_CACHE                                             \
     USAGE_CACHE_TIME                                        \
     USAGE_MAX_FRAG_LEN                                      \
+    USAGE_CONTENT_LEN                                       \
     USAGE_ALPN                                              \
     USAGE_EMS                                               \
     USAGE_ETM                                               \
@@ -650,6 +661,8 @@ struct options {
     int cert_req_ca_list;       /* should we send the CA list?              */
     int cert_req_dn_hint;       /* mode to set DN hints for CA list to send */
     unsigned char mfl_code;     /* code for maximum fragment length         */
+    int in_content_len;         /* incoming content length (0: default)     */
+    int out_content_len;        /* outgoing content length (0: default)     */
     int trunc_hmac;             /* accept truncated hmac?                   */
     int tickets;                /* enable / disable session tickets         */
     int dummy_ticket;           /* enable / disable dummy ticket generator  */
@@ -1718,6 +1731,8 @@ int main(int argc, char *argv[])
     opt.cert_req_ca_list    = DFL_CERT_REQ_CA_LIST;
     opt.cert_req_dn_hint    = DFL_CERT_REQ_DN_HINT;
     opt.mfl_code            = DFL_MFL_CODE;
+    opt.in_content_len      = DFL_IN_CONTENT_LEN;
+    opt.out_content_len     = DFL_OUT_CONTENT_LEN;
     opt.trunc_hmac          = DFL_TRUNC_HMAC;
     opt.tickets             = DFL_TICKETS;
     opt.dummy_ticket        = DFL_DUMMY_TICKET;
@@ -2125,6 +2140,18 @@ usage:
             } else {
                 goto usage;
             }
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+        } else if (strcmp(p, "in_content_len") == 0) {
+            opt.in_content_len = atoi(q);
+            if (opt.in_content_len <= 0) {
+                goto usage;
+            }
+        } else if (strcmp(p, "out_content_len") == 0) {
+            opt.out_content_len = atoi(q);
+            if (opt.out_content_len <= 0) {
+                goto usage;
+            }
+#endif /* MBEDTLS_SSL_RUNTIME_CONTENT_LEN */
         } else if (strcmp(p, "alpn") == 0) {
             opt.alpn_string = q;
         } else if (strcmp(p, "trunc_hmac") == 0) {
@@ -3178,6 +3205,22 @@ usage:
     if (opt.max_version != DFL_MIN_VERSION) {
         mbedtls_ssl_conf_max_tls_version(&conf, opt.max_version);
     }
+
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+    if (opt.in_content_len != DFL_IN_CONTENT_LEN &&
+        (ret = mbedtls_ssl_set_in_content_len(&ssl, opt.in_content_len)) != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_ssl_set_in_content_len returned -0x%x\n\n",
+                       (unsigned int) -ret);
+        goto exit;
+    }
+
+    if (opt.out_content_len != DFL_OUT_CONTENT_LEN &&
+        (ret = mbedtls_ssl_set_out_content_len(&ssl, opt.out_content_len)) != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_ssl_set_out_content_len returned -0x%x\n\n",
+                       (unsigned int) -ret);
+        goto exit;
+    }
+#endif /* MBEDTLS_SSL_RUNTIME_CONTENT_LEN */
 
     if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0) {
         mbedtls_printf(" failed\n  ! mbedtls_ssl_setup returned -0x%x\n\n", (unsigned int) -ret);

@@ -1584,6 +1584,20 @@ struct mbedtls_ssl_config {
     mbedtls_ssl_unused_data_t MBEDTLS_PRIVATE(unused);
 };
 
+/**
+ * \def MBEDTLS_SSL_HAVE_BUFFER_LEN_FIELDS
+ *
+ * Defined when an SSL context records the length of each of its I/O buffers,
+ * because at least one enabled option lets a buffer be shorter than the
+ * build-time maximum: #MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH shrinks it after a
+ * Maximum Fragment Length negotiation, and #MBEDTLS_SSL_RUNTIME_CONTENT_LEN
+ * allocates it short in the first place.
+ */
+#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH) || \
+    defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+#define MBEDTLS_SSL_HAVE_BUFFER_LEN_FIELDS
+#endif
+
 /*
  * Warning: whenever a change is applied to "mbedtls_ssl_context" please re-run
  * the script "tests/scripts/generate_ssl_session_reset_check.py".
@@ -1721,8 +1735,11 @@ struct mbedtls_ssl_context {
     int MBEDTLS_PRIVATE(in_msgtype);             /*!< record header: message type      */
     size_t MBEDTLS_PRIVATE(in_msglen);           /*!< record header: message length    */
     size_t MBEDTLS_PRIVATE(in_left);             /*!< amount of data read so far       */
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_HAVE_BUFFER_LEN_FIELDS)
     size_t MBEDTLS_PRIVATE(in_buf_len);          /*!< length of input buffer           */
+#endif
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+    size_t MBEDTLS_PRIVATE(in_content_len);      /*!< max incoming plaintext fragment  */
 #endif
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
     uint16_t MBEDTLS_PRIVATE(in_epoch);          /*!< DTLS epoch for incoming records  */
@@ -1798,8 +1815,11 @@ struct mbedtls_ssl_context {
     int MBEDTLS_PRIVATE(out_msgtype);            /*!< record header: message type      */
     size_t MBEDTLS_PRIVATE(out_msglen);          /*!< record header: message length    */
     size_t MBEDTLS_PRIVATE(out_left);            /*!< amount of data not yet written   */
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_HAVE_BUFFER_LEN_FIELDS)
     size_t MBEDTLS_PRIVATE(out_buf_len);         /*!< length of output buffer          */
+#endif
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+    size_t MBEDTLS_PRIVATE(out_content_len);     /*!< max outgoing plaintext fragment  */
 #endif
 
     unsigned char MBEDTLS_PRIVATE(cur_out_ctr)[MBEDTLS_SSL_SEQUENCE_NUMBER_LEN]; /*!<  Outgoing record sequence  number. */
@@ -1942,6 +1962,11 @@ void mbedtls_ssl_init(mbedtls_ssl_context *ssl);
  *
  * \return         0 if successful, or #PSA_ERROR_INSUFFICIENT_MEMORY if
  *                 memory allocation failed
+ * \return         #MBEDTLS_ERR_SSL_BAD_CONFIG if \p conf is invalid, including,
+ *                 for a client that may negotiate TLS 1.2, a maximum fragment
+ *                 length configured with mbedtls_ssl_conf_max_frag_len()
+ *                 longer than the length set with
+ *                 mbedtls_ssl_set_in_content_len()
  */
 int mbedtls_ssl_setup(mbedtls_ssl_context *ssl,
                       const mbedtls_ssl_config *conf);
@@ -2387,6 +2412,95 @@ int mbedtls_ssl_get_peer_cid(mbedtls_ssl_context *ssl,
  */
 void mbedtls_ssl_set_mtu(mbedtls_ssl_context *ssl, uint16_t mtu);
 #endif /* MBEDTLS_SSL_PROTO_DTLS */
+
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+/**
+ * \brief          Set the maximum length of a plaintext fragment that this
+ *                 connection can receive.
+ *
+ *                 mbedtls_ssl_setup() sizes the input buffer from this
+ *                 length, so a connection that asks for less than
+ *                 #MBEDTLS_SSL_IN_CONTENT_LEN allocates less.
+ *
+ * \note           This function is valid only after mbedtls_ssl_init() and
+ *                 before mbedtls_ssl_setup(). It fails once
+ *                 mbedtls_ssl_setup() has succeeded, and also once
+ *                 mbedtls_ssl_setup() has rejected the configuration; free
+ *                 and re-initialise the context to choose another length.
+ *                 The length is kept across mbedtls_ssl_session_reset().
+ *
+ * \warning        Nothing tells the peer about this length unless a
+ *                 Maximum Fragment Length or record_size_limit no longer
+ *                 than this length is negotiated. Otherwise a conforming peer
+ *                 may send a record longer than this length. Over TLS, the
+ *                 call that reads such a record fails: with
+ *                 #MBEDTLS_ERR_SSL_INVALID_RECORD if the record still fits in
+ *                 the input buffer, otherwise with
+ *                 #MBEDTLS_ERR_SSL_BAD_INPUT_DATA. Over DTLS, the record is
+ *                 discarded, so its data is lost. A build with
+ *                 #MBEDTLS_SSL_IN_CONTENT_LEN set to the same length behaves
+ *                 the same way.
+ *
+ * \warning        A server in particular has no standardised way to
+ *                 announce this length. Only a client requests a Maximum
+ *                 Fragment Length, and it may request one longer than this
+ *                 length; a TLS 1.3 server sends record_size_limit only if
+ *                 the client offered it. Shrink the incoming length of a
+ *                 server only when you know what its clients will send.
+ *
+ * \note           With #MBEDTLS_SSL_RECORD_SIZE_LIMIT, a TLS 1.3 endpoint
+ *                 advertises this length as its record_size_limit, so a
+ *                 length below 64, the smallest limit RFC 8449 permits, makes
+ *                 the handshake fail. A client that may negotiate TLS 1.2
+ *                 must not configure a maximum fragment length with
+ *                 mbedtls_ssl_conf_max_frag_len() longer than this length, or
+ *                 mbedtls_ssl_setup() fails.
+ *
+ * \param ssl      SSL context
+ * \param len      Maximum incoming plaintext fragment length in bytes.
+ *
+ * \return         0 on success.
+ * \return         #MBEDTLS_ERR_SSL_BAD_INPUT_DATA if \p len is 0 or
+ *                 exceeds #MBEDTLS_SSL_IN_CONTENT_LEN, or if called outside
+ *                 the window described above.
+ */
+int mbedtls_ssl_set_in_content_len(mbedtls_ssl_context *ssl, size_t len);
+
+/**
+ * \brief          Set the maximum length of a plaintext fragment that this
+ *                 connection can send.
+ *
+ *                 mbedtls_ssl_setup() sizes the output buffer from this
+ *                 length, so a connection that asks for less than
+ *                 #MBEDTLS_SSL_OUT_CONTENT_LEN allocates less. Application
+ *                 data longer than this length is treated as it is for a
+ *                 negotiated maximum fragment length: over TLS,
+ *                 mbedtls_ssl_write() sends only the first part of it, and
+ *                 over DTLS, mbedtls_ssl_write() rejects it.
+ *
+ * \note           This function is valid only after mbedtls_ssl_init() and
+ *                 before mbedtls_ssl_setup(). It fails once
+ *                 mbedtls_ssl_setup() has succeeded, and also once
+ *                 mbedtls_ssl_setup() has rejected the configuration; free
+ *                 and re-initialise the context to choose another length.
+ *                 The length is kept across mbedtls_ssl_session_reset().
+ *
+ * \note           The lower bound this function enforces, 12 bytes or the
+ *                 TLS 1.3 padding granularity if larger, only keeps internal
+ *                 size arithmetic sound. Whether a handshake fits depends on
+ *                 the certificate chain, ciphersuites and extensions; a
+ *                 length too short for them makes the handshake fail.
+ *
+ * \param ssl      SSL context
+ * \param len      Maximum outgoing plaintext fragment length in bytes.
+ *
+ * \return         0 on success.
+ * \return         #MBEDTLS_ERR_SSL_BAD_INPUT_DATA if \p len is below the
+ *                 lower bound or exceeds #MBEDTLS_SSL_OUT_CONTENT_LEN, or if
+ *                 called outside the window described above.
+ */
+int mbedtls_ssl_set_out_content_len(mbedtls_ssl_context *ssl, size_t len);
+#endif /* MBEDTLS_SSL_RUNTIME_CONTENT_LEN */
 
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
 /**
@@ -4687,7 +4801,8 @@ int mbedtls_ssl_get_record_expansion(const mbedtls_ssl_context *ssl);
  *
  * \note           The logic to determine the maximum outgoing record payload is
  *                 version-specific. It takes into account various factors, such as
- *                 the mbedtls_config.h setting \c MBEDTLS_SSL_OUT_CONTENT_LEN, extensions
+ *                 the mbedtls_config.h setting \c MBEDTLS_SSL_OUT_CONTENT_LEN or
+ *                 the length set with \c mbedtls_ssl_set_out_content_len(), extensions
  *                 such as the max fragment length or record size limit extension if
  *                 used, and for DTLS the path MTU as configured and current
  *                 record expansion.
@@ -4714,7 +4829,8 @@ int mbedtls_ssl_get_max_out_record_payload(const mbedtls_ssl_context *ssl);
  *
  * \note           The logic to determine the maximum incoming record payload is
  *                 version-specific. It takes into account various factors, such as
- *                 the mbedtls_config.h setting \c MBEDTLS_SSL_IN_CONTENT_LEN, extensions
+ *                 the mbedtls_config.h setting \c MBEDTLS_SSL_IN_CONTENT_LEN or
+ *                 the length set with \c mbedtls_ssl_set_in_content_len(), extensions
  *                 such as the max fragment length extension or record size limit
  *                 extension if used, and the current record expansion.
  *

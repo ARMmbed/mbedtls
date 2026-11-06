@@ -1545,7 +1545,7 @@ static void ssl_write_cid_ext(mbedtls_ssl_context *ssl,
 {
     unsigned char *p = buf;
     size_t ext_len;
-    const unsigned char *end = ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN;
+    const unsigned char *end = ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl);
 
     *olen = 0;
 
@@ -1780,7 +1780,7 @@ static int ssl_write_ecjpake_kkpp_ext(mbedtls_ssl_context *ssl,
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     unsigned char *p = buf;
-    const unsigned char *end = ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN;
+    const unsigned char *end = ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl);
     size_t kkpp_len;
 
     *olen = 0;
@@ -1826,7 +1826,7 @@ static void ssl_write_use_srtp_ext(mbedtls_ssl_context *ssl,
 {
     size_t mki_len = 0, ext_len = 0;
     uint16_t profile_value = 0;
-    const unsigned char *end = ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN;
+    const unsigned char *end = ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl);
 
     *olen = 0;
 
@@ -1915,7 +1915,8 @@ static int ssl_write_hello_verify_request(mbedtls_ssl_context *ssl)
     cookie_len_byte = p++;
 
     if ((ret = ssl->conf->f_cookie_write(ssl->conf->p_cookie,
-                                         &p, ssl->out_buf + MBEDTLS_SSL_OUT_BUFFER_LEN,
+                                         &p,
+                                         ssl->out_buf + mbedtls_ssl_get_out_buf_len(ssl),
                                          ssl->cli_id, ssl->cli_id_len)) != 0) {
         MBEDTLS_SSL_DEBUG_RET(1, "f_cookie_write", ret);
         return ret;
@@ -2207,7 +2208,7 @@ static int ssl_write_server_hello(mbedtls_ssl_context *ssl)
 #endif
 
 #if defined(MBEDTLS_SSL_ALPN)
-    unsigned char *end = buf + MBEDTLS_SSL_OUT_CONTENT_LEN - 4;
+    unsigned char *end = buf + mbedtls_ssl_get_out_content_len(ssl) - 4;
     if ((ret = mbedtls_ssl_write_alpn_ext(ssl, p + 2 + ext_len, end, &olen))
         != 0) {
         return ret;
@@ -2268,7 +2269,7 @@ static int ssl_write_certificate_request(mbedtls_ssl_context *ssl)
     uint16_t dn_size, total_dn_size; /* excluding length bytes */
     size_t ct_len, sa_len; /* including length bytes */
     unsigned char *buf, *p;
-    const unsigned char * const end = ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN;
+    const unsigned char * const end = ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl);
     const mbedtls_x509_crt *crt;
     int authmode;
 
@@ -2443,8 +2444,16 @@ static int ssl_resume_server_key_exchange(mbedtls_ssl_context *ssl,
      * ssl_write_server_key_exchange also takes care of incrementing
      * ssl->out_msglen. */
     unsigned char *sig_start = ssl->out_msg + ssl->out_msglen + 2;
-    size_t sig_max_len = (ssl->out_buf + MBEDTLS_SSL_OUT_CONTENT_LEN
-                          - sig_start);
+    /* Deliberately based on out_buf rather than out_msg: this bound therefore
+     * stops short of the end of the content area by the record header, which
+     * is conservative. Do not "simplify" it to out_msg without checking the
+     * non-async path below, which bounds the same write more loosely. */
+    const unsigned char *end = ssl->out_buf + mbedtls_ssl_get_out_content_len(ssl);
+    /* Compare before subtracting: with a short per-connection outgoing
+     * length, sig_start can lie past end, and the difference would wrap.
+     * A zero budget leaves the callback no room, so the handshake fails
+     * instead. */
+    size_t sig_max_len = sig_start < end ? (size_t) (end - sig_start) : 0;
     int ret = ssl->conf->f_async_resume(ssl,
                                         sig_start, signature_len, sig_max_len);
     if (ret != MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS) {
@@ -2479,11 +2488,8 @@ static int ssl_prepare_server_key_exchange(mbedtls_ssl_context *ssl,
 #endif /* MBEDTLS_KEY_EXCHANGE_WITH_SERVER_SIGNATURE_ENABLED */
 
 #if defined(MBEDTLS_KEY_EXCHANGE_WITH_SERVER_SIGNATURE_ENABLED)
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
-    size_t out_buf_len = ssl->out_buf_len - (size_t) (ssl->out_msg - ssl->out_buf);
-#else
-    size_t out_buf_len = MBEDTLS_SSL_OUT_BUFFER_LEN - (size_t) (ssl->out_msg - ssl->out_buf);
-#endif
+    size_t out_buf_len = mbedtls_ssl_get_out_buf_len(ssl)
+                         - (size_t) (ssl->out_msg - ssl->out_buf);
 #endif
 
     ssl->out_msglen = 4; /* header (type:1, length:3) to be written later */
@@ -2501,7 +2507,7 @@ static int ssl_prepare_server_key_exchange(mbedtls_ssl_context *ssl,
     if (ciphersuite_info->key_exchange == MBEDTLS_KEY_EXCHANGE_ECJPAKE) {
         int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
         unsigned char *out_p = ssl->out_msg + ssl->out_msglen;
-        unsigned char *end_p = ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN -
+        unsigned char *end_p = ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl) -
                                ssl->out_msglen;
         size_t output_offset = 0;
         size_t output_len = 0;
@@ -2652,7 +2658,7 @@ curve_matching_done:
          */
         unsigned char *own_pubkey = p + data_length_size;
 
-        size_t own_pubkey_max_len = (size_t) (MBEDTLS_SSL_OUT_CONTENT_LEN
+        size_t own_pubkey_max_len = (size_t) (mbedtls_ssl_get_out_content_len(ssl)
                                               - (own_pubkey - ssl->out_msg));
 
         status = psa_export_public_key(handshake->xxdh_psa_privkey,
@@ -3424,7 +3430,7 @@ static int ssl_write_new_session_ticket(mbedtls_ssl_context *ssl)
     if ((ret = ssl->conf->f_ticket_write(ssl->conf->p_ticket,
                                          ssl->session_negotiate,
                                          ssl->out_msg + 10,
-                                         ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN,
+                                         ssl->out_msg + mbedtls_ssl_get_out_content_len(ssl),
                                          &tlen, &lifetime)) != 0) {
         MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_ticket_write", ret);
     }

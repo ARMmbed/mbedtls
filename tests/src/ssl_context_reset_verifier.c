@@ -84,8 +84,16 @@ int mbedtls_test_ssl_check_context_after_session_reset(const mbedtls_ssl_context
     TEST_ASSERT(after->in_msgtype == initial.in_msgtype);
     TEST_ASSERT(after->in_msglen == initial.in_msglen);
     TEST_ASSERT(after->in_left == initial.in_left);
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_HAVE_BUFFER_LEN_FIELDS)
+    #if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+    TEST_ASSERT(after->in_buf_len == MBEDTLS_SSL_IN_BUFFER_LEN -
+                (MBEDTLS_SSL_IN_CONTENT_LEN - after->in_content_len));
+    #else
     TEST_ASSERT(after->in_buf_len == MBEDTLS_SSL_IN_BUFFER_LEN);
+    #endif
+#endif
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+    TEST_EQUAL(before->in_content_len, after->in_content_len);
 #endif
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
     TEST_ASSERT(after->in_epoch == initial.in_epoch);
@@ -132,8 +140,16 @@ int mbedtls_test_ssl_check_context_after_session_reset(const mbedtls_ssl_context
     TEST_ASSERT(after->out_msgtype == initial.out_msgtype);
     TEST_ASSERT(after->out_msglen == initial.out_msglen);
     TEST_ASSERT(after->out_left == initial.out_left);
-#if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+#if defined(MBEDTLS_SSL_HAVE_BUFFER_LEN_FIELDS)
+    #if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+    TEST_ASSERT(after->out_buf_len == MBEDTLS_SSL_OUT_BUFFER_LEN -
+                (MBEDTLS_SSL_OUT_CONTENT_LEN - after->out_content_len));
+    #else
     TEST_ASSERT(after->out_buf_len == MBEDTLS_SSL_OUT_BUFFER_LEN);
+    #endif
+#endif
+#if defined(MBEDTLS_SSL_RUNTIME_CONTENT_LEN)
+    TEST_EQUAL(before->out_content_len, after->out_content_len);
 #endif
     TEST_MEMORY_COMPARE(after->cur_out_ctr, sizeof(after->cur_out_ctr), initial.cur_out_ctr, sizeof(initial.cur_out_ctr));
 #if defined(MBEDTLS_SSL_PROTO_DTLS)

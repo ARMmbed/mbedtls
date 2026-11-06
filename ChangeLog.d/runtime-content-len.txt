@@ -1,0 +1,13 @@
+Features
+   * Add the MBEDTLS_SSL_RUNTIME_CONTENT_LEN option and the
+     mbedtls_ssl_set_in_content_len() and mbedtls_ssl_set_out_content_len()
+     functions to choose the maximum plaintext fragment length of each
+     connection before mbedtls_ssl_setup(). An application that holds several
+     connections can then size each one's I/O buffers for its own peer
+     instead of for its most demanding peer. MBEDTLS_SSL_IN_CONTENT_LEN and
+     MBEDTLS_SSL_OUT_CONTENT_LEN remain the upper bound, so the worst-case
+     memory footprint is unchanged; enabling the option without calling
+     either function changes nothing. Shrinking the incoming length can break
+     against a conforming peer unless a maximum fragment length or
+     record_size_limit extension is negotiated; see the documentation of
+     mbedtls_ssl_set_in_content_len(). Fixes #4892.
