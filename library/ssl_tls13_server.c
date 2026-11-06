@@ -3175,11 +3175,9 @@ static int ssl_tls13_prepare_new_session_ticket(mbedtls_ssl_context *ssl,
     MBEDTLS_SSL_PRINT_TICKET_FLAGS(4, session->ticket_flags);
 
 #if defined(MBEDTLS_SSL_EARLY_DATA) && defined(MBEDTLS_SSL_ALPN)
-    if (session->ticket_alpn == NULL) {
-        ret = mbedtls_ssl_session_set_ticket_alpn(session, ssl->alpn_chosen);
-        if (ret != 0) {
-            return ret;
-        }
+    ret = mbedtls_ssl_session_set_ticket_alpn(session, ssl->alpn_chosen);
+    if (ret != 0) {
+        return ret;
     }
 #endif
 

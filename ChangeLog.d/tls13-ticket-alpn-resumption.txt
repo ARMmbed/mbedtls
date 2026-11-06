@@ -1,0 +1,6 @@
+Bugfix
+   * Fix a TLS 1.3 server bug where a session ticket issued in a resumed
+     session kept the ALPN protocol of the original handshake. This could
+     cause early data to be wrongly rejected, or early data to be wrongly
+     accepted with a different ALPN protocol than the one negotiated in the
+     resumed session. Fixes #10841. Reported by saikumar279.

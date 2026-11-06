@@ -3467,6 +3467,10 @@ TLS 1.3 cli, early data, no later ALPN
 depends_on:MBEDTLS_SSL_ALPN
 tls13_read_early_data:TEST_EARLY_DATA_NO_LATER_ALPN
 
+TLS 1.3 cli, early data, different ALPN on resumption
+depends_on:MBEDTLS_SSL_ALPN
+tls13_read_early_data:TEST_EARLY_DATA_DIFF_ALPN_ON_RESUMPTION
+
 TLS 1.3 cli, early data state, early data accepted
 tls13_cli_early_data_state:TEST_EARLY_DATA_ACCEPTED
 

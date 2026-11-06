@@ -26,6 +26,7 @@
 #define TEST_EARLY_DATA_DIFF_ALPN 5
 #define TEST_EARLY_DATA_NO_INITIAL_ALPN 6
 #define TEST_EARLY_DATA_NO_LATER_ALPN 7
+#define TEST_EARLY_DATA_DIFF_ALPN_ON_RESUMPTION 8
 
 /* Mutations for ssl_session_load_rejects_bad_serialized_data */
 #define TEST_SESSION_LOAD_TRAILING_DATA          0
@@ -5122,6 +5123,7 @@ void tls13_read_early_data(int scenario)
         case TEST_EARLY_DATA_SAME_ALPN:
         case TEST_EARLY_DATA_DIFF_ALPN:
         case TEST_EARLY_DATA_NO_LATER_ALPN:
+        case TEST_EARLY_DATA_DIFF_ALPN_ON_RESUMPTION:
             client_options.alpn_list[0] = "ALPNExample";
             client_options.alpn_list[1] = NULL;
             server_options.alpn_list[0] = "ALPNExample";
@@ -5133,6 +5135,16 @@ void tls13_read_early_data(int scenario)
     ret = mbedtls_test_get_tls13_ticket(&client_options, &server_options,
                                         &saved_session);
     TEST_EQUAL(ret, 0);
+
+#if defined(MBEDTLS_SSL_ALPN)
+    if (scenario == TEST_EARLY_DATA_DIFF_ALPN_ON_RESUMPTION) {
+        client_options.alpn_list[0] = "ALPNExample2";
+        server_options.alpn_list[0] = "ALPNExample2";
+        ret = mbedtls_test_get_tls13_ticket(&client_options, &server_options,
+                                            &saved_session);
+        TEST_EQUAL(ret, 0);
+    }
+#endif
 
     /*
      * Prepare for handshake with the ticket.
@@ -5164,6 +5176,8 @@ void tls13_read_early_data(int scenario)
             client_options.alpn_list[1] = NULL;
             server_options.alpn_list[0] = "ALPNExample";
             server_options.alpn_list[1] = NULL;
+            break;
+        case TEST_EARLY_DATA_DIFF_ALPN_ON_RESUMPTION:
             break;
         case TEST_EARLY_DATA_DIFF_ALPN:
         case TEST_EARLY_DATA_NO_INITIAL_ALPN:
@@ -5238,6 +5252,7 @@ void tls13_read_early_data(int scenario)
         case TEST_EARLY_DATA_ACCEPTED:
 #if defined(MBEDTLS_SSL_ALPN)
         case TEST_EARLY_DATA_SAME_ALPN:
+        case TEST_EARLY_DATA_DIFF_ALPN_ON_RESUMPTION:
 #endif
             TEST_EQUAL(ret, MBEDTLS_ERR_SSL_RECEIVED_EARLY_DATA);
             TEST_EQUAL(server_ep.ssl.handshake->early_data_accepted, 1);

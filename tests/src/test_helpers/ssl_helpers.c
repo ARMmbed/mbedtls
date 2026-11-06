@@ -2613,16 +2613,27 @@ int mbedtls_test_get_tls13_ticket(
                                            &(server_ep.socket), 1024);
     TEST_EQUAL(ret, 0);
 
+    if (session->tls_version == MBEDTLS_SSL_VERSION_TLS1_3) {
+        ret = mbedtls_ssl_set_session(&(client_ep.ssl), session);
+        TEST_EQUAL(ret, 0);
+    }
+
     TEST_EQUAL(mbedtls_test_move_handshake_to_state(
                    &(server_ep.ssl), &(client_ep.ssl),
                    MBEDTLS_SSL_HANDSHAKE_OVER), 0);
 
     TEST_EQUAL(server_ep.ssl.handshake->new_session_tickets_count, 0);
 
-    do {
+    for (int i = 0; i < 10; i++) {
         ret = mbedtls_ssl_read(&(client_ep.ssl), buf, sizeof(buf));
-    } while (ret != MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET);
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ) {
+            break;
+        }
+    }
+    TEST_EQUAL(ret, MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET);
 
+    mbedtls_ssl_session_free(session);
+    mbedtls_ssl_session_init(session);
     ret = mbedtls_ssl_get_session(&(client_ep.ssl), session);
     TEST_EQUAL(ret, 0);
 
