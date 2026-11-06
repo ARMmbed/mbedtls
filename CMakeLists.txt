@@ -18,7 +18,7 @@
 
 # We specify a minimum requirement of 3.10.2, but for now use 3.5.1 here
 # until our infrastructure catches up.
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.5.1...3.31)
 
 include(CMakePackageConfigHelpers)
 
@@ -82,11 +82,23 @@ endif()
 
 option(DISABLE_PACKAGE_CONFIG_AND_INSTALL "Disable package configuration, target export and installation" ${MBEDTLS_AS_SUBPROJECT})
 
-if (CMAKE_C_SIMULATE_ID)
+# CMAKE_C_COMPILER_ID identifies the compiler family/ABI target, but not the
+# command-line frontend. For Clang on Windows, this stays "Clang" for both
+# clang.exe (GNU-style flags) and clang-cl.exe (MSVC-style flags).
+# Use CMAKE_C_COMPILER_FRONTEND_VARIANT to select the expected flag syntax.
+set(COMPILER_ID ${CMAKE_C_COMPILER_ID})
+
+if (CMAKE_C_COMPILER_ID MATCHES "Clang")
+    if (CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        set(COMPILER_ID MSVC)
+    elseif (NOT CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "GNU" AND CMAKE_C_SIMULATE_ID)
+        # Fallback for old CMake versions that don't report
+        # CMAKE_C_COMPILER_FRONTEND_VARIANT.
+        set(COMPILER_ID ${CMAKE_C_SIMULATE_ID})
+    endif()
+elseif (CMAKE_C_SIMULATE_ID)
     set(COMPILER_ID ${CMAKE_C_SIMULATE_ID})
-else()
-    set(COMPILER_ID ${CMAKE_C_COMPILER_ID})
-endif(CMAKE_C_SIMULATE_ID)
+endif()
 
 string(REGEX MATCH "Clang" CMAKE_COMPILER_IS_CLANG "${COMPILER_ID}")
 string(REGEX MATCH "GNU" CMAKE_COMPILER_IS_GNU "${COMPILER_ID}")
