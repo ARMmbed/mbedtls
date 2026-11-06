@@ -2136,7 +2136,16 @@ usage:
 
 #if defined(MBEDTLS_ECP_RESTARTABLE)
     if (opt.ec_max_ops != DFL_EC_MAX_OPS) {
+        #if defined(TF_PSA_CRYPTO_PSA_INTERRUPTIBLE_API_1_6)
+        /* TF-PSA-Crypto with the PSA interruptible API per
+         * specification version 1.6 renamed this function
+         * (Mbed-TLS/TF-PSA-Crypto#860). */
+        psa_iop_set_max_ops(opt.ec_max_ops);
+        #else
+        /* Older TF-PSA-Crypto and LTS branches only provide
+         * the old name. */
         psa_interruptible_set_max_ops(opt.ec_max_ops);
+        #endif
     }
 #endif
 
