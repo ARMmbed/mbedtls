@@ -498,7 +498,7 @@ static int ssl_tls13_parse_key_share_ext(mbedtls_ssl_context *ssl,
         mbedtls_ssl_tls13_named_group_is_ffdh(group)) {
         MBEDTLS_SSL_DEBUG_MSG(2,
                               ("DHE group name: %s", mbedtls_ssl_named_group_to_str(group)));
-        ret = mbedtls_ssl_tls13_read_public_xxdhe_share(ssl, p, end - p);
+        ret = mbedtls_ssl_tls13_read_public_xxdhe_share(ssl, group, p, end - p);
         if (ret != 0) {
             return ret;
         }

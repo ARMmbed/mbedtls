@@ -2613,6 +2613,7 @@ mbedtls_ssl_mode_t mbedtls_ssl_get_mode_from_ciphersuite(
 
 MBEDTLS_CHECK_RETURN_CRITICAL
 int mbedtls_ssl_tls13_read_public_xxdhe_share(mbedtls_ssl_context *ssl,
+                                              uint16_t named_group,
                                               const unsigned char *buf,
                                               size_t buf_len);
 

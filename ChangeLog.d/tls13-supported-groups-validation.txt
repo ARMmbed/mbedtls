@@ -1,0 +1,4 @@
+Bugfix
+   * On the TLS 1.3 server, reject an empty supported_groups list, and
+     trailing data after the list, in the ClientHello with a decode_error
+     alert, as required by RFC 8446. Fixes #10897. Fixes #10733.

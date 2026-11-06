@@ -1482,35 +1482,6 @@ int mbedtls_ssl_reset_transcript_for_hrr(mbedtls_ssl_context *ssl)
 
 #if defined(MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_SOME_EPHEMERAL_ENABLED)
 
-int mbedtls_ssl_tls13_read_public_xxdhe_share(mbedtls_ssl_context *ssl,
-                                              const unsigned char *buf,
-                                              size_t buf_len)
-{
-    uint8_t *p = (uint8_t *) buf;
-    const uint8_t *end = buf + buf_len;
-    mbedtls_ssl_handshake_params *handshake = ssl->handshake;
-
-    /* Get size of the TLS opaque key_exchange field of the KeyShareEntry struct. */
-    MBEDTLS_SSL_CHK_BUF_READ_PTR(p, end, 2);
-    uint16_t peerkey_len = MBEDTLS_GET_UINT16_BE(p, 0);
-    p += 2;
-
-    /* Check if key size is consistent with given buffer length. */
-    MBEDTLS_SSL_CHK_BUF_READ_PTR(p, end, peerkey_len);
-
-    /* Store peer's ECDH/FFDH public key. */
-    if (peerkey_len > sizeof(handshake->xxdh_psa_peerkey)) {
-        MBEDTLS_SSL_DEBUG_MSG(1, ("Invalid public key length: %u > %" MBEDTLS_PRINTF_SIZET,
-                                  (unsigned) peerkey_len,
-                                  sizeof(handshake->xxdh_psa_peerkey)));
-        return MBEDTLS_ERR_SSL_HANDSHAKE_FAILURE;
-    }
-    memcpy(handshake->xxdh_psa_peerkey, p, peerkey_len);
-    handshake->xxdh_psa_peerkey_len = peerkey_len;
-
-    return 0;
-}
-
 #if defined(PSA_WANT_ALG_FFDH)
 static psa_status_t  mbedtls_ssl_get_psa_ffdh_info_from_tls_id(
     uint16_t tls_id, size_t *bits, psa_key_type_t *key_type)
@@ -1551,6 +1522,108 @@ static psa_status_t  mbedtls_ssl_get_psa_ffdh_info_from_tls_id(
     }
 }
 #endif /* PSA_WANT_ALG_FFDH */
+
+/* Length of the key_exchange field of a KeyShareEntry for the given named
+ * group, i.e. the exact size of a well-formed ECDHE/FFDHE public key. */
+MBEDTLS_CHECK_RETURN_CRITICAL
+static int ssl_tls13_named_group_share_len(uint16_t named_group,
+                                           size_t *share_len)
+{
+#if defined(PSA_WANT_ALG_ECDH)
+    if (mbedtls_ssl_tls13_named_group_is_ecdhe(named_group)) {
+        psa_key_type_t key_type;
+        size_t bits;
+        if (mbedtls_ssl_get_psa_curve_info_from_tls_id(
+                named_group, &key_type, &bits) != PSA_SUCCESS) {
+            return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
+        }
+        if (PSA_KEY_TYPE_ECC_GET_FAMILY(key_type) == PSA_ECC_FAMILY_MONTGOMERY) {
+            /* Montgomery curves use the raw u-coordinate: X25519 32, X448 56. */
+            *share_len = PSA_BITS_TO_BYTES(bits);
+        } else {
+            /* Weierstrass curves use the uncompressed point 0x04 || X || Y:
+             * secp256r1 65, secp384r1 97, secp521r1 133. */
+            *share_len = 2 * PSA_BITS_TO_BYTES(bits) + 1;
+        }
+        return 0;
+    }
+#endif /* PSA_WANT_ALG_ECDH */
+#if defined(PSA_WANT_ALG_FFDH)
+    if (mbedtls_ssl_tls13_named_group_is_ffdh(named_group)) {
+        psa_key_type_t key_type;
+        size_t bits;
+        if (mbedtls_ssl_get_psa_ffdh_info_from_tls_id(
+                named_group, &bits, &key_type) != PSA_SUCCESS) {
+            return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
+        }
+        /* FFDHE public keys are the size of the group prime. */
+        *share_len = PSA_BITS_TO_BYTES(bits);
+        return 0;
+    }
+#endif /* PSA_WANT_ALG_FFDH */
+    (void) named_group;
+    (void) share_len;
+    return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
+}
+
+int mbedtls_ssl_tls13_read_public_xxdhe_share(mbedtls_ssl_context *ssl,
+                                              uint16_t named_group,
+                                              const unsigned char *buf,
+                                              size_t buf_len)
+{
+    uint8_t *p = (uint8_t *) buf;
+    const uint8_t *end = buf + buf_len;
+    mbedtls_ssl_handshake_params *handshake = ssl->handshake;
+    size_t expected_len;
+    int ret;
+
+    /* Get size of the TLS opaque key_exchange field of the KeyShareEntry struct. */
+    MBEDTLS_SSL_CHK_BUF_READ_PTR(p, end, 2);
+    uint16_t peerkey_len = MBEDTLS_GET_UINT16_BE(p, 0);
+    p += 2;
+
+    /* Check if key size is consistent with given buffer length. */
+    MBEDTLS_SSL_CHK_BUF_READ_PTR(p, end, peerkey_len);
+
+    /* key_exchange is the whole KeyShareEntry; no trailing data (RFC 8446 4.2.8). */
+    if ((size_t) (end - p) != peerkey_len) {
+        MBEDTLS_SSL_DEBUG_MSG(1, ("key_share entry has trailing data"));
+        MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR,
+                                     MBEDTLS_ERR_SSL_DECODE_ERROR);
+        return MBEDTLS_ERR_SSL_DECODE_ERROR;
+    }
+
+    /* A share whose length does not match the group is illegal_parameter. */
+    ret = ssl_tls13_named_group_share_len(named_group, &expected_len);
+    if (ret != 0) {
+        MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_INTERNAL_ERROR,
+                                     MBEDTLS_ERR_SSL_INTERNAL_ERROR);
+        return ret;
+    }
+    if (peerkey_len != expected_len) {
+        MBEDTLS_SSL_DEBUG_MSG(1, ("Invalid public key length: %u, expected %"
+                                  MBEDTLS_PRINTF_SIZET " for group %04x",
+                                  (unsigned) peerkey_len, expected_len,
+                                  (unsigned) named_group));
+        MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_ILLEGAL_PARAMETER,
+                                     MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER);
+        return MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER;
+    }
+
+    /* Store peer's ECDH/FFDH public key. */
+    if (peerkey_len > sizeof(handshake->xxdh_psa_peerkey)) {
+        MBEDTLS_SSL_DEBUG_MSG(1, ("Invalid public key length: %u > %" MBEDTLS_PRINTF_SIZET,
+                                  (unsigned) peerkey_len,
+                                  sizeof(handshake->xxdh_psa_peerkey)));
+        MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_INTERNAL_ERROR,
+                                     MBEDTLS_ERR_SSL_INTERNAL_ERROR);
+        return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
+    }
+    memcpy(handshake->xxdh_psa_peerkey, p, peerkey_len);
+    handshake->xxdh_psa_peerkey_len = peerkey_len;
+
+    return 0;
+}
 
 int mbedtls_ssl_tls13_generate_and_write_xxdh_key_exchange(
     mbedtls_ssl_context *ssl,

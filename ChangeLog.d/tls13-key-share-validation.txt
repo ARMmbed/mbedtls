@@ -1,0 +1,8 @@
+Bugfix
+   * On the TLS 1.3 server, reject a malformed key_share extension in the
+     ClientHello instead of closing the connection without an alert. A
+     zero-length key_exchange and trailing data after the client_shares list
+     are now rejected with a decode_error alert, and a key_exchange whose
+     length does not match the group with an illegal_parameter alert. The
+     shared key-exchange reader now also checks that a ServerHello key_share
+     is consumed exactly on the client side. Fixes #10887. Fixes #10737.
