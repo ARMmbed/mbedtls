@@ -17,3 +17,4 @@ Jinja2 >= 2.10.3; python_version >= '3.10'
 types-Jinja2 >= 2.11.9
 jsonschema >= 3.2.0
 types-jsonschema >= 3.2.0
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
