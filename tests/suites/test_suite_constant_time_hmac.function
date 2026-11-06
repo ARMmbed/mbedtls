@@ -51,11 +51,20 @@ void ssl_cf_hmac(int hash)
                                            ref_out, out_len,
                                            &key));
     /*
-     * Test all possible lengths up to a point. The difference between
+     * Test various possible lengths up to a point. The difference between
      * max_in_len and min_in_len is at most 255, and make sure they both vary
      * by at least one block size.
+     *
+     * It is quite expensive to test all possible lengths, so we test values
+     * which are within 1 of a multiple of block_size, plus loop end values.
      */
     for (max_in_len = 0; max_in_len <= 255 + block_size; max_in_len++) {
+        int no_skip = (((max_in_len + block_size + 1) % block_size) < 3) ||
+                      (max_in_len >= ((255 + block_size) - 1));
+        if (!no_skip) {
+            continue;
+        }
+
         mbedtls_test_set_step(max_in_len * 10000);
 
         /* Use allocated in buffer to catch overreads */
