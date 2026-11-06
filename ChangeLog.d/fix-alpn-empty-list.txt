@@ -1,0 +1,7 @@
+Bugfix
+   * Fix mbedtls_ssl_conf_alpn_protocols() silently accepting an empty
+     protocol list, which caused an invalid ALPN extension with a
+     zero-length protocol_name_list to be sent during the handshake,
+     violating RFC 7301 and causing conforming peers to reject the
+     connection with a fatal decode error. mbedtls_ssl_conf_alpn_protocols()
+     now returns MBEDTLS_ERR_SSL_BAD_INPUT_DATA for an empty list.

@@ -2527,6 +2527,16 @@ int mbedtls_ssl_conf_alpn_protocols(mbedtls_ssl_config *conf,
     const char *const *p;
 
     /*
+     * RFC 7301 3.1: the ALPN extension's protocol_name_list must contain
+     * at least one entry - an empty list is not a valid ProtocolNameList
+     * and must not be sent. Reject it here rather than silently sending
+     * an ALPN extension with a zero-length list later.
+     */
+    if (*protos == NULL) {
+        return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+    }
+
+    /*
      * RFC 7301 3.1: "Empty strings MUST NOT be included and byte strings
      * MUST NOT be truncated."
      * We check lengths now rather than later.
