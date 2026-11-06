@@ -517,8 +517,8 @@ int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
                           mbedtls_x509_name *cur)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    size_t set_len;
-    const unsigned char *end_set;
+    size_t set_len, last_len, this_len;
+    const unsigned char *end_set, *last_p, *next_p;
     mbedtls_x509_name *head = cur;
 
     /* don't use recursion, we'd risk stack overflow if not optimized */
@@ -534,10 +534,28 @@ int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
 
         end_set  = *p + set_len;
 
+        last_p = NULL;
         while (1) {
+            next_p = *p;
+
             if ((ret = x509_get_attr_type_value(p, end_set, cur)) != 0) {
                 goto error;
             }
+
+            this_len = (size_t) (*p - next_p);
+
+            if (last_p != NULL) {
+                size_t len_for_compare = this_len <= last_len ? this_len : last_len;
+                int delta = memcmp(last_p, next_p, len_for_compare);
+                if (delta > 0 || (delta == 0 && this_len <= last_len)) {
+                    /* unsorted ASN.1 SET OF */
+                    ret = MBEDTLS_ERR_X509_INVALID_NAME;
+                    goto error;
+                }
+            }
+
+            last_p = next_p;
+            last_len = this_len;
 
             if (*p == end_set) {
                 break;
