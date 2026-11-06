@@ -1,0 +1,6 @@
+Bugfix
+   * Fix the `cert_write` sample program accepting an issuer certificate
+     that is not allowed to issue certificates. A certificate whose
+     basicConstraints extension has cA=FALSE, or whose keyUsage extension
+     does not include keyCertSign, is now rejected instead of being used to
+     sign a certificate. Fixes #10779.

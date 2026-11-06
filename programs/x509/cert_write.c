@@ -294,6 +294,40 @@ static int parse_serial_decimal_format(unsigned char *obuf, size_t obufmax,
     return 0;
 }
 
+/*
+ * Check that a certificate may be used to issue other certificates.
+ *
+ * RFC 5280 section 4.2.1.9 requires a CA certificate to have the
+ * basicConstraints extension with cA set to TRUE, and section 4.2.1.3
+ * requires the keyCertSign bit to be set in the keyUsage extension of a
+ * certificate that signs certificates, if that extension is present.
+ *
+ * Certificates without a basicConstraints extension are accepted so that
+ * v1 and v2 certificates, which cannot carry extensions, keep working.
+ *
+ * This prints the reason for a rejection. Return 0 if the certificate may
+ * be used to issue certificates, or -1 otherwise.
+ */
+static int check_issuer_can_sign(const mbedtls_x509_crt *issuer_crt)
+{
+    if (mbedtls_x509_crt_get_ca_istrue(issuer_crt) == 0) {
+        mbedtls_printf(" failed\n  !  the issuer certificate is not a CA: "
+                       "the basicConstraints extension has cA=FALSE\n\n");
+        return -1;
+    }
+
+    if (mbedtls_x509_crt_has_ext_type(issuer_crt, MBEDTLS_X509_EXT_KEY_USAGE) &&
+        mbedtls_x509_crt_check_key_usage(issuer_crt,
+                                         MBEDTLS_X509_KU_KEY_CERT_SIGN) != 0) {
+        mbedtls_printf(" failed\n  !  the issuer certificate cannot sign "
+                       "certificates: the keyUsage extension does not have "
+                       "keyCertSign\n\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     int ret = 1;
@@ -792,6 +826,12 @@ usage:
         }
 
         opt.issuer_name = issuer_name;
+
+        /* Refuse to issue a certificate from a certificate that is not
+         * allowed to sign certificates. */
+        if (check_issuer_can_sign(&issuer_crt) != 0) {
+            goto exit;
+        }
 
         mbedtls_printf(" ok\n");
     }
