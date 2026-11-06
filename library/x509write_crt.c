@@ -425,8 +425,9 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
      *  Extensions  ::=  SEQUENCE SIZE (1..MAX) OF Extension
      */
 
-    /* Only for v3 */
-    if (ctx->version == MBEDTLS_X509_CRT_VERSION_3) {
+    /* Only for v3, and only if there are any: an empty list is encoded by
+     * omitting the OPTIONAL field (RFC 5280 section 4.1.2.9). */
+    if (ctx->version == MBEDTLS_X509_CRT_VERSION_3 && ctx->extensions != NULL) {
         MBEDTLS_ASN1_CHK_ADD(len,
                              mbedtls_x509_write_extensions(&c,
                                                            buf, ctx->extensions));

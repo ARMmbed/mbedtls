@@ -560,6 +560,58 @@ exit:
 }
 /* END_CASE */
 
+/* BEGIN_CASE depends_on:MBEDTLS_X509_CRT_WRITE_C:MBEDTLS_X509_CRT_PARSE_C */
+void x509_crt_check_no_extensions(char *key_file, int md_type, int ver)
+{
+    mbedtls_pk_context key;
+    mbedtls_x509write_cert crt;
+    mbedtls_x509_crt parsed;
+    unsigned char buf[4096];
+    const unsigned char serial[] = { 0x01 };
+    int der_len;
+
+    mbedtls_pk_init(&key);
+    mbedtls_x509write_crt_init(&crt);
+    mbedtls_x509_crt_init(&parsed);
+    MD_OR_USE_PSA_INIT();
+
+    TEST_EQUAL(mbedtls_pk_parse_keyfile(&key, key_file, NULL), 0);
+
+    /* A self-signed certificate with no extension added */
+    if (ver != -1) {
+        mbedtls_x509write_crt_set_version(&crt, ver);
+    }
+    TEST_EQUAL(mbedtls_x509write_crt_set_serial_raw(&crt, (unsigned char *) serial,
+                                                    sizeof(serial)), 0);
+    TEST_EQUAL(mbedtls_x509write_crt_set_validity(&crt, "20190210144406",
+                                                  "20290210144406"), 0);
+    mbedtls_x509write_crt_set_md_alg(&crt, md_type);
+    TEST_EQUAL(mbedtls_x509write_crt_set_issuer_name(&crt, "CN=No extensions"), 0);
+    TEST_EQUAL(mbedtls_x509write_crt_set_subject_name(&crt, "CN=No extensions"), 0);
+    mbedtls_x509write_crt_set_subject_key(&crt, &key);
+    mbedtls_x509write_crt_set_issuer_key(&crt, &key);
+
+    der_len = mbedtls_x509write_crt_der(&crt, buf, sizeof(buf));
+    TEST_ASSERT(der_len > 0);
+
+    TEST_EQUAL(mbedtls_x509_crt_parse_der(&parsed, buf + sizeof(buf) - der_len,
+                                          (size_t) der_len), 0);
+    TEST_EQUAL(parsed.version, (ver == -1 ? MBEDTLS_X509_CRT_VERSION_3 : ver) + 1);
+
+    /* Extensions ::= SEQUENCE SIZE (1..MAX) OF Extension, so with no extension
+     * the OPTIONAL extensions field must be omitted rather than written empty. */
+    TEST_EQUAL(parsed.v3_ext.len, 0);
+    TEST_ASSERT(parsed.v3_ext.p == NULL);
+    TEST_EQUAL(parsed.ext_types, 0);
+
+exit:
+    mbedtls_x509_crt_free(&parsed);
+    mbedtls_x509write_crt_free(&crt);
+    mbedtls_pk_free(&key);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
 /* BEGIN_CASE depends_on:MBEDTLS_X509_CRT_WRITE_C */
 void x509_set_serial_check()
 {

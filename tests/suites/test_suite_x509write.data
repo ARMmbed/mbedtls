@@ -166,6 +166,18 @@ Certificate write check Server1 SHA1, SubjectAltNames
 depends_on:PSA_HAVE_ALG_RSA_PKCS1V15_SIGN:PSA_WANT_ALG_MD5
 x509_crt_check:"../framework/data_files/server1.key":"":"C=NL,O=PolarSSL,CN=PolarSSL Server 1":"../framework/data_files/test-ca_unenc.key":"PolarSSLTest":"C=NL,O=PolarSSL,CN=PolarSSL Test CA":"01":"20190210144406":"20290210144406":MBEDTLS_MD_SHA1:0:0:"NULL":0:0:1:-1:"../framework/data_files/server1.allSubjectAltNames.crt":0:0:"../framework/data_files/test-ca.crt":1
 
+Certificate write check, v3 without extensions
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_SIGN:PSA_WANT_ECC_SECP_R1_256
+x509_crt_check_no_extensions:"../framework/data_files/server5.key":MBEDTLS_MD_SHA256:-1
+
+Certificate write check, explicit v3 without extensions
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_SIGN:PSA_WANT_ECC_SECP_R1_256
+x509_crt_check_no_extensions:"../framework/data_files/server5.key":MBEDTLS_MD_SHA256:MBEDTLS_X509_CRT_VERSION_3
+
+Certificate write check, v1 without extensions
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_SIGN:PSA_WANT_ECC_SECP_R1_256
+x509_crt_check_no_extensions:"../framework/data_files/server5.key":MBEDTLS_MD_SHA256:MBEDTLS_X509_CRT_VERSION_1
+
 X509 String to Names #1
 mbedtls_x509_string_to_names:"C=NL,O=Offspark\\, Inc., OU=PolarSSL":"C=NL, O=Offspark\\, Inc., OU=PolarSSL":0:0
 
