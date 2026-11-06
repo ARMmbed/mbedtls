@@ -1,0 +1,3 @@
+Bugfix
+   * Fix an unused-function warning in x509_oid.c when MBEDTLS_X509_USE_C
+     is disabled.

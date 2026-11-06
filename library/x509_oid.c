@@ -478,15 +478,17 @@ static const oid_sig_alg_t oid_sig_alg[] =
     },
 };
 
+#if defined(MBEDTLS_X509_USE_C)
 FN_OID_TYPED_FROM_ASN1(oid_sig_alg_t, sig_alg, oid_sig_alg)
 
-#if defined(MBEDTLS_X509_USE_C) && !defined(MBEDTLS_X509_REMOVE_INFO)
+#if !defined(MBEDTLS_X509_REMOVE_INFO)
 FN_OID_GET_DESCRIPTOR_ATTR1(mbedtls_x509_oid_get_sig_alg_desc,
                             oid_sig_alg_t,
                             sig_alg,
                             const char *,
                             description)
-#endif /* MBEDTLS_X509_USE_C && !MBEDTLS_X509_REMOVE_INFO */
+#endif /* !MBEDTLS_X509_REMOVE_INFO */
+#endif /* MBEDTLS_X509_USE_C */
 
 #if defined(MBEDTLS_X509_USE_C)
 FN_OID_GET_ATTR2(mbedtls_x509_oid_get_sig_alg,
