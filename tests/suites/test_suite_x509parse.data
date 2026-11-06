@@ -170,6 +170,10 @@ X509 CRT information, ECDSA Certificate unsupported policy
 depends_on:MBEDTLS_PEM_PARSE_C:PSA_HAVE_ALG_SOME_ECDSA:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256
 x509_cert_info:"../framework/data_files/parse_input/test-ca-unsupported_policy_ec.crt":"cert. version     \: 3\nserial number     \: 00\nissuer name       \: C=NL, O=PolarSSL, CN=Polarssl Test EC CA\nsubject name      \: C=NL, O=PolarSSL, CN=Polarssl Test EC CA\nissued  on        \: 2019-04-28 13\:00\:19\nexpires on        \: 2029-04-28 13\:00\:19\nsigned using      \: ECDSA with SHA256\nEC key size       \: 384 bits\nbasic constraints \: CA=true\ncertificate policies \: ???\n"
 
+X509 CRT information, ECDSA Certificate name constraints with DNSName
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_HAVE_ALG_SOME_ECDSA:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256
+x509_cert_info:"../framework/data_files/parse_input/test-ca-name_constraints_dns_ec.crt":"cert. version     \: 3\nserial number     \: 00\nissuer name       \: C=NL, O=PolarSSL, CN=Polarssl Test EC CA\nsubject name      \: C=NL, O=PolarSSL, CN=Polarssl Test EC CA\nissued  on        \: 2025-01-10 16\:45\:33\nexpires on        \: 2035-01-11 16\:45\:33\nsigned using      \: ECDSA with SHA256\nEC key size       \: 384 bits\nbasic constraints \: CA=true\nname constraints  \:\n  permitted \:\n    dNSName \: .example.com\n  excluded  \:\n    dNSName \: .bad.example.com\n"
+
 X509 CRT information, Key Usage + Extended Key Usage
 depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
 x509_cert_info:"../framework/data_files/parse_input/server1.ext_ku.crt":"cert. version     \: 3\nserial number     \: 21\nissuer name       \: C=NL, O=PolarSSL, CN=PolarSSL Test CA\nsubject name      \: C=NL, O=PolarSSL, CN=PolarSSL Server 1\nissued  on        \: 2014-04-01 14\:44\:43\nexpires on        \: 2024-03-29 14\:44\:43\nsigned using      \: RSA with SHA-256\nRSA key size      \: 2048 bits\nbasic constraints \: CA=false\nkey usage         \: Digital Signature, Non Repudiation, Key Encipherment\next key usage     \: TLS Web Server Authentication\n"
@@ -197,6 +201,10 @@ x509_cert_info:"../framework/data_files/server5-tricky-ip-san.crt.der":"cert. ve
 X509 SAN parsing otherName
 depends_on:PSA_HAVE_ALG_SOME_ECDSA:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ALG_SHA_256
 x509_parse_san:"../framework/data_files/parse_input/server5-othername.crt.der":"type \: 0\notherName \: hardware module name \: hardware type \: 1.3.6.1.4.1.17.3, hardware serial number \: 313233343536\n":0
+
+X509 SAN parsing BP EID otherName
+depends_on:PSA_HAVE_ALG_SOME_ECDSA:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ALG_SHA_256
+x509_parse_san:"../framework/data_files/parse_input/server5-bp_eid.crt.der":"type \: 0\notherName \: BundleEID \: ipn\:977000.100.0\n":0
 
 X509 SAN parsing binary otherName
 depends_on:PSA_HAVE_ALG_SOME_ECDSA:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ALG_SHA_256
@@ -228,7 +236,7 @@ x509_parse_san:"../framework/data_files/parse_input/server4.crt":"":0
 
 X509 SAN parsing, unsupported otherName name
 depends_on:PSA_HAVE_ALG_SOME_ECDSA:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ALG_SHA_256
-x509_parse_san:"../framework/data_files/parse_input/server5-unsupported_othername.crt.der":"":0
+x509_parse_san:"../framework/data_files/parse_input/server5-unsupported_othername.crt.der":"type \: 0\notherName \: raw \: type-id \: 1.2.3.4 value \: 736F6D65206F74686572206964656E746966696572\n":0
 
 X509 SAN parsing rfc822Name
 depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
@@ -1026,6 +1034,138 @@ x509_verify:"../framework/data_files/server1.crt":"../framework/data_files/test-
 X509 CRT verification #99 (Revoked Cert, revocation date in the future, _without_ MBEDTLS_HAVE_TIME_DATE)
 depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_1:PSA_HAVE_ALG_SOME_RSA_VERIFY:!MBEDTLS_HAVE_TIME_DATE
 x509_verify:"../framework/data_files/server1.crt":"../framework/data_files/test-ca.crt":"../framework/data_files/crl-futureRevocationDate.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_REVOKED:"compat":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName permitted, real-world CA
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"input-sibox-1-a.encoder.dev.cdn.dszn.cz":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName permitted, case-insensitive
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-case.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName not permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName not permitted, matching suffix but not label
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-suffix.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName leading dot, subdomain
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-dot-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName leading dot, domain itself
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-dot-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName excluded wins over permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-excl.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName wildcard within permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-wild-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName wildcard covering excluded
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-wild-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, no SAN, CN permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-cn-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"www.dszn.cz":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, no SAN, CN not permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-cn-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, dNSName permitted, unconstrained iPAddress
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-ip.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, non-critical, permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dnsnc-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, non-critical, not permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dnsnc-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, iPAddress permitted, IPv4 and IPv6
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-ip-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, iPAddress not permitted, IPv4
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-ip-bad4.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, iPAddress not permitted, IPv6
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-ip-bad6.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, iPAddress excluded
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-ip-excl.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, rfc822Name permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-email-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, rfc822Name host not in subdomain constraint
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-email-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, rfc822Name excluded
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-email-excl.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, emailAddress in subject not permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-email-subj.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, directoryName permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dirname-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, directoryName not permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dirname-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, directoryName excluded
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dirname-excl.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, directoryName SAN not permitted
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dirname-san-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, URI constrained, no URI in certificate
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-uri-dns.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, URI constrained, unsupported, fail closed
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-uri-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, nested CAs, both permit
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-cdn-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":0:0:"":"NULL"
+
+X509 CRT verification: Name Constraints, nested CAs, outer CA forbids
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-cdn-bad-outer.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, nested CAs, inner CA forbids
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-cdn-bad-inner.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"NULL":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:"":"NULL"
+
+X509 CRT verification: Name Constraints, wrong hostname is still reported
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-ok.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"www.example.net":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_CN_MISMATCH:"":"NULL"
+
+X509 CRT verification: Name Constraints, violation and wrong hostname
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify:"../framework/data_files/nc-dns-bad.crt":"../framework/data_files/nc-root.crt":"../framework/data_files/crl-ec-sha256.pem":"www.example.org":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS | MBEDTLS_X509_BADCERT_CN_MISMATCH:"":"NULL"
 
 X509 CRT verification: domain identical to IPv4 in SubjectAltName
 depends_on:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_HAVE_ALG_SOME_RSA_VERIFY
@@ -2272,6 +2412,66 @@ X509 CRT ASN1 (TBS, inv v3Ext, SubjectAltName repeated)
 depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
 x509parse_crt:"3081dc3081c6a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092A864886F70D01010105000319003016021100ffffffffffffffffffffffffffffffff020103a100a200a340303e301d0603551d11041630148208666f6f2e7465737482086261722e74657374301d0603551d11041630148208666f6f2e7465737482086261722e74657374300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERR_X509_INVALID_EXTENSIONS
 
+X509 CRT ASN1 (TBS, NameConstraints, all supported forms)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"308201663082014fa0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a381cc3081c93081c60603551d1e0101ff0481bb3081b8a065300d820b6578616d706c652e636f6d300e820c2e6578616d706c652e6e65743012811075736572406578616d706c652e6f7267300a8708c0a80000ffff00003024a4223020310b300906035504060c024e4c3111300f060355040a0c08506f6c617253534ca14f3022872020010db8000000000000000000000000ffffffff000000000000000000000000301281102e6261642e6578616d706c652e6f72673015861368747470733a2f2f6261642e6578616d706c65300d06092a864886f70d01010b0500030200ff":"cert. version     \: 3\nserial number     \: DE\:AD\:BE\:EF\nissuer name       \: ??=Test\nsubject name      \: ??=Test\nissued  on        \: 2009-01-01 00\:00\:00\nexpires on        \: 2009-12-31 23\:59\:59\nsigned using      \: RSA with SHA-256\nRSA key size      \: 128 bits\nname constraints  \:\n  permitted \:\n    dNSName \: example.com\n    dNSName \: .example.net\n    rfc822Name \: user@example.org\n    iPAddress \: 192.168.0.0/255.255.0.0\n    directoryName \: C=NL, O=PolarSSL\n  excluded  \:\n    iPAddress \: 2001\:0DB8\:0000\:0000\:0000\:0000\:0000\:0000/FFFF\:FFFF\:0000\:0000\:0000\:0000\:0000\:0000\n    rfc822Name \: .bad.example.org\n    uniformResourceIdentifier \: https\://bad.example\n":0
+
+X509 CRT ASN1 (TBS, NameConstraints, excluded only, not critical)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081b63081a0a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a31e301c301a0603551d1e04133011a10f300d820b6261642e6578616d706c65300d06092a864886f70d01010b0500030200ff":"cert. version     \: 3\nserial number     \: DE\:AD\:BE\:EF\nissuer name       \: ??=Test\nsubject name      \: ??=Test\nissued  on        \: 2009-01-01 00\:00\:00\nexpires on        \: 2009-12-31 23\:59\:59\nsigned using      \: RSA with SHA-256\nRSA key size      \: 128 bits\nname constraints  \:\n  excluded  \:\n    dNSName \: bad.example\n":0
+
+X509 CRT ASN1 (TBS, NameConstraints, explicit minimum 0)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081bc3081a6a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a324302230200603551d1e0101ff04163014a0123010820b6578616d706c652e636f6d800100300d06092a864886f70d01010b0500030200ff":"cert. version     \: 3\nserial number     \: DE\:AD\:BE\:EF\nissuer name       \: ??=Test\nsubject name      \: ??=Test\nissued  on        \: 2009-01-01 00\:00\:00\nexpires on        \: 2009-12-31 23\:59\:59\nsigned using      \: RSA with SHA-256\nRSA key size      \: 128 bits\nname constraints  \:\n  permitted \:\n    dNSName \: example.com\n":0
+
+X509 CRT ASN1 (TBS, NameConstraints, empty)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081a8308192a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a310300e300c0603551d1e0101ff04023000300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_INVALID_LENGTH)
+
+X509 CRT ASN1 (TBS, NameConstraints, empty permittedSubtrees)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081aa308194a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a3123010300e0603551d1e0101ff04043002a000300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_INVALID_LENGTH)
+
+X509 CRT ASN1 (TBS, NameConstraints, empty excludedSubtrees)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081aa308194a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a3123010300e0603551d1e0101ff04043002a100300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_INVALID_LENGTH)
+
+X509 CRT ASN1 (TBS, NameConstraints, empty GeneralSubtree)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081ac308196a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a314301230100603551d1e0101ff04063004a0023000300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_OUT_OF_DATA)
+
+X509 CRT ASN1 (TBS, NameConstraints, minimum 1)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081bc3081a6a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a324302230200603551d1e0101ff04163014a0123010820b6578616d706c652e636f6d800101300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_INVALID_DATA)
+
+X509 CRT ASN1 (TBS, NameConstraints, maximum present)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081bc3081a6a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a324302230200603551d1e0101ff04163014a0123010820b6578616d706c652e636f6d810100300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_UNEXPECTED_TAG)
+
+X509 CRT ASN1 (TBS, NameConstraints, iPAddress 4 bytes)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081b230819ca0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a31a301830160603551d1e0101ff040c300aa00830068704c0a80000300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_INVALID_LENGTH)
+
+X509 CRT ASN1 (TBS, NameConstraints, iPAddress 16 bytes)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081be3081a8a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a326302430220603551d1e0101ff04183016a0143012871020010db8000000000000000000000000300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_INVALID_LENGTH)
+
+X509 CRT ASN1 (TBS, NameConstraints, base not context-specific)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081b93081a3a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a321301f301d0603551d1e0101ff04133011a00f300d160b6578616d706c652e636f6d300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_UNEXPECTED_TAG)
+
+X509 CRT ASN1 (TBS, NameConstraints, excluded before permitted)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081c63081b0a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a32e302c302a0603551d1e0101ff0420301ea10d300b8209612e6578616d706c65a00d300b8209622e6578616d706c65300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_LENGTH_MISMATCH)
+
+X509 CRT ASN1 (TBS, NameConstraints, trailing data)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081b93081a3a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a321301f301d0603551d1e0101ff04133011a00d300b8209612e6578616d706c650500300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_UNEXPECTED_TAG)
+
+X509 CRT ASN1 (TBS, NameConstraints, not a SEQUENCE)
+depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
+x509parse_crt:"3081b73081a1a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092a864886f70d01010105000319003016021100ffffffffffffffffffffffffffffffff020103a31f301d301b0603551d1e0101ff0411310fa00d300b8209612e6578616d706c65300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, MBEDTLS_ERR_ASN1_UNEXPECTED_TAG)
+
 X509 CRT ASN1 (TBS, inv v3Ext, ExtKeyUsage repeated)
 depends_on:PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY:PSA_WANT_ALG_SHA_256
 x509parse_crt:"3081dc3081c6a0030201028204deadbeef300d06092a864886f70d01010b0500300c310a30080600130454657374301c170c303930313031303030303030170c303931323331323335393539300c310a30080600130454657374302a300d06092A864886F70D01010105000319003016021100ffffffffffffffffffffffffffffffff020103a100a200a340303e301d0603551d250416301406082b0601050507030106082b06010505070302301d0603551d250416301406082b0601050507030106082b06010505070302300d06092a864886f70d01010b0500030200ff":"":MBEDTLS_ERR_X509_INVALID_EXTENSIONS
@@ -3413,6 +3613,18 @@ x509_verify_restart:"../framework/data_files/server10_int3-bs.pem":"../framework
 X509 CRT verify restart: one int, int badsign, max_ops=500
 depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384:PSA_HAVE_ALG_SOME_RSA_VERIFY
 x509_verify_restart:"../framework/data_files/server10_int3-bs.pem":"../framework/data_files/test-int-ca2.crt":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NOT_TRUSTED:500:25:100
+
+X509 CRT verify restart: Name Constraints violation, max_ops=0 (disabled)
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify_restart:"../framework/data_files/nc-dns-bad.crt":"../framework/data_files/nc-root.crt":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:0:0:0
+
+X509 CRT verify restart: Name Constraints violation, max_ops=500
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify_restart:"../framework/data_files/nc-dns-bad.crt":"../framework/data_files/nc-root.crt":MBEDTLS_ERR_X509_CERT_VERIFY_FAILED:MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS:500:1:1000
+
+X509 CRT verify restart: Name Constraints satisfied, max_ops=500
+depends_on:MBEDTLS_PEM_PARSE_C:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384
+x509_verify_restart:"../framework/data_files/nc-dns-ok.crt":"../framework/data_files/nc-root.crt":0:0:500:1:1000
 
 X509 ext types accessor: ext type present
 depends_on:MBEDTLS_X509_CRT_PARSE_C

@@ -66,6 +66,9 @@ typedef struct mbedtls_x509_crt {
     mbedtls_x509_buf subject_key_id;    /**< Optional X.509 v3 extension subject key identifier. */
     mbedtls_x509_authority authority_key_id;    /**< Optional X.509 v3 extension authority key identifier. */
 
+    mbedtls_x509_sequence name_constraints_incl;    /**< Optional list of the bases of the permittedSubtrees of the Name Constraints extension, as raw GeneralName entries like subject_alt_names. An iPAddress entry is an address followed by a mask. */
+    mbedtls_x509_sequence name_constraints_excl;    /**< Optional list of the bases of the excludedSubtrees of the Name Constraints extension, in the same format as name_constraints_incl. */
+
     mbedtls_x509_sequence certificate_policies; /**< Optional list of certificate policies (Only anyPolicy is printed and enforced, however the rest of the policies are still listed). */
 
     int MBEDTLS_PRIVATE(ext_types);              /**< Bit string containing detected and parsed extensions */
@@ -213,7 +216,10 @@ mbedtls_x509_crt_profile;
                         "The CRL is signed with an unacceptable PK alg (eg RSA vs ECDSA).")   \
     X509_CRT_ERROR_INFO(MBEDTLS_X509_BADCRL_BAD_KEY,                                                    \
                         "MBEDTLS_X509_BADCRL_BAD_KEY",                                                  \
-                        "The CRL is signed with an unacceptable key (eg bad curve, RSA too short).")
+                        "The CRL is signed with an unacceptable key (eg bad curve, RSA too short).") \
+    X509_CRT_ERROR_INFO(MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS,                                   \
+                        "MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS",                                 \
+                        "A name violates the Name Constraints of a CA in the chain.")
 
 /**
  * Container for writing a certificate (CRT)

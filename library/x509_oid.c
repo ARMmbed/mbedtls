@@ -323,6 +323,12 @@ static const oid_x509_ext_t oid_x509_ext[] =
         MBEDTLS_X509_EXT_AUTHORITY_KEY_IDENTIFIER,
     },
     {
+        OID_DESCRIPTOR(MBEDTLS_OID_NAME_CONSTRAINTS,
+                       "id-ce-nameConstraints",
+                       "Name Constraints"),
+        MBEDTLS_X509_EXT_NAME_CONSTRAINTS,
+    },
+    {
         NULL_OID_DESCRIPTOR,
         0,
     },

@@ -1,0 +1,18 @@
+Default behavior changes
+   * A non-critical Name Constraints extension used to be ignored, and is
+     now enforced like a critical one, as required by RFC 5280.
+
+Features
+   * Parse the Name Constraints certificate extension. Certificates of CAs
+     with a critical Name Constraints extension used to be rejected by the
+     parser with MBEDTLS_ERR_X509_INVALID_EXTENSIONS. Fixes #8759.
+   * Enforce Name Constraints during certificate chain verification: the
+     subject and subject alternative names of each certificate below a
+     constrained CA are checked against its permitted and excluded subtrees
+     for the dNSName, rfc822Name, iPAddress and directoryName forms. A name
+     of any other form that a CA constrains is rejected. Violations are
+     reported with the new verification flag
+     MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS.
+   * Show Name Constraints in mbedtls_x509_crt_info().
+   * Handle the Other Name form of General Name as opaque data.
+   * Show BundleEID Other Names in mbedtls_x509_crt_info().

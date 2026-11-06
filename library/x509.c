@@ -1194,6 +1194,7 @@ int mbedtls_x509_time_is_future(const mbedtls_x509_time *from)
  *
  * NOTE: we currently only parse and use otherName of type HwModuleName,
  * as defined in RFC 4108.
+ * Other type-ids are kept as raw, undecoded ASN.1 bytes.
  */
 static int x509_get_other_name(const mbedtls_x509_buf *subject_alt_name,
                                mbedtls_x509_san_other_name *other_name)
@@ -1222,12 +1223,7 @@ static int x509_get_other_name(const mbedtls_x509_buf *subject_alt_name,
     cur_oid.p = p;
     cur_oid.len = len;
 
-    /*
-     * Only HwModuleName is currently supported.
-     */
-    if (MBEDTLS_OID_CMP(MBEDTLS_OID_ON_HW_MODULE_NAME, &cur_oid) != 0) {
-        return MBEDTLS_ERR_X509_FEATURE_UNAVAILABLE;
-    }
+    /* Value context-specific tag */
     other_name->type_id = cur_oid;
 
     p += len;
@@ -1242,38 +1238,64 @@ static int x509_get_other_name(const mbedtls_x509_buf *subject_alt_name,
                                  MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
     }
 
-    if ((ret = mbedtls_asn1_get_tag(&p, end, &len,
-                                    MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+    /*
+     * HwModuleName
+     */
+    if (MBEDTLS_OID_CMP(MBEDTLS_OID_ON_HW_MODULE_NAME, &cur_oid) == 0) {
+        if ((ret = mbedtls_asn1_get_tag(&p, end, &len,
+                                        MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+        }
+
+        if (end != p + len) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                     MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+        }
+
+        if ((ret = mbedtls_asn1_get_tag(&p, end, &len, MBEDTLS_ASN1_OID)) != 0) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+        }
+
+        other_name->value.hardware_module_name.oid.tag = MBEDTLS_ASN1_OID;
+        other_name->value.hardware_module_name.oid.p = p;
+        other_name->value.hardware_module_name.oid.len = len;
+
+        p += len;
+        if ((ret = mbedtls_asn1_get_tag(&p, end, &len,
+                                        MBEDTLS_ASN1_OCTET_STRING)) != 0) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+        }
+
+        other_name->value.hardware_module_name.val.tag = MBEDTLS_ASN1_OCTET_STRING;
+        other_name->value.hardware_module_name.val.p = p;
+        other_name->value.hardware_module_name.val.len = len;
+        p += len;
+        if (p != end) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                     MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+        }
+    }
+    /* Arbitrary raw value */
+    else {
+        if (p >= end) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                     MBEDTLS_ERR_ASN1_OUT_OF_DATA);
+        }
+        other_name->value.raw.tag = *p;
+        p++;
+
+        if ((ret = mbedtls_asn1_get_len(&p, end, &len)) != 0) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+        }
+        other_name->value.raw.p = p;
+        other_name->value.raw.len = len;
+        p += len;
+        if (p != end) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                     MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+        }
     }
 
-    if (end != p + len) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
-                                 MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
-    }
-
-    if ((ret = mbedtls_asn1_get_tag(&p, end, &len, MBEDTLS_ASN1_OID)) != 0) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
-    }
-
-    other_name->value.hardware_module_name.oid.tag = MBEDTLS_ASN1_OID;
-    other_name->value.hardware_module_name.oid.p = p;
-    other_name->value.hardware_module_name.oid.len = len;
-
-    p += len;
-    if ((ret = mbedtls_asn1_get_tag(&p, end, &len,
-                                    MBEDTLS_ASN1_OCTET_STRING)) != 0) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
-    }
-
-    other_name->value.hardware_module_name.val.tag = MBEDTLS_ASN1_OCTET_STRING;
-    other_name->value.hardware_module_name.val.p = p;
-    other_name->value.hardware_module_name.val.len = len;
-    p += len;
-    if (p != end) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
-                                 MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
-    }
     return 0;
 }
 
@@ -1644,6 +1666,40 @@ int mbedtls_x509_info_subject_alt_name(char **buf, size_t *size,
                         MBEDTLS_X509_SAFE_SNPRINTF;
                     }
                 }/* MBEDTLS_OID_ON_HW_MODULE_NAME */
+                else if (MBEDTLS_OID_CMP(MBEDTLS_OID_ON_BUNDLE_EID,
+                                         &other_name->type_id) == 0) {
+                    int len = 0;
+                    const char *str = NULL;
+                    if (other_name->value.raw.tag == MBEDTLS_ASN1_IA5_STRING) {
+                        len = other_name->value.raw.len;
+                        str = (char *) other_name->value.raw.p;
+                    }
+
+                    ret = mbedtls_snprintf(p, n, "\n%s        BundleEID : %.*s", prefix,
+                                           len, str);
+                    MBEDTLS_X509_SAFE_SNPRINTF;
+                }/* MBEDTLS_OID_ON_BUNDLE_EID */
+                else {
+                    /* Show type OID */
+                    ret = mbedtls_snprintf(p, n, "\n%s        type-id : ", prefix);
+                    MBEDTLS_X509_SAFE_SNPRINTF;
+
+                    ret = mbedtls_oid_get_numeric_string(p,
+                                                         n,
+                                                         &other_name->type_id);
+                    MBEDTLS_X509_SAFE_SNPRINTF;
+
+                    ret = mbedtls_snprintf(p, n, "\n%s        value : ", prefix);
+                    MBEDTLS_X509_SAFE_SNPRINTF;
+
+                    for (i = 0; i < other_name->value.raw.len; i++) {
+                        ret = mbedtls_snprintf(p,
+                                               n,
+                                               "%02X",
+                                               other_name->value.raw.p[i]);
+                        MBEDTLS_X509_SAFE_SNPRINTF;
+                    }
+                }
             }
             break;
             /*

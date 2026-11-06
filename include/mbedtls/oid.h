@@ -169,6 +169,7 @@
 
 #define MBEDTLS_OID_ON                          MBEDTLS_OID_PKIX "\x08" /**< id-on OBJECT IDENTIFIER ::= { id-pkix 8 } */
 #define MBEDTLS_OID_ON_HW_MODULE_NAME           MBEDTLS_OID_ON "\x04" /**< id-on-hardwareModuleName OBJECT IDENTIFIER ::= { id-on 4 } */
+#define MBEDTLS_OID_ON_BUNDLE_EID               MBEDTLS_OID_ON "\x0b" /**< id-on-bundleEID OBJECT IDENTIFIER ::= { id-on 11 } (RFC 9174) */
 
 /*
  * PKCS definition OIDs

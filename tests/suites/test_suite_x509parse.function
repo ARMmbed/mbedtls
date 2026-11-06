@@ -274,8 +274,42 @@ static int verify_parse_san(mbedtls_x509_subject_alternative_name *san,
                                            san->san.other_name.value.hardware_module_name.val.p[i]);
                     MBEDTLS_X509_SAFE_SNPRINTF;
                 }
+            }/* MBEDTLS_OID_ON_HW_MODULE_NAME */
+            else if (MBEDTLS_OID_CMP(MBEDTLS_OID_ON_BUNDLE_EID,
+                                    &san->san.other_name.type_id) == 0) {
+                    int len = 0;
+                    const char *str = NULL;
+                    if (san->san.other_name.value.raw.tag == MBEDTLS_ASN1_IA5_STRING) {
+                        len = san->san.other_name.value.raw.len;
+                        str = (char*)san->san.other_name.value.raw.p;
+                    }
+
+                    ret = mbedtls_snprintf(p, n, " BundleEID : %.*s", len, str);
+                    MBEDTLS_X509_SAFE_SNPRINTF;
+            }/* MBEDTLS_OID_ON_BUNDLE_EID */
+            else {
+                ret = mbedtls_snprintf(p, n, " raw :");
+                MBEDTLS_X509_SAFE_SNPRINTF;
+                ret = mbedtls_snprintf(p, n, " type-id : ");
+                MBEDTLS_X509_SAFE_SNPRINTF;
+
+                ret = mbedtls_oid_get_numeric_string(p,
+                                                     n,
+                                                     &san->san.other_name.type_id);
+                MBEDTLS_X509_SAFE_SNPRINTF;
+
+                ret = mbedtls_snprintf(p, n, " value : ");
+                MBEDTLS_X509_SAFE_SNPRINTF;
+
+                for (i = 0; i < san->san.other_name.value.raw.len; i++) {
+                    ret = mbedtls_snprintf(p,
+                                           n,
+                                           "%02X",
+                                           san->san.other_name.value.raw.p[i]);
+                    MBEDTLS_X509_SAFE_SNPRINTF;
+                }
             }
-            break;/* MBEDTLS_OID_ON_HW_MODULE_NAME */
+            break;/* MBEDTLS_X509_SAN_OTHER_NAME */
         case (MBEDTLS_X509_SAN_DNS_NAME):
             ret = mbedtls_snprintf(p, n, "\ndNSName : ");
             MBEDTLS_X509_SAFE_SNPRINTF;

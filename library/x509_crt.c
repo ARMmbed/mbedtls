@@ -586,6 +586,194 @@ static int x509_get_ext_key_usage(unsigned char **p,
 }
 
 /*
+ * Check the base of a GeneralSubtree in a Name Constraints extension.
+ *
+ * iPAddress is an address followed by a mask (8 bytes for IPv4, 32 bytes for
+ * IPv6), so it can't be checked with mbedtls_x509_parse_subject_alt_name().
+ * Name forms that mbedtls_x509_parse_subject_alt_name() doesn't support are
+ * accepted here: they can't be enforced, so certificates with names of such
+ * a form fail verification under this CA (see x509_crt_check_name_constraints()).
+ */
+static int x509_check_general_subtree_base(const mbedtls_x509_buf *base)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    mbedtls_x509_subject_alternative_name name;
+
+    if ((base->tag & MBEDTLS_ASN1_TAG_CLASS_MASK) != MBEDTLS_ASN1_CONTEXT_SPECIFIC) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                 MBEDTLS_ERR_ASN1_UNEXPECTED_TAG);
+    }
+
+    if ((base->tag & MBEDTLS_ASN1_TAG_VALUE_MASK) == MBEDTLS_X509_SAN_IP_ADDRESS) {
+        if (base->len != 8 && base->len != 32) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                     MBEDTLS_ERR_ASN1_INVALID_LENGTH);
+        }
+        return 0;
+    }
+
+    memset(&name, 0, sizeof(name));
+    ret = mbedtls_x509_parse_subject_alt_name(base, &name);
+    mbedtls_x509_free_subject_alt_name(&name);
+    if (ret == MBEDTLS_ERR_X509_FEATURE_UNAVAILABLE) {
+        return 0;
+    }
+
+    return ret;
+}
+
+/*
+ * GeneralSubtrees ::= SEQUENCE SIZE (1..MAX) OF GeneralSubtree
+ *
+ * GeneralSubtree ::= SEQUENCE {
+ *      base                    GeneralName,
+ *      minimum         [0]     BaseDistance DEFAULT 0,
+ *      maximum         [1]     BaseDistance OPTIONAL }
+ *
+ * BaseDistance ::= INTEGER (0..MAX)
+ *
+ * RFC 5280 requires minimum to be zero and maximum to be absent. DER omits a
+ * zero minimum, but an explicitly encoded zero is accepted too. Each base is
+ * stored as a raw GeneralName, like the entries of subject_alt_names.
+ */
+static int x509_get_general_subtrees(unsigned char **p,
+                                     const unsigned char *end,
+                                     mbedtls_x509_sequence *subtrees)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len;
+    const unsigned char *subtree_end;
+    mbedtls_x509_buf base;
+    mbedtls_x509_sequence *cur = subtrees;
+
+    if (*p == end) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                 MBEDTLS_ERR_ASN1_INVALID_LENGTH);
+    }
+
+    while (*p < end) {
+        if ((ret = mbedtls_asn1_get_tag(p, end, &len,
+                                        MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+        }
+        subtree_end = *p + len;
+
+        if (*p == subtree_end) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                     MBEDTLS_ERR_ASN1_OUT_OF_DATA);
+        }
+        base.tag = **p;
+        (*p)++;
+        if ((ret = mbedtls_asn1_get_len(p, subtree_end, &base.len)) != 0) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+        }
+        base.p = *p;
+        *p += base.len;
+
+        if ((ret = x509_check_general_subtree_base(&base)) != 0) {
+            return ret;
+        }
+
+        /* minimum [0]: only zero is allowed */
+        if (*p < subtree_end && **p == MBEDTLS_ASN1_CONTEXT_SPECIFIC) {
+            (*p)++;
+            if ((ret = mbedtls_asn1_get_len(p, subtree_end, &len)) != 0) {
+                return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+            }
+            if (len != 1 || **p != 0) {
+                return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                         MBEDTLS_ERR_ASN1_INVALID_DATA);
+            }
+            *p += len;
+        }
+
+        /* maximum [1] must be absent */
+        if (*p != subtree_end) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                     MBEDTLS_ERR_ASN1_UNEXPECTED_TAG);
+        }
+
+        if (cur->buf.p != NULL) {
+            if (cur->next != NULL) {
+                return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
+            }
+
+            cur->next = mbedtls_calloc(1, sizeof(mbedtls_asn1_sequence));
+            if (cur->next == NULL) {
+                return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                         MBEDTLS_ERR_ASN1_ALLOC_FAILED);
+            }
+
+            cur = cur->next;
+        }
+
+        cur->buf = base;
+    }
+
+    return 0;
+}
+
+/*
+ * NameConstraints ::= SEQUENCE {
+ *      permittedSubtrees       [0]     GeneralSubtrees OPTIONAL,
+ *      excludedSubtrees        [1]     GeneralSubtrees OPTIONAL }
+ *
+ * RFC 5280 section 4.2.1.10: at least one of the two must be present.
+ */
+static int x509_get_name_constraints(unsigned char **p,
+                                     const unsigned char *end,
+                                     mbedtls_x509_sequence *permitted,
+                                     mbedtls_x509_sequence *excluded)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len;
+
+    if ((ret = mbedtls_asn1_get_tag(p, end, &len,
+                                    MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+    }
+
+    if (*p + len != end) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                 MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+    }
+
+    if (*p == end) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                 MBEDTLS_ERR_ASN1_INVALID_LENGTH);
+    }
+
+    ret = mbedtls_asn1_get_tag(p, end, &len,
+                               MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED |
+                               MBEDTLS_X509_NAME_CONST_INCL);
+    if (ret == 0) {
+        if ((ret = x509_get_general_subtrees(p, *p + len, permitted)) != 0) {
+            return ret;
+        }
+    } else if (ret != MBEDTLS_ERR_ASN1_UNEXPECTED_TAG) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+    }
+
+    if (*p < end) {
+        if ((ret = mbedtls_asn1_get_tag(p, end, &len,
+                                        MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED |
+                                        MBEDTLS_X509_NAME_CONST_EXCL)) != 0) {
+            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+        }
+        if ((ret = x509_get_general_subtrees(p, *p + len, excluded)) != 0) {
+            return ret;
+        }
+    }
+
+    if (*p != end) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                 MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+    }
+
+    return 0;
+}
+
+/*
  * SubjectKeyIdentifier ::= KeyIdentifier
  *
  * KeyIdentifier ::= OCTET STRING
@@ -976,6 +1164,15 @@ static int x509_get_crt_ext(unsigned char **p,
                 /* Parse basic constraints */
                 if ((ret = x509_get_basic_constraints(p, end_ext_octet,
                                                       &crt->ca_istrue, &crt->max_pathlen)) != 0) {
+                    return ret;
+                }
+                break;
+
+            case MBEDTLS_X509_EXT_NAME_CONSTRAINTS:
+                /* Parse name constraints */
+                if ((ret = x509_get_name_constraints(p, end_ext_octet,
+                                                     &crt->name_constraints_incl,
+                                                     &crt->name_constraints_excl)) != 0) {
                     return ret;
                 }
                 break;
@@ -1674,6 +1871,57 @@ cleanup:
 #endif /* MBEDTLS_FS_IO */
 
 #if !defined(MBEDTLS_X509_REMOVE_INFO)
+/*
+ * Like mbedtls_x509_info_subject_alt_name(), but for the subtrees of a Name
+ * Constraints extension, where an iPAddress is an address and a mask.
+ */
+static int x509_info_general_subtrees(char **buf, size_t *size,
+                                      const mbedtls_x509_sequence *subtrees,
+                                      const char *prefix)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t i, half;
+    size_t n = *size;
+    char *p = *buf;
+    const mbedtls_x509_sequence *cur;
+    mbedtls_x509_sequence single;
+
+    for (cur = subtrees; cur != NULL; cur = cur->next) {
+        if ((cur->buf.tag & MBEDTLS_ASN1_TAG_VALUE_MASK) != MBEDTLS_X509_SAN_IP_ADDRESS) {
+            single.buf = cur->buf;
+            single.next = NULL;
+            if ((ret = mbedtls_x509_info_subject_alt_name(&p, &n, &single, prefix)) != 0) {
+                return ret;
+            }
+            continue;
+        }
+
+        ret = mbedtls_snprintf(p, n, "\n%s    iPAddress : ", prefix);
+        MBEDTLS_X509_SAFE_SNPRINTF;
+
+        /* address, then mask */
+        half = cur->buf.len / 2;
+        for (i = 0; i < cur->buf.len; i++) {
+            if (half == 4) {
+                ret = mbedtls_snprintf(p, n, "%s%u",
+                                       i == 0 ? "" : i == half ? "/" : ".",
+                                       cur->buf.p[i]);
+            } else {
+                ret = mbedtls_snprintf(p, n, "%s%02X",
+                                       i == 0 ? "" : i == half ? "/" :
+                                       i % 2 == 0 ? ":" : "",
+                                       cur->buf.p[i]);
+            }
+            MBEDTLS_X509_SAFE_SNPRINTF;
+        }
+    }
+
+    *size = n;
+    *buf = p;
+
+    return 0;
+}
+
 #define PRINT_ITEM(i)                               \
     do {                                            \
         ret = mbedtls_snprintf(p, n, "%s" i, sep);  \
@@ -1877,6 +2125,29 @@ int mbedtls_x509_crt_info(char *buf, size_t size, const char *prefix,
         if ((ret = x509_info_ext_key_usage(&p, &n,
                                            &crt->ext_key_usage)) != 0) {
             return ret;
+        }
+    }
+
+    if (crt->ext_types & MBEDTLS_X509_EXT_NAME_CONSTRAINTS) {
+        ret = mbedtls_snprintf(p, n, "\n%sname constraints  :", prefix);
+        MBEDTLS_X509_SAFE_SNPRINTF;
+
+        if (crt->name_constraints_incl.buf.p != NULL) {
+            ret = mbedtls_snprintf(p, n, "\n%s  permitted :", prefix);
+            MBEDTLS_X509_SAFE_SNPRINTF;
+            if ((ret = x509_info_general_subtrees(&p, &n, &crt->name_constraints_incl,
+                                                  prefix)) != 0) {
+                return ret;
+            }
+        }
+
+        if (crt->name_constraints_excl.buf.p != NULL) {
+            ret = mbedtls_snprintf(p, n, "\n%s  excluded  :", prefix);
+            MBEDTLS_X509_SAFE_SNPRINTF;
+            if ((ret = x509_info_general_subtrees(&p, &n, &crt->name_constraints_excl,
+                                                  prefix)) != 0) {
+                return ret;
+            }
         }
     }
 
@@ -2992,6 +3263,340 @@ static void x509_crt_verify_name(const mbedtls_x509_crt *crt,
 }
 
 /*
+ * Name Constraints, RFC 5280 sections 4.2.1.10 and 6.1.
+ *
+ * The match functions below return 0 if the name is within the subtree,
+ * X509_NC_NO_MATCH if it isn't and X509_NC_UNSUPPORTED if it can't be
+ * decided. Names that can't be decided are treated as violations, as RFC 5280
+ * requires for constraints that the application doesn't process.
+ */
+#define X509_NC_NO_MATCH        -1
+#define X509_NC_UNSUPPORTED     -2
+
+/*
+ * dNSName: "example.com" matches example.com and every name below it,
+ * ".example.com" only the names below it, and an empty base matches every
+ * name. Case-insensitive. A wildcard name such as "*.example.com" is
+ * compared as is, so it only matches if every name it stands for does.
+ */
+static int x509_nc_dns_match(const unsigned char *name, size_t name_len,
+                             const unsigned char *base, size_t base_len)
+{
+    if (base_len == 0) {
+        return 0;
+    }
+
+    if (name_len < base_len ||
+        x509_memcasecmp(name + name_len - base_len, base, base_len) != 0) {
+        return X509_NC_NO_MATCH;
+    }
+
+    if (base[0] == '.') {
+        return name_len > base_len ? 0 : X509_NC_NO_MATCH;
+    }
+
+    if (name_len == base_len || name[name_len - base_len - 1] == '.') {
+        return 0;
+    }
+
+    return X509_NC_NO_MATCH;
+}
+
+/*
+ * Like x509_nc_dns_match(), but a wildcard name also matches if any name it
+ * stands for (see x509_check_wildcard()) is within the subtree. Used for
+ * excludedSubtrees.
+ */
+static int x509_nc_dns_match_any(const unsigned char *name, size_t name_len,
+                                 const unsigned char *base, size_t base_len)
+{
+    size_t domain_len;
+
+    if (x509_nc_dns_match(name, name_len, base, base_len) == 0) {
+        return 0;
+    }
+
+    if (name_len < 3 || name[0] != '*' || name[1] != '.' || base[0] == '.') {
+        return X509_NC_NO_MATCH;
+    }
+
+    /* "*.example.com" can be "bad.example.com", one label to the left */
+    domain_len = name_len - 1;
+    if (base_len > domain_len &&
+        x509_memcasecmp(base + base_len - domain_len, name + 1, domain_len) == 0 &&
+        memchr(base, '.', base_len - domain_len) == NULL) {
+        return 0;
+    }
+
+    return X509_NC_NO_MATCH;
+}
+
+/*
+ * rfc822Name: "user@example.com" matches that mailbox, "example.com" every
+ * mailbox on that host and ".example.com" every mailbox on a host below it.
+ * The local part is case-sensitive, the host isn't.
+ */
+static int x509_nc_email_match(const unsigned char *name, size_t name_len,
+                               const unsigned char *base, size_t base_len)
+{
+    size_t at;
+    const unsigned char *host;
+    size_t host_len;
+
+    for (at = name_len; at > 0 && name[at - 1] != '@'; at--) {
+        ;
+    }
+    if (at == 0) {
+        return X509_NC_UNSUPPORTED;
+    }
+    host = name + at;
+    host_len = name_len - at;
+
+    if (base_len == 0) {
+        return 0;
+    }
+
+    if (memchr(base, '@', base_len) != NULL) {
+        size_t base_at = (const unsigned char *) memchr(base, '@', base_len) - base + 1;
+
+        return base_at == at && memcmp(name, base, at) == 0 &&
+               host_len == base_len - base_at &&
+               x509_memcasecmp(host, base + base_at, host_len) == 0 ? 0 : X509_NC_NO_MATCH;
+    }
+
+    if (base[0] == '.') {
+        return host_len > base_len &&
+               x509_memcasecmp(host + host_len - base_len, base, base_len) == 0 ?
+               0 : X509_NC_NO_MATCH;
+    }
+
+    return host_len == base_len &&
+           x509_memcasecmp(host, base, base_len) == 0 ? 0 : X509_NC_NO_MATCH;
+}
+
+/*
+ * iPAddress: the base is an address followed by a mask of the same length.
+ */
+static int x509_nc_ip_match(const mbedtls_x509_buf *name, const mbedtls_x509_buf *base)
+{
+    size_t i;
+
+    if (base->len != 2 * name->len) {
+        return X509_NC_NO_MATCH;
+    }
+
+    for (i = 0; i < name->len; i++) {
+        if (((name->p[i] ^ base->p[i]) & base->p[name->len + i]) != 0) {
+            return X509_NC_NO_MATCH;
+        }
+    }
+
+    return 0;
+}
+
+/*
+ * Parse the Name in the content of a directoryName GeneralName.
+ * The caller must free dn->next with mbedtls_asn1_free_named_data_list_shallow().
+ */
+static int x509_nc_get_dn(const mbedtls_x509_buf *buf, mbedtls_x509_name *dn)
+{
+    unsigned char *p = buf->p;
+    size_t len;
+
+    memset(dn, 0, sizeof(*dn));
+    if (mbedtls_asn1_get_tag(&p, buf->p + buf->len, &len,
+                             MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE) != 0 ||
+        mbedtls_x509_get_name(&p, p + len, dn) != 0) {
+        return X509_NC_UNSUPPORTED;
+    }
+
+    return 0;
+}
+
+/*
+ * directoryName: the base must be a prefix of the name, comparing RDNs like
+ * x509_name_cmp().
+ */
+static int x509_nc_dn_match(const mbedtls_x509_name *name, const mbedtls_x509_buf *base_buf)
+{
+    int ret = 0;
+    mbedtls_x509_name base_dn;
+    const mbedtls_x509_name *base = &base_dn;
+
+    if (x509_nc_get_dn(base_buf, &base_dn) != 0) {
+        mbedtls_asn1_free_named_data_list_shallow(base_dn.next);
+        return X509_NC_UNSUPPORTED;
+    }
+
+    for (; base != NULL && ret == 0; base = base->next, name = name->next) {
+        if (name == NULL ||
+            name->oid.tag != base->oid.tag ||
+            name->oid.len != base->oid.len ||
+            memcmp(name->oid.p, base->oid.p, base->oid.len) != 0 ||
+            x509_string_cmp(&name->val, &base->val) != 0 ||
+            name->next_merged != base->next_merged) {
+            ret = X509_NC_NO_MATCH;
+        }
+    }
+
+    mbedtls_asn1_free_named_data_list_shallow(base_dn.next);
+    return ret;
+}
+
+/*
+ * Match a name of the given form (MBEDTLS_X509_SAN_xxx) against a subtree
+ * base. For a directoryName, dn is the name and buf is unused.
+ */
+static int x509_nc_match(int form, const mbedtls_x509_buf *name,
+                         const mbedtls_x509_name *dn,
+                         const mbedtls_x509_buf *base, int excluded)
+{
+    switch (form) {
+        case MBEDTLS_X509_SAN_DNS_NAME:
+            return excluded ?
+                   x509_nc_dns_match_any(name->p, name->len, base->p, base->len) :
+                   x509_nc_dns_match(name->p, name->len, base->p, base->len);
+        case MBEDTLS_X509_SAN_RFC822_NAME:
+            return x509_nc_email_match(name->p, name->len, base->p, base->len);
+        case MBEDTLS_X509_SAN_IP_ADDRESS:
+            return x509_nc_ip_match(name, base);
+        case MBEDTLS_X509_SAN_DIRECTORY_NAME:
+            return x509_nc_dn_match(dn, base);
+        default:
+            return X509_NC_UNSUPPORTED;
+    }
+}
+
+/*
+ * Check one name of a certificate against the Name Constraints of a CA.
+ * Return 0 if the name is allowed, -1 otherwise.
+ */
+static int x509_nc_check_name(const mbedtls_x509_crt *ca, int form,
+                              const mbedtls_x509_buf *name,
+                              const mbedtls_x509_name *dn)
+{
+    const mbedtls_x509_sequence *cur;
+    int has_permitted = 0;
+
+    for (cur = &ca->name_constraints_excl; cur != NULL && cur->buf.p != NULL;
+         cur = cur->next) {
+        if ((cur->buf.tag & MBEDTLS_ASN1_TAG_VALUE_MASK) == form &&
+            x509_nc_match(form, name, dn, &cur->buf, 1) != X509_NC_NO_MATCH) {
+            return -1;
+        }
+    }
+
+    for (cur = &ca->name_constraints_incl; cur != NULL && cur->buf.p != NULL;
+         cur = cur->next) {
+        if ((cur->buf.tag & MBEDTLS_ASN1_TAG_VALUE_MASK) == form) {
+            if (x509_nc_match(form, name, dn, &cur->buf, 0) == 0) {
+                return 0;
+            }
+            has_permitted = 1;
+        }
+    }
+
+    return has_permitted ? -1 : 0;
+}
+
+/*
+ * Check all names of a certificate against the Name Constraints of a CA:
+ * the subject (as a directoryName, and its emailAddress attributes as
+ * rfc822Names) and every subjectAltName. Names of a form the CA constrains
+ * but that can't be checked here are rejected.
+ *
+ * x509_crt_verify_name() matches the CN of an end-entity certificate
+ * without subjectAltName against the expected hostname, so such CNs are
+ * checked as dNSNames.
+ *
+ * Return 0 if all names are allowed, -1 otherwise.
+ */
+static int x509_crt_check_name_constraints(const mbedtls_x509_crt *crt,
+                                           const mbedtls_x509_crt *ca,
+                                           int is_end_entity)
+{
+    const mbedtls_x509_name *name;
+    const mbedtls_x509_sequence *cur;
+    mbedtls_x509_name dn;
+    int ret;
+
+    if (crt->subject.oid.p != NULL &&
+        x509_nc_check_name(ca, MBEDTLS_X509_SAN_DIRECTORY_NAME, NULL, &crt->subject) != 0) {
+        return -1;
+    }
+
+    for (name = &crt->subject; name != NULL; name = name->next) {
+        if (MBEDTLS_OID_CMP(MBEDTLS_OID_PKCS9_EMAIL, &name->oid) == 0 &&
+            x509_nc_check_name(ca, MBEDTLS_X509_SAN_RFC822_NAME, &name->val, NULL) != 0) {
+            return -1;
+        }
+
+        if (is_end_entity &&
+            (crt->ext_types & MBEDTLS_X509_EXT_SUBJECT_ALT_NAME) == 0 &&
+            MBEDTLS_OID_CMP(MBEDTLS_OID_AT_CN, &name->oid) == 0 &&
+            x509_nc_check_name(ca, MBEDTLS_X509_SAN_DNS_NAME, &name->val, NULL) != 0) {
+            return -1;
+        }
+    }
+
+    if ((crt->ext_types & MBEDTLS_X509_EXT_SUBJECT_ALT_NAME) == 0) {
+        return 0;
+    }
+
+    for (cur = &crt->subject_alt_names; cur != NULL; cur = cur->next) {
+        int form = cur->buf.tag & MBEDTLS_ASN1_TAG_VALUE_MASK;
+
+        if (form != MBEDTLS_X509_SAN_DIRECTORY_NAME) {
+            ret = x509_nc_check_name(ca, form, &cur->buf, NULL);
+        } else if (x509_nc_get_dn(&cur->buf, &dn) == 0) {
+            ret = x509_nc_check_name(ca, form, NULL, &dn);
+        } else {
+            ret = -1;
+        }
+
+        if (form == MBEDTLS_X509_SAN_DIRECTORY_NAME) {
+            mbedtls_asn1_free_named_data_list_shallow(dn.next);
+        }
+
+        if (ret != 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+/*
+ * Apply the Name Constraints of every CA in the chain to all certificates
+ * below it, except self-issued intermediate certificates.
+ * Violations are flagged on the constrained certificate.
+ */
+static void x509_crt_verify_name_constraints(mbedtls_x509_crt_verify_chain *ver_chain)
+{
+    unsigned i, j;
+    const mbedtls_x509_crt *ca;
+    const mbedtls_x509_crt *child;
+
+    for (i = 1; i < ver_chain->len; i++) {
+        ca = ver_chain->items[i].crt;
+        if ((ca->ext_types & MBEDTLS_X509_EXT_NAME_CONSTRAINTS) == 0) {
+            continue;
+        }
+
+        for (j = 0; j < i; j++) {
+            child = ver_chain->items[j].crt;
+            if (j != 0 && x509_name_cmp(&child->issuer, &child->subject) == 0) {
+                continue;
+            }
+
+            if (x509_crt_check_name_constraints(child, ca, j == 0) != 0) {
+                ver_chain->items[j].flags |= MBEDTLS_X509_BADCERT_NAME_CONSTRAINTS;
+            }
+        }
+    }
+}
+
+/*
  * Merge the flags for all certs in the chain, after calling callback
  */
 static int x509_crt_merge_flags_with_cb(
@@ -3090,6 +3695,9 @@ static int x509_crt_verify_restartable_ca_cb(mbedtls_x509_crt *crt,
     if (ret != 0) {
         goto exit;
     }
+
+    /* Check the Name Constraints of the CAs in the chain */
+    x509_crt_verify_name_constraints(&ver_chain);
 
     /* Merge end-entity flags */
     ver_chain.items[0].flags |= ee_flags;
@@ -3224,6 +3832,8 @@ void mbedtls_x509_crt_free(mbedtls_x509_crt *crt)
         mbedtls_asn1_free_named_data_list_shallow(cert_cur->subject.next);
         mbedtls_asn1_sequence_free(cert_cur->ext_key_usage.next);
         mbedtls_asn1_sequence_free(cert_cur->subject_alt_names.next);
+        mbedtls_asn1_sequence_free(cert_cur->name_constraints_incl.next);
+        mbedtls_asn1_sequence_free(cert_cur->name_constraints_excl.next);
         mbedtls_asn1_sequence_free(cert_cur->certificate_policies.next);
         mbedtls_asn1_sequence_free(cert_cur->authority_key_id.authorityCertIssuer.next);
 
