@@ -614,4 +614,9 @@ component_test_depends_py_kex () {
     tests/scripts/depends.py kex
 }
 
-
+component_test_config_minimal_tls1_3 () {
+    msg "build: configs/config-aes-gcm-tls1_3.h"
+    MBEDTLS_CONFIG="configs/config-aes-gcm-tls1_3.h"
+    CC=$ASAN_CC cmake -D GEN_FILES=Off -DMBEDTLS_CONFIG_FILE="$MBEDTLS_CONFIG" -D CMAKE_BUILD_TYPE:String=Asan .
+    make
+}
