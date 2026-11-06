@@ -1,0 +1,8 @@
+Bugfix
+   * Fix TLS 1.3 handshakes using opaque pre-shared keys configured through
+     mbedtls_ssl_conf_psk_opaque(). The client computed an incorrect PSK
+     binder, the server rejected the PSK identity, and the early key
+     schedule exported the key with psa_export_key(), which fails for
+     non-exportable keys. Non-exportable opaque PSKs are now consumed
+     directly via psa_key_derivation_input_key(); exportable opaque PSKs
+     keep the export-based path. Fixes #10956.

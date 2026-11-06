@@ -381,10 +381,20 @@ static int ssl_tls13_offered_psks_check_identity_match(
         identity_len == ssl->conf->psk_identity_len &&
         mbedtls_ct_memcmp(ssl->conf->psk_identity,
                           identity, identity_len) == 0) {
-        ret = mbedtls_ssl_set_hs_psk(ssl, ssl->conf->psk, ssl->conf->psk_len);
-        if (ret != 0) {
-            MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_set_hs_psk", ret);
-            return ret;
+        if (!mbedtls_svc_key_id_is_null(ssl->conf->psk_opaque)) {
+            ret = mbedtls_ssl_set_hs_psk_opaque(ssl, ssl->conf->psk_opaque);
+            if (ret != 0) {
+                MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_set_hs_psk_opaque",
+                                      ret);
+                return ret;
+            }
+        } else {
+            ret = mbedtls_ssl_set_hs_psk(ssl, ssl->conf->psk,
+                                         ssl->conf->psk_len);
+            if (ret != 0) {
+                MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_set_hs_psk", ret);
+                return ret;
+            }
         }
         return SSL_TLS1_3_PSK_IDENTITY_MATCH;
     }
@@ -426,15 +436,56 @@ static int ssl_tls13_offered_psks_check_binder_match(
         return ret;
     }
 
-    ret = mbedtls_ssl_tls13_export_handshake_psk(ssl, &psk, &psk_len);
-    if (ret != 0) {
-        return ret;
+    if (psk_type == MBEDTLS_SSL_TLS1_3_PSK_EXTERNAL) {
+        /*
+         * External PSKs may be opaque and non-exportable, in which case
+         * mbedtls_ssl_tls13_create_psk_binder() consumes the key directly
+         * via psa_key_derivation_input_key(). Exportable PSKs (in
+         * particular raw PSKs imported by mbedtls_ssl_set_hs_psk()) take
+         * the byte path instead, which works with whatever hash the
+         * negotiated ciphersuite requires.
+         */
+        psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
+        psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+
+        status = psa_get_key_attributes(ssl->handshake->psk_opaque,
+                                        &key_attributes);
+        if (status != PSA_SUCCESS) {
+            MBEDTLS_SSL_DEBUG_RET(1, "psa_get_key_attributes", status);
+            return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
+        }
+        if (psa_get_key_usage_flags(&key_attributes) &
+            PSA_KEY_USAGE_EXPORT) {
+            ret = mbedtls_ssl_tls13_export_handshake_psk(ssl, &psk, &psk_len);
+        } else {
+            psk = NULL;
+            psk_len = 0;
+        }
+        psa_reset_key_attributes(&key_attributes);
+        if (ret != 0) {
+            return ret;
+        }
+    } else {
+        ret = mbedtls_ssl_tls13_export_handshake_psk(ssl, &psk, &psk_len);
+        if (ret != 0) {
+            return ret;
+        }
     }
 
-    ret = mbedtls_ssl_tls13_create_psk_binder(ssl, psk_hash_alg,
-                                              psk, psk_len, psk_type,
-                                              transcript,
-                                              server_computed_binder);
+    {
+        /* The binder is computed over the key selected by the identity
+         * match (or the f_psk callback), which lives in the handshake. */
+#if defined(MBEDTLS_SSL_HANDSHAKE_WITH_PSK_ENABLED)
+        mbedtls_svc_key_id_t psk_key = ssl->handshake->psk_opaque;
+#else
+        mbedtls_svc_key_id_t psk_key = MBEDTLS_SVC_KEY_ID_INIT;
+#endif
+        ret = mbedtls_ssl_tls13_create_psk_binder(ssl, psk_hash_alg,
+                                                  psk, psk_len, psk_type,
+                                                  psk_key,
+                                                  transcript,
+                                                  server_computed_binder);
+    }
     mbedtls_free((void *) psk);
     if (ret != 0) {
         MBEDTLS_SSL_DEBUG_MSG(1, ("PSK binder calculation failed."));

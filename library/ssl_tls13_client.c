@@ -858,9 +858,20 @@ static int ssl_tls13_write_binder(mbedtls_ssl_context *ssl,
         return ret;
     }
 
-    ret = mbedtls_ssl_tls13_create_psk_binder(ssl, hash_alg,
-                                              psk, psk_len, psk_type,
-                                              transcript, buf + 1);
+    {
+        /* External identities are offered for the configured opaque PSK
+         * (see ssl_tls13_psk_get_identity()); resumption PSKs are supplied
+         * as raw bytes above. */
+#if defined(MBEDTLS_SSL_HANDSHAKE_WITH_PSK_ENABLED)
+        mbedtls_svc_key_id_t psk_key = ssl->conf->psk_opaque;
+#else
+        mbedtls_svc_key_id_t psk_key = MBEDTLS_SVC_KEY_ID_INIT;
+#endif
+        ret = mbedtls_ssl_tls13_create_psk_binder(ssl, hash_alg,
+                                                  psk, psk_len, psk_type,
+                                                  psk_key,
+                                                  transcript, buf + 1);
+    }
     if (ret != 0) {
         MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_tls13_create_psk_binder", ret);
         return ret;
@@ -1084,6 +1095,7 @@ static int ssl_tls13_parse_server_pre_shared_key_ext(mbedtls_ssl_context *ssl,
     const unsigned char *psk;
     size_t psk_len;
     psa_algorithm_t hash_alg;
+    int psk_is_opaque = 0;
 
     MBEDTLS_SSL_CHK_BUF_READ_PTR(buf, end, 2);
     selected_identity = MBEDTLS_GET_UINT16_BE(buf, 0);
@@ -1106,6 +1118,8 @@ static int ssl_tls13_parse_server_pre_shared_key_ext(mbedtls_ssl_context *ssl,
 #endif
     if (mbedtls_ssl_conf_has_static_psk(ssl->conf)) {
         ret = ssl_tls13_psk_get_psk(ssl, &hash_alg, &psk, &psk_len);
+        psk_is_opaque =
+            !mbedtls_svc_key_id_is_null(ssl->conf->psk_opaque);
     } else {
         MBEDTLS_SSL_DEBUG_MSG(1, ("should never happen"));
         return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
@@ -1124,10 +1138,20 @@ static int ssl_tls13_parse_server_pre_shared_key_ext(mbedtls_ssl_context *ssl,
         return MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER;
     }
 
-    ret = mbedtls_ssl_set_hs_psk(ssl, psk, psk_len);
-    if (ret != 0) {
-        MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_set_hs_psk", ret);
-        return ret;
+    if (psk_is_opaque) {
+        ret = mbedtls_ssl_set_hs_psk_opaque(
+            ssl, ssl->conf->psk_opaque);
+        if (ret != 0) {
+            MBEDTLS_SSL_DEBUG_RET(
+                1, "mbedtls_ssl_set_hs_psk_opaque", ret);
+            return ret;
+        }
+    } else {
+        ret = mbedtls_ssl_set_hs_psk(ssl, psk, psk_len);
+        if (ret != 0) {
+            MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_set_hs_psk", ret);
+            return ret;
+        }
     }
 
     return 0;
