@@ -95,7 +95,7 @@ int mbedtls_x509write_crt_set_issuer_name(mbedtls_x509write_cert *ctx,
 int mbedtls_x509write_crt_set_serial_raw(mbedtls_x509write_cert *ctx,
                                          const unsigned char *serial, size_t serial_len)
 {
-    if (serial_len > MBEDTLS_X509_RFC5280_MAX_SERIAL_LEN) {
+    if (serial_len == 0 || serial_len > MBEDTLS_X509_RFC5280_MAX_SERIAL_LEN) {
         return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
     }
 
@@ -512,7 +512,18 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
      *   - if MSb of "serial" is 1, then prepend an extra 0x00 byte
      * - 1 byte for the length
      * - 1 byte for the TAG
+     *
+     * ctx->serial_len == 0 (the zeroed state left by
+     * mbedtls_x509write_crt_init() if mbedtls_x509write_crt_set_serial_raw()
+     * was never called) must be rejected here: an INTEGER with zero content
+     * octets is not valid DER (X.690 8.3.1 requires at least one octet), so
+     * letting it through would silently write a syntactically invalid
+     * `02 00` CertificateSerialNumber field instead of failing loudly.
      */
+    if (ctx->serial_len == 0) {
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+    }
+
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_raw_buffer(&c, buf,
                                                             ctx->serial, ctx->serial_len));
     if (*c & 0x80) {

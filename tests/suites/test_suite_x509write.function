@@ -565,12 +565,19 @@ void x509_set_serial_check()
 {
     mbedtls_x509write_cert ctx;
     uint8_t invalid_serial[MBEDTLS_X509_RFC5280_MAX_SERIAL_LEN + 1];
+    uint8_t zero_len_serial[1] = { 0x2a };
 
     USE_PSA_INIT();
     memset(invalid_serial, 0x01, sizeof(invalid_serial));
 
     TEST_EQUAL(mbedtls_x509write_crt_set_serial_raw(&ctx, invalid_serial,
                                                     sizeof(invalid_serial)),
+               MBEDTLS_ERR_X509_BAD_INPUT_DATA);
+
+    /* A zero-length serial must also be rejected: an ASN.1 INTEGER with
+     * zero content octets is not valid DER (X.690 8.3.1), so
+     * mbedtls_x509write_crt_der() must never be allowed to encode one. */
+    TEST_EQUAL(mbedtls_x509write_crt_set_serial_raw(&ctx, zero_len_serial, 0),
                MBEDTLS_ERR_X509_BAD_INPUT_DATA);
 
 exit:

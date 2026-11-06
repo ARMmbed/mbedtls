@@ -1,0 +1,13 @@
+Bugfix
+   * Fix mbedtls_x509write_crt_set_serial_raw() silently accepting a
+     zero-length serial number, and mbedtls_x509write_crt_der() silently
+     encoding it as a syntactically invalid ASN.1 INTEGER (zero content
+     octets, which X.690 8.3.1 forbids) for the certificate's
+     CertificateSerialNumber field instead of failing. Certificates
+     generated this way (either by explicitly passing a zero-length
+     serial, or by never calling mbedtls_x509write_crt_set_serial_raw()
+     at all) could be rejected by other, stricter X.509/ASN.1 parsers.
+     mbedtls_x509write_crt_set_serial_raw() now returns
+     MBEDTLS_ERR_X509_BAD_INPUT_DATA for a zero-length serial, and
+     mbedtls_x509write_crt_der() now also rejects a zero-length serial
+     as a defense-in-depth check.

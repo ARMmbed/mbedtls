@@ -957,8 +957,8 @@ void mbedtls_x509write_crt_set_version(mbedtls_x509write_cert *ctx, int version)
  *                     input buffer
  *
  * \return          0 if successful, or
- *                  #MBEDTLS_ERR_X509_BAD_INPUT_DATA if the provided input buffer
- *                  is too big (longer than MBEDTLS_X509_RFC5280_MAX_SERIAL_LEN)
+ *                  #MBEDTLS_ERR_X509_BAD_INPUT_DATA if \p serial_len is 0 or
+ *                  too big (longer than MBEDTLS_X509_RFC5280_MAX_SERIAL_LEN)
  */
 int mbedtls_x509write_crt_set_serial_raw(mbedtls_x509write_cert *ctx,
                                          const unsigned char *serial, size_t serial_len);
