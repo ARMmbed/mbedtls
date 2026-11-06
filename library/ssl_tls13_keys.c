@@ -1447,6 +1447,8 @@ static int ssl_tls13_key_schedule_stage_handshake(mbedtls_ssl_context *ssl)
                                             &key_attributes);
             if (status != PSA_SUCCESS) {
                 ret = PSA_TO_MBEDTLS_ERR(status);
+                MBEDTLS_SSL_DEBUG_RET(1, "psa_get_key_attributes", ret);
+                goto cleanup;
             }
 
             shared_secret_len = PSA_BITS_TO_BYTES(
