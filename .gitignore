@@ -72,3 +72,7 @@ compile_commands.json
 
 # VScode folder to store local debug files and configurations
 .vscode
+
+## JetBrains IDE artifacts
+.idea
+cmake-build-*
