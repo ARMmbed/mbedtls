@@ -8807,6 +8807,17 @@ run_test    "PSK callback: wrong key" \
             -S "SSL - Unknown identity received" \
             -s "SSL - Verification of the message MAC failed"
 
+requires_config_enabled MBEDTLS_SSL_SRV_C
+requires_config_enabled MBEDTLS_SSL_CLI_C
+requires_config_enabled MBEDTLS_DEBUG_C
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test    "PSK callback: empty identity hint" \
+            "$P_SRV debug_level=5 force_version=tls12 psk=73776f726466697368 psk_identity=''" \
+            "$P_CLI debug_level=5 force_version=tls12 psk=73776f726466697368 psk_identity=''" \
+            0 \
+            -s "Successful connection" \
+            -c "Successful connection"
+
 # Tests for EC J-PAKE
 
 requires_config_enabled MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED

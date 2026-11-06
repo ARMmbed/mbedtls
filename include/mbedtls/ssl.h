@@ -3689,11 +3689,21 @@ int mbedtls_ssl_set_hs_psk_opaque(mbedtls_ssl_context *ssl,
 /**
  * \brief          Set the PSK callback (server-side only).
  *
- *                 If set, the PSK callback is called for each
- *                 handshake where a PSK-based ciphersuite was negotiated.
- *                 The caller provides the identity received and wants to
- *                 receive the actual PSK data and length.
+ * If set, the PSK callback is called for each
+ * handshake where a PSK-based ciphersuite was negotiated.
+ * The caller provides the identity received and wants to
+ * receive the actual PSK data and length.
  *
+ * If a valid PSK identity is found, the callback should use
+ * \c mbedtls_ssl_set_hs_psk() or
+ * \c mbedtls_ssl_set_hs_psk_opaque()
+ * on the SSL context to set the correct PSK and return \c 0.
+ * Any other return value will result in a denied PSK identity.
+ *
+ * \param conf     The SSL configuration to register the callback with.
+ *
+ * \param f_psk    The callback for selecting and setting the PSK based
+ *                 in the PSK identity chosen by the client.
  *                 The callback has the following parameters:
  *                 - \c void*: The opaque pointer \p p_psk.
  *                 - \c mbedtls_ssl_context*: The SSL context to which
@@ -3703,11 +3713,8 @@ int mbedtls_ssl_set_hs_psk_opaque(mbedtls_ssl_context *ssl,
  *                 - \c size_t: The length of the PSK identity
  *                              selected by the client.
  *
- *                 If a valid PSK identity is found, the callback should use
- *                 \c mbedtls_ssl_set_hs_psk() or
- *                 \c mbedtls_ssl_set_hs_psk_opaque()
- *                 on the SSL context to set the correct PSK and return \c 0.
- *                 Any other return value will result in a denied PSK identity.
+ * \param p_psk    A pointer to an opaque structure to be passed to
+ *                 the callback, for example a PSK store.
  *
  * \note           A dynamic PSK (i.e. set by the PSK callback) takes
  *                 precedence over a static PSK (i.e. set by
@@ -3718,11 +3725,10 @@ int mbedtls_ssl_set_hs_psk_opaque(mbedtls_ssl_context *ssl,
  *                 \c mbedtls_ssl_conf_psk() or
  *                 \c mbedtls_ssl_conf_psk_opaque()).
  *
- * \param conf     The SSL configuration to register the callback with.
- * \param f_psk    The callback for selecting and setting the PSK based
- *                 in the PSK identity chosen by the client.
- * \param p_psk    A pointer to an opaque structure to be passed to
- *                 the callback, for example a PSK store.
+ * \warning        If an empty PSK key identity is provided by the client the
+ *                 \p f_psk callback is invoked with the length parameter set
+ *                 to zero. It is up to the server to set the default PSK or to
+ *                 reject the request in this case.
  */
 void mbedtls_ssl_conf_psk_cb(mbedtls_ssl_config *conf,
                              int (*f_psk)(void *, mbedtls_ssl_context *, const unsigned char *,
