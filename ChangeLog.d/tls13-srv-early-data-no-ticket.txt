@@ -1,0 +1,7 @@
+Bugfix
+   * Fix a TLS 1.3 handshake failure on the server side when the client
+     sends early data with a ticket that the server cannot use, for example
+     after a ticket key rotation. The server should skip the early data up to
+     its configured maximum and continue with a 1-RTT handshake, but it used
+     a limit of zero and aborted the handshake with
+     MBEDTLS_ERR_SSL_UNEXPECTED_MESSAGE.

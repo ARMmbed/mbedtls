@@ -1378,6 +1378,8 @@ int mbedtls_ssl_tls13_write_early_data_ext(mbedtls_ssl_context *ssl,
 int mbedtls_ssl_tls13_check_early_data_len(mbedtls_ssl_context *ssl,
                                            size_t early_data_len)
 {
+    uint32_t max_early_data_size;
+
     /*
      * This function should be called only while an handshake is in progress
      * and thus a session under negotiation. Add a sanity check to detect a
@@ -1385,6 +1387,17 @@ int mbedtls_ssl_tls13_check_early_data_len(mbedtls_ssl_context *ssl,
      */
     if (ssl->session_negotiate == NULL) {
         return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
+    }
+
+    /*
+     * The maximum size of early data is the one associated with the ticket
+     * used to resume the session. If no ticket was accepted, the server
+     * rejects early data and, as stated in section 4.2.10 of RFC 8446, skips
+     * it up to the configured max_early_data_size.
+     */
+    max_early_data_size = ssl->session_negotiate->max_early_data_size;
+    if (max_early_data_size == 0) {
+        max_early_data_size = ssl->conf->max_early_data_size;
     }
 
     /* RFC 8446 section 4.6.1
@@ -1397,15 +1410,14 @@ int mbedtls_ssl_tls13_check_early_data_len(mbedtls_ssl_context *ssl,
      * down.
      */
     if (early_data_len >
-        (ssl->session_negotiate->max_early_data_size -
-         ssl->total_early_data_size)) {
+        (max_early_data_size - ssl->total_early_data_size)) {
 
         MBEDTLS_SSL_DEBUG_MSG(
             2, ("EarlyData: Too much early data received, "
                 "%lu + %" MBEDTLS_PRINTF_SIZET " > %lu",
                 (unsigned long) ssl->total_early_data_size,
                 early_data_len,
-                (unsigned long) ssl->session_negotiate->max_early_data_size));
+                (unsigned long) max_early_data_size));
 
         MBEDTLS_SSL_PEND_FATAL_ALERT(
             MBEDTLS_SSL_ALERT_MSG_UNEXPECTED_MESSAGE,
