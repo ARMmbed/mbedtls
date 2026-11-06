@@ -1,0 +1,3 @@
+Bugfix
+   * Add critical extension handling support for TLS peer x509 certificates.
+     Fixes issue #7182.

@@ -1432,6 +1432,10 @@ struct mbedtls_ssl_config {
     /** Callback to customize X.509 certificate chain verification          */
     int(*MBEDTLS_PRIVATE(f_vrfy))(void *, mbedtls_x509_crt *, int, uint32_t *);
     void *MBEDTLS_PRIVATE(p_vrfy);                   /*!< context for X.509 verify calllback */
+
+    /** Callback to skip unsupported extentions */
+    mbedtls_x509_crt_ext_cb_t MBEDTLS_PRIVATE(f_ext);
+    void *MBEDTLS_PRIVATE(p_ext);                   /*!< context for X.509 extention calllback */
 #endif
 
 #if defined(MBEDTLS_SSL_HANDSHAKE_WITH_PSK_ENABLED)
@@ -1649,6 +1653,10 @@ struct mbedtls_ssl_context {
     /** Callback to customize X.509 certificate chain verification          */
     int(*MBEDTLS_PRIVATE(f_vrfy))(void *, mbedtls_x509_crt *, int, uint32_t *);
     void *MBEDTLS_PRIVATE(p_vrfy);                   /*!< context for X.509 verify callback */
+
+    /** Callback to skip unsupported extentions */
+    mbedtls_x509_crt_ext_cb_t MBEDTLS_PRIVATE(f_ext);
+    void *MBEDTLS_PRIVATE(p_ext);                   /*!< context for X.509 extention calllback */
 #endif
 
     mbedtls_ssl_send_t *MBEDTLS_PRIVATE(f_send); /*!< Callback for network send */
@@ -2102,6 +2110,21 @@ void mbedtls_ssl_conf_max_early_data_size(
 void mbedtls_ssl_conf_verify(mbedtls_ssl_config *conf,
                              int (*f_vrfy)(void *, mbedtls_x509_crt *, int, uint32_t *),
                              void *p_vrfy);
+
+/**
+ * \brief        Set the unsupported extention callback (Optional).
+ *
+ *               If set, the provided extention callback is called whenever
+ *               a certificate is parsed. For more information, please see
+ *               the documentation of
+ *               \c mbedtls_x509_crt_parse_der_with_ext_cb().
+ *
+ * \param conf   The SSL configuration to use.
+ * \param f_ext  The extentions callback to use during CRT parsing.
+ * \param p_ext  The opaque context to be passed to the callback.
+ */
+void mbedtls_ssl_conf_ext_cb(mbedtls_ssl_config *conf, mbedtls_x509_crt_ext_cb_t f_ext,
+                             void *p_ext);
 #endif /* MBEDTLS_X509_CRT_PARSE_C */
 
 /**
@@ -2410,6 +2433,20 @@ void mbedtls_ssl_set_mtu(mbedtls_ssl_context *ssl, uint16_t mtu);
 void mbedtls_ssl_set_verify(mbedtls_ssl_context *ssl,
                             int (*f_vrfy)(void *, mbedtls_x509_crt *, int, uint32_t *),
                             void *p_vrfy);
+
+/**
+ * \brief        Set a connection-specific extention callback (optional).
+ *
+ *               If set, the provided extention callback is called whenever
+ *               a certificate is parsed. For more information, please see
+ *               the documentation of
+ *               \c mbedtls_x509_crt_parse_der_with_ext_cb().
+ *
+ * \param ssl    The SSL context to use.
+ * \param f_ext  The extentions callback to use during CRT parsing.
+ * \param p_ext  The opaque context to be passed to the callback.
+ */
+void mbedtls_ssl_set_ext_cb(mbedtls_ssl_context *ssl, mbedtls_x509_crt_ext_cb_t f_ext, void *p_ext);
 #endif /* MBEDTLS_X509_CRT_PARSE_C */
 
 /**
