@@ -1,0 +1,6 @@
+Bugfix
+   * Reject a TLS 1.3 ClientHello whose psk_key_exchange_modes extension has
+     a zero-length ke_modes vector, instead of accepting it and recording an
+     empty set of PSK key exchange modes, which could lead to issuing
+     session tickets that can never be used for resumption. Reported in
+     #10467 and #10888.

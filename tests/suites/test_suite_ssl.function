@@ -637,7 +637,90 @@ static void tls_tweak_in_msglen(void *ctx, int level,
 }
 #endif
 
+#if defined(MBEDTLS_SSL_PROTO_TLS1_3) && defined(MBEDTLS_DEBUG_C) && \
+    defined(MBEDTLS_SSL_CLI_C) && defined(MBEDTLS_SSL_SRV_C) && \
+    defined(MBEDTLS_TEST_AT_LEAST_ONE_TLS1_3_CIPHERSUITE) && \
+    defined(MBEDTLS_TEST_HAS_DEFAULT_EC_GROUP) && \
+    defined(MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED) && \
+    defined(MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL_ENABLED) && \
+    defined(PSA_WANT_ALG_SHA_256) && \
+    defined(MBEDTLS_X509_RSASSA_PSS_SUPPORT) && \
+    defined(PSA_WANT_ALG_RSA_PKCS1V15_SIGN)
+static unsigned char *tls13_find_psk_kex_modes_len_byte(unsigned char *hs,
+                                                        size_t hs_len)
+{
+    unsigned char *p = hs;
+    unsigned char *end = hs + hs_len;
+    size_t len;
 
+    /* legacy_version (2) + random (32) */
+    if ((size_t) (end - p) < 34) {
+        return NULL;
+    }
+    p += 34;
+
+    /* session_id */
+    if ((size_t) (end - p) < 1) {
+        return NULL;
+    }
+    len = p[0];
+    p += 1;
+    if ((size_t) (end - p) < len) {
+        return NULL;
+    }
+    p += len;
+
+    /* cipher_suites */
+    if ((size_t) (end - p) < 2) {
+        return NULL;
+    }
+    len = ((size_t) p[0] << 8) | p[1];
+    p += 2;
+    if ((size_t) (end - p) < len) {
+        return NULL;
+    }
+    p += len;
+
+    /* compression_methods */
+    if ((size_t) (end - p) < 1) {
+        return NULL;
+    }
+    len = p[0];
+    p += 1;
+    if ((size_t) (end - p) < len) {
+        return NULL;
+    }
+    p += len;
+
+    /* extensions */
+    if ((size_t) (end - p) < 2) {
+        return NULL;
+    }
+    len = ((size_t) p[0] << 8) | p[1];
+    p += 2;
+    if ((size_t) (end - p) < len) {
+        return NULL;
+    }
+    end = p + len;
+
+    while ((size_t) (end - p) >= 4) {
+        unsigned ext_type = ((unsigned) p[0] << 8) | p[1];
+        size_t ext_len = ((size_t) p[2] << 8) | p[3];
+        if ((size_t) (end - p) < 4 + ext_len) {
+            return NULL;
+        }
+        if (ext_type == MBEDTLS_TLS_EXT_PSK_KEY_EXCHANGE_MODES) {
+            /* extension data starts with the 1-byte ke_modes vector length */
+            if (ext_len < 1) {
+                return NULL;
+            }
+            return p + 4;
+        }
+        p += 4 + ext_len;
+    }
+    return NULL;
+}
+#endif
 
 /* END_HEADER */
 
@@ -7594,6 +7677,126 @@ exit:
     mbedtls_test_free_handshake_options(&server_options);
     mbedtls_debug_set_threshold(0);
     mbedtls_ssl_session_free(&saved_session);
+    PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_DEBUG_C:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_SRV_C:MBEDTLS_TEST_AT_LEAST_ONE_TLS1_3_CIPHERSUITE:MBEDTLS_TEST_HAS_DEFAULT_EC_GROUP:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL_ENABLED:PSA_WANT_ALG_SHA_256:MBEDTLS_X509_RSASSA_PSS_SUPPORT:PSA_WANT_ALG_RSA_PKCS1V15_SIGN */
+void tls13_malformed_psk_kex_modes()
+{
+    int ret = -1;
+    mbedtls_test_ssl_endpoint client_ep, server_ep;
+    memset(&client_ep, 0, sizeof(client_ep));
+    memset(&server_ep, 0, sizeof(server_ep));
+
+    mbedtls_test_handshake_test_options client_options, server_options;
+    mbedtls_test_init_handshake_options(&client_options);
+    mbedtls_test_init_handshake_options(&server_options);
+
+    /* TLS alert 50 = decode_error */
+    mbedtls_test_ssl_log_pattern server_alert_pattern =
+    { "send alert level=2 message=50", 0 };
+
+    unsigned char *ke_modes_len_byte = NULL;
+
+    PSA_INIT();
+
+    mbedtls_debug_set_threshold(3);
+    server_options.srv_log_fun = mbedtls_test_ssl_log_analyzer;
+    server_options.srv_log_obj = &server_alert_pattern;
+
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init(&client_ep,
+                                              MBEDTLS_SSL_IS_CLIENT,
+                                              &client_options), 0);
+    TEST_EQUAL(mbedtls_test_ssl_endpoint_init(&server_ep,
+                                              MBEDTLS_SSL_IS_SERVER,
+                                              &server_options), 0);
+
+    TEST_EQUAL(mbedtls_test_mock_socket_connect(&client_ep.socket,
+                                                &server_ep.socket, 1024), 0);
+
+    /*
+     * Let the client write its ClientHello into its output socket buffer.
+     * The client then waits for the ServerHello. (Without early data, no
+     * CCS follows the ClientHello even in compatibility mode, see
+     * RFC 8446 appendix D.4.)
+     */
+    TEST_EQUAL(mbedtls_test_move_handshake_to_state(
+                   &client_ep.ssl, &server_ep.ssl,
+                   MBEDTLS_SSL_SERVER_HELLO), 0);
+    TEST_EQUAL(mbedtls_ssl_flush_output(&client_ep.ssl), 0);
+
+    /*
+     * Walk the records and handshake messages in the client output buffer,
+     * find the psk_key_exchange_modes extension in the ClientHello and
+     * corrupt the ke_modes vector length to zero. RFC 8446 4.2.9 requires
+     * ke_modes<1..255>, so a zero-length vector is a syntax error.
+     */
+    {
+        unsigned char *buf = client_ep.socket.output->buffer;
+        size_t buf_len = client_ep.socket.output->content_length;
+        size_t rec_pos = 0;
+
+        while (rec_pos + 5 <= buf_len && ke_modes_len_byte == NULL) {
+            unsigned char rec_type = buf[rec_pos];
+            size_t rec_len = MBEDTLS_GET_UINT16_BE(buf, rec_pos + 3);
+            unsigned char *rec = buf + rec_pos + 5;
+            size_t hs_pos = 0;
+
+            TEST_ASSERT(rec_pos + 5 + rec_len <= buf_len);
+
+            if (rec_type != MBEDTLS_SSL_MSG_HANDSHAKE) {
+                rec_pos += 5 + rec_len;
+                continue;
+            }
+
+            while (hs_pos + 4 <= rec_len && ke_modes_len_byte == NULL) {
+                unsigned char hs_type = rec[hs_pos];
+                size_t hs_len = ((size_t) rec[hs_pos + 1] << 16) |
+                                ((size_t) rec[hs_pos + 2] << 8) |
+                                (size_t) rec[hs_pos + 3];
+
+                TEST_ASSERT(hs_pos + 4 + hs_len <= rec_len);
+
+                if (hs_type == MBEDTLS_SSL_HS_CLIENT_HELLO) {
+                    ke_modes_len_byte =
+                        tls13_find_psk_kex_modes_len_byte(rec + hs_pos + 4,
+                                                          hs_len);
+                }
+                hs_pos += 4 + hs_len;
+            }
+
+            rec_pos += 5 + rec_len;
+        }
+    }
+
+    /* The client must have offered at least one mode; zero it. */
+    TEST_ASSERT(ke_modes_len_byte != NULL);
+    TEST_ASSERT(*ke_modes_len_byte >= 1);
+    *ke_modes_len_byte = 0;
+
+    /*
+     * The server must reject the malformed extension with
+     * MBEDTLS_ERR_SSL_DECODE_ERROR and send a decode_error alert.
+     */
+    ret = mbedtls_test_move_handshake_to_state(&server_ep.ssl,
+                                               &client_ep.ssl,
+                                               MBEDTLS_SSL_SERVER_HELLO);
+    TEST_EQUAL(ret, MBEDTLS_ERR_SSL_DECODE_ERROR);
+    TEST_ASSERT(server_alert_pattern.counter > 0);
+
+    ret = mbedtls_ssl_handshake_step(&client_ep.ssl);
+    TEST_EQUAL(ret, MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE);
+    TEST_EQUAL(mbedtls_ssl_get_fatal_alert(&client_ep.ssl),
+               MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR);
+
+
+exit:
+    mbedtls_test_ssl_endpoint_free(&client_ep);
+    mbedtls_test_ssl_endpoint_free(&server_ep);
+    mbedtls_test_free_handshake_options(&client_options);
+    mbedtls_test_free_handshake_options(&server_options);
+    mbedtls_debug_set_threshold(0);
     PSA_DONE();
 }
 /* END_CASE */
