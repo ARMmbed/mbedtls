@@ -5282,6 +5282,109 @@ exit:
 }
 /* END_CASE */
 
+/*
+ * The client offers a ticket (identity 0) with early data and an external
+ * PSK (identity 1). The server does not accept the ticket, selects the
+ * external PSK and thus rejects early data. The client has to compute the
+ * handshake keys from the external PSK, not from the ticket PSK it used for
+ * early data.
+ *
+ * No early data is actually written: only the early data indication is
+ * needed to reproduce the issue.
+ */
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_EARLY_DATA:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_SRV_C:MBEDTLS_TEST_AT_LEAST_ONE_TLS1_3_CIPHERSUITE:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL_ENABLED:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_HAVE_ALG_ECDSA_VERIFY:MBEDTLS_SSL_SESSION_TICKETS */
+void tls13_early_data_ticket_rejected_external_psk(int kex_mode)
+{
+    int ret = -1;
+    const unsigned char psk[] = "0123456789abcdef";
+    const unsigned char psk_identity[] = "external_psk";
+    mbedtls_test_ssl_endpoint client_ep, server_ep;
+    memset(&client_ep, 0, sizeof(client_ep));
+    memset(&server_ep, 0, sizeof(server_ep));
+    mbedtls_test_handshake_test_options client_options;
+    mbedtls_test_handshake_test_options server_options;
+    mbedtls_ssl_session saved_session;
+
+    mbedtls_test_init_handshake_options(&client_options);
+    mbedtls_test_init_handshake_options(&server_options);
+    mbedtls_ssl_session_init(&saved_session);
+
+    PSA_INIT();
+
+    /*
+     * Run first handshake to get a ticket from the server.
+     */
+    client_options.pk_alg = MBEDTLS_PK_ECDSA;
+    client_options.early_data = MBEDTLS_SSL_EARLY_DATA_ENABLED;
+    client_options.cipher = "TLS1-3-AES-128-GCM-SHA256";
+    server_options.pk_alg = MBEDTLS_PK_ECDSA;
+    server_options.early_data = MBEDTLS_SSL_EARLY_DATA_ENABLED;
+
+    ret = mbedtls_test_get_tls13_ticket(&client_options, &server_options,
+                                        &saved_session);
+    TEST_EQUAL(ret, 0);
+
+    /*
+     * Second handshake: the client offers the ticket and the external PSK.
+     * The server is not configured to parse tickets, so it selects the
+     * external PSK.
+     */
+    ret = mbedtls_test_ssl_endpoint_init(&client_ep, MBEDTLS_SSL_IS_CLIENT,
+                                         &client_options);
+    TEST_EQUAL(ret, 0);
+
+    ret = mbedtls_test_ssl_endpoint_init(&server_ep, MBEDTLS_SSL_IS_SERVER,
+                                         &server_options);
+    TEST_EQUAL(ret, 0);
+
+    mbedtls_ssl_conf_tls13_key_exchange_modes(&client_ep.conf, kex_mode);
+    mbedtls_ssl_conf_tls13_key_exchange_modes(&server_ep.conf, kex_mode);
+
+    TEST_EQUAL(mbedtls_ssl_conf_psk(&client_ep.conf, psk, sizeof(psk) - 1,
+                                    psk_identity, sizeof(psk_identity) - 1), 0);
+    TEST_EQUAL(mbedtls_ssl_conf_psk(&server_ep.conf, psk, sizeof(psk) - 1,
+                                    psk_identity, sizeof(psk_identity) - 1), 0);
+
+    ret = mbedtls_test_mock_socket_connect(&(client_ep.socket),
+                                           &(server_ep.socket), 1024);
+    TEST_EQUAL(ret, 0);
+
+    ret = mbedtls_ssl_set_session(&(client_ep.ssl), &saved_session);
+    TEST_EQUAL(ret, 0);
+
+    TEST_EQUAL(mbedtls_test_move_handshake_to_state(
+                   &(client_ep.ssl), &(server_ep.ssl),
+                   MBEDTLS_SSL_SERVER_HELLO), 0);
+    TEST_EQUAL(client_ep.ssl.early_data_state,
+               MBEDTLS_SSL_EARLY_DATA_STATE_CAN_WRITE);
+
+    /* Process the ServerHello and check that the server selected the
+     * external PSK. */
+    TEST_EQUAL(mbedtls_test_move_handshake_to_state(
+                   &(client_ep.ssl), &(server_ep.ssl),
+                   MBEDTLS_SSL_ENCRYPTED_EXTENSIONS), 0);
+    TEST_EQUAL(client_ep.ssl.handshake->selected_identity, 1);
+
+    TEST_EQUAL(mbedtls_test_move_handshake_to_state(
+                   &(client_ep.ssl), &(server_ep.ssl),
+                   MBEDTLS_SSL_HANDSHAKE_OVER), 0);
+    TEST_EQUAL(mbedtls_test_move_handshake_to_state(
+                   &(server_ep.ssl), &(client_ep.ssl),
+                   MBEDTLS_SSL_HANDSHAKE_OVER), 0);
+
+    TEST_EQUAL(mbedtls_ssl_get_early_data_status(&(client_ep.ssl)),
+               MBEDTLS_SSL_EARLY_DATA_STATUS_REJECTED);
+
+exit:
+    mbedtls_test_ssl_endpoint_free(&client_ep);
+    mbedtls_test_ssl_endpoint_free(&server_ep);
+    mbedtls_test_free_handshake_options(&client_options);
+    mbedtls_test_free_handshake_options(&server_options);
+    mbedtls_ssl_session_free(&saved_session);
+    PSA_DONE();
+}
+/* END_CASE */
+
 /* BEGIN_CASE depends_on:MBEDTLS_SSL_EARLY_DATA:MBEDTLS_SSL_CLI_C:MBEDTLS_SSL_SRV_C:MBEDTLS_TEST_AT_LEAST_ONE_TLS1_3_CIPHERSUITE:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL_ENABLED:PSA_WANT_ALG_SHA_256:PSA_WANT_ECC_SECP_R1_256:PSA_WANT_ECC_SECP_R1_384:PSA_HAVE_ALG_ECDSA_VERIFY:MBEDTLS_SSL_SESSION_TICKETS */
 void tls13_cli_early_data_state(int scenario)
 {
