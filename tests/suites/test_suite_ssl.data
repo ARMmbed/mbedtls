@@ -3653,3 +3653,18 @@ tls13_record_boundary_alignment:MBEDTLS_SSL_IS_SERVER:MBEDTLS_SSL_HS_FINISHED
 TLS 1.3 EndOfEarlyData record boundary alignment enforcement
 depends_on:MBEDTLS_SSL_EARLY_DATA:MBEDTLS_SSL_SESSION_TICKETS
 tls13_record_boundary_alignment:MBEDTLS_SSL_IS_SERVER:MBEDTLS_SSL_HS_END_OF_EARLY_DATA
+
+TLS 1.3: check received extension: HRR cookie, not sent
+ssl_tls13_check_received_extension:MBEDTLS_SSL_TLS1_3_HS_HELLO_RETRY_REQUEST:MBEDTLS_TLS_EXT_COOKIE:0:0
+
+TLS 1.3: check received extension: HRR key_share, not sent
+ssl_tls13_check_received_extension:MBEDTLS_SSL_TLS1_3_HS_HELLO_RETRY_REQUEST:MBEDTLS_TLS_EXT_KEY_SHARE:0:MBEDTLS_ERR_SSL_UNSUPPORTED_EXTENSION
+
+TLS 1.3: check received extension: HRR key_share, sent
+ssl_tls13_check_received_extension:MBEDTLS_SSL_TLS1_3_HS_HELLO_RETRY_REQUEST:MBEDTLS_TLS_EXT_KEY_SHARE:1:0
+
+TLS 1.3: check received extension: ServerHello cookie, sent
+ssl_tls13_check_received_extension:MBEDTLS_SSL_HS_SERVER_HELLO:MBEDTLS_TLS_EXT_COOKIE:1:MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER
+
+TLS 1.3: check received extension: EE cookie, not sent
+ssl_tls13_check_received_extension:MBEDTLS_SSL_HS_ENCRYPTED_EXTENSIONS:MBEDTLS_TLS_EXT_COOKIE:0:MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER

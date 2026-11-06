@@ -2419,6 +2419,55 @@ exit:
 }
 /* END_CASE */
 
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_SSL_CLI_C */
+void ssl_tls13_check_received_extension(int hs_msg_type,
+                                        int extension_type,
+                                        int sent,
+                                        int expected_ret)
+{
+    mbedtls_ssl_context ssl;
+    mbedtls_ssl_config conf;
+    uint32_t extension_mask = mbedtls_ssl_get_extension_mask(extension_type);
+    uint32_t allowed_mask = 0;
+
+    mbedtls_ssl_init(&ssl);
+    mbedtls_ssl_config_init(&conf);
+    MD_OR_USE_PSA_INIT();
+
+    switch (hs_msg_type) {
+        case MBEDTLS_SSL_HS_SERVER_HELLO:
+            allowed_mask = MBEDTLS_SSL_TLS1_3_ALLOWED_EXTS_OF_SH;
+            break;
+        case MBEDTLS_SSL_TLS1_3_HS_HELLO_RETRY_REQUEST:
+            allowed_mask = MBEDTLS_SSL_TLS1_3_ALLOWED_EXTS_OF_HRR;
+            break;
+        case MBEDTLS_SSL_HS_ENCRYPTED_EXTENSIONS:
+            allowed_mask = MBEDTLS_SSL_TLS1_3_ALLOWED_EXTS_OF_EE;
+            break;
+        default:
+            TEST_FAIL("Unsupported handshake message type");
+    }
+
+    TEST_EQUAL(mbedtls_ssl_config_defaults(&conf,
+                                           MBEDTLS_SSL_IS_CLIENT,
+                                           MBEDTLS_SSL_TRANSPORT_STREAM,
+                                           MBEDTLS_SSL_PRESET_DEFAULT), 0);
+    TEST_EQUAL(mbedtls_ssl_setup(&ssl, &conf), 0);
+
+    ssl.handshake->sent_extensions = sent ? extension_mask : 0;
+
+    TEST_EQUAL(mbedtls_ssl_tls13_check_received_extension(&ssl, hs_msg_type,
+                                                          extension_type,
+                                                          allowed_mask),
+               expected_ret);
+
+exit:
+    mbedtls_ssl_free(&ssl);
+    mbedtls_ssl_config_free(&conf);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
 /* BEGIN_CASE depends_on:MBEDTLS_SSL_PROTO_TLS1_3 */
 void ssl_tls13_record_protection(int ciphersuite,
                                  int endpoint,

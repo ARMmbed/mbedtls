@@ -1070,11 +1070,16 @@ is_polar() {
     esac
 }
 
-# openssl s_server doesn't have -www with DTLS
+# openssl s_server doesn't have -www with DTLS or with -stateless
 check_osrv_dtls() {
     case "$SRV_CMD" in
         *s_server*-dtls*)
             NEEDS_INPUT=1
+            SRV_CMD="$( echo $SRV_CMD | sed s/-www// )";;
+        *s_server*-stateless*)
+            # Input that s_server reads before the handshake makes it start
+            # the handshake without -stateless, so provide it later.
+            NEEDS_INPUT=2
             SRV_CMD="$( echo $SRV_CMD | sed s/-www// )";;
         *) NEEDS_INPUT=0;;
     esac
@@ -1084,6 +1089,10 @@ check_osrv_dtls() {
 provide_input() {
     if [ $NEEDS_INPUT -eq 0 ]; then
         return
+    fi
+
+    if [ $NEEDS_INPUT -eq 2 ]; then
+        sleep 1
     fi
 
     while true; do
@@ -13664,6 +13673,23 @@ run_test    "TLS 1.3 m->O HRR both with middlebox compat support" \
             0 \
             -c "Protocol is TLSv1.3" \
             -c "Ignore ChangeCipherSpec in TLS 1.3 compatibility mode"
+
+# With -stateless, the OpenSSL server puts a cookie in its HelloRetryRequest.
+# It then rejects a ChangeCipherSpec record before the second ClientHello,
+# so this only works without middlebox compatibility mode on the client.
+requires_openssl_tls1_3_with_compatible_ephemeral
+requires_config_disabled MBEDTLS_SSL_TLS1_3_COMPATIBILITY_MODE
+requires_config_enabled MBEDTLS_DEBUG_C
+requires_config_enabled MBEDTLS_SSL_CLI_C
+requires_config_enabled MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED
+run_test    "TLS 1.3 m->O HRR with cookie" \
+            "$O_NEXT_SRV -msg -tls1_3 -groups P-384 -stateless -num_tickets 0 -no_cache" \
+            "$P_CLI debug_level=4 groups=secp256r1,secp384r1" \
+            0 \
+            -c "received HelloRetryRequest message" \
+            -c "client hello, adding cookie extension" \
+            -c "Protocol is TLSv1.3" \
+            -c "HTTP/1.0 200 OK"
 
 requires_gnutls_tls1_3
 requires_gnutls_next_no_ticket

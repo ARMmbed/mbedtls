@@ -1,0 +1,5 @@
+Bugfix
+   * Fix the TLS 1.3 client rejecting a HelloRetryRequest that contains a
+     cookie extension with an unsupported_extension alert. Such
+     HelloRetryRequests are sent for example by Java (JSSE) servers and by
+     OpenSSL servers in stateless mode. Fixes #9543.

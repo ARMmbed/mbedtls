@@ -1658,6 +1658,17 @@ int mbedtls_ssl_tls13_check_received_extension(
     }
 
     ssl->handshake->received_extensions |= extension_mask;
+
+    /*
+     * RFC 8446 section 4.2: the "cookie" extension in a HelloRetryRequest is
+     * the one extension response that may be sent although the client did
+     * not send the extension.
+     */
+    if (hs_msg_type == MBEDTLS_SSL_TLS1_3_HS_HELLO_RETRY_REQUEST &&
+        received_extension_type == MBEDTLS_TLS_EXT_COOKIE) {
+        return 0;
+    }
+
     /*
      * If it is a message containing extension responses, check that we
      * previously sent the extension.
