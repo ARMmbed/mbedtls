@@ -1,0 +1,6 @@
+Bugfix
+   * Fix mbedtls_x509_dn_gets() returning MBEDTLS_ERR_X509_BUFFER_TOO_SMALL
+     for a Distinguished Name whose escaped or hex-encoded form is longer than
+     256 bytes, even when the output buffer was large enough. The rendered
+     value is now written straight to the output buffer instead of a fixed-size
+     internal buffer. Fixes #10753.

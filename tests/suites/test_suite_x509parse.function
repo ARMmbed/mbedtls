@@ -1048,6 +1048,42 @@ exit:
 }
 /* END_CASE */
 
+/* BEGIN_CASE depends_on:MBEDTLS_X509_CREATE_C:MBEDTLS_X509_USE_C:MBEDTLS_X509_CRT_PARSE_C:!MBEDTLS_X509_REMOVE_INFO */
+void mbedtls_x509_dn_gets_long_value(char *name_str, char *exp_dn_gets)
+{
+    int ret = 0;
+    size_t len = 0;
+    mbedtls_asn1_named_data *names = NULL;
+    mbedtls_x509_name parsed;
+    memset(&parsed, 0, sizeof(parsed));
+    /* Holds the DER encoding of the test name. */
+    unsigned char buf[512] = { 0 };
+    unsigned char *c = buf + sizeof(buf);
+    char out[1024] = { 0 };
+
+    USE_PSA_INIT();
+
+    TEST_EQUAL(mbedtls_x509_string_to_names(&names, name_str), 0);
+
+    ret = mbedtls_x509_write_names(&c, buf, names);
+    TEST_LE_S(0, ret);
+
+    TEST_EQUAL(mbedtls_asn1_get_tag(&c, buf + sizeof(buf), &len,
+                                    MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), 0);
+    TEST_EQUAL(mbedtls_x509_get_name(&c, buf + sizeof(buf), &parsed), 0);
+
+    /* The rendered value is longer than the old fixed 256-byte buffer. */
+    ret = mbedtls_x509_dn_gets(out, sizeof(out), &parsed);
+    TEST_LE_S(0, ret);
+    TEST_EQUAL(strcmp(out, exp_dn_gets), 0);
+
+exit:
+    mbedtls_asn1_free_named_data_list(&names);
+    mbedtls_asn1_free_named_data_list_shallow(parsed.next);
+    USE_PSA_DONE();
+}
+/* END_CASE */
+
 /* BEGIN_CASE depends_on:MBEDTLS_FS_IO:MBEDTLS_X509_CRT_PARSE_C */
 void mbedtls_x509_time_is_past(char *crt_file, char *entity, int result)
 {
