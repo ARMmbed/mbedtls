@@ -2689,7 +2689,44 @@ find_parent:
 #if __has_include(<arpa/inet.h>)
 #include <arpa/inet.h>
 #endif
+#if __has_include("lwip/ip_addr.h")
+#define MBEDTLS_LWIP_INET_PTON
 #endif
+#endif
+
+#if defined(MBEDTLS_LWIP_INET_PTON)
+
+#include "lwip/ip_addr.h"
+
+static int x509_inet_pton_ipv6(const char *src, void *dst)
+{
+    int ret = -1;
+#if LWIP_IPV6
+    ip6_addr_t addr;
+    if (ip6addr_aton(src, &addr)) {
+        memcpy(dst, &addr.addr, sizeof(addr.addr));
+        ret = 0;
+    }
+#else
+    (void) src;
+    (void) dst;
+#endif
+    return ret;
+}
+
+static int x509_inet_pton_ipv4(const char *src, void *dst)
+{
+    int ret = -1;
+#if LWIP_IPV4
+    if (ip4addr_aton(src, (ip4_addr_t *) dst)) {
+        ret = 0;
+    }
+#else
+    (void) src;
+    (void) dst;
+#endif
+    return ret;
+}
 
 /* Use whether or not AF_INET6 is defined to indicate whether or not to use
  * the platform inet_pton() or a local implementation (below).  The local
@@ -2703,7 +2740,7 @@ find_parent:
  * provided by headers included (or not) via __has_include() above.
  * MBEDTLS_TEST_SW_INET_PTON is a bypass define to force testing of this code //no-check-names
  * despite having a platform that has inet_pton. */
-#if !defined(AF_INET6) || defined(MBEDTLS_TEST_SW_INET_PTON) //no-check-names
+#elif !defined(AF_INET6) || defined(MBEDTLS_TEST_SW_INET_PTON) //no-check-names
 /* Definition located further below to possibly reduce compiler inlining */
 static int x509_inet_pton_ipv4(const char *src, void *dst);
 
