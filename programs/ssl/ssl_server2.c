@@ -297,12 +297,22 @@ int main(void)
 #if defined(MBEDTLS_SSL_DTLS_SRTP)
 #define USAGE_SRTP \
     "    use_srtp=%%d         default: 0 (disabled)\n" \
-    "    srtp_force_profile=%%d  default: 0 (all enabled)\n"   \
+    "    srtp_force_profile=%%d  default: 0 (all RFC5764+RFC7714 modes enabled)\n"   \
     "                        available profiles:\n"       \
-    "                        1 - SRTP_AES128_CM_HMAC_SHA1_80\n"  \
-    "                        2 - SRTP_AES128_CM_HMAC_SHA1_32\n"  \
-    "                        3 - SRTP_NULL_HMAC_SHA1_80\n"       \
-    "                        4 - SRTP_NULL_HMAC_SHA1_32\n"       \
+    "                        1  - SRTP_AES128_CM_HMAC_SHA1_80\n"  \
+    "                        2  - SRTP_AES128_CM_HMAC_SHA1_32\n"  \
+    "                        5  - SRTP_NULL_HMAC_SHA1_80\n"       \
+    "                        6  - SRTP_NULL_HMAC_SHA1_32\n"       \
+    "                        7  - SRTP_AEAD_AES_128_GCM\n"        \
+    "                        8  - SRTP_AEAD_AES_256_GCM\n"        \
+    "                        9  - DOUBLE_AEAD_AES_128_GCM_AEAD_AES_128_GCM\n"       \
+    "                        10 - DOUBLE_AEAD_AES_256_GCM_AEAD_AES_256_GCM\n"       \
+    "                        11 - SRTP_ARIA_128_CTR_HMAC_SHA1_80\n"                 \
+    "                        12 - SRTP_ARIA_128_CTR_HMAC_SHA1_32\n"                 \
+    "                        13 - SRTP_ARIA_256_CTR_HMAC_SHA1_80\n"                 \
+    "                        14 - SRTP_ARIA_256_CTR_HMAC_SHA1_32\n"                 \
+    "                        15 - SRTP_AEAD_ARIA_128_GCM\n"       \
+    "                        16 - SRTP_AEAD_ARIA_256_GCM\n"       \
     "    support_mki=%%d     default: 0 (not supported)\n"
 #else /* MBEDTLS_SSL_DTLS_SRTP */
 #define USAGE_SRTP ""
@@ -1602,6 +1612,8 @@ int main(int argc, char *argv[])
         MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32,
         MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_80,
         MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_32,
+        MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM,
+        MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM,
         MBEDTLS_TLS_SRTP_UNSET
     };
 #endif /* MBEDTLS_SSL_DTLS_SRTP */

@@ -1,0 +1,2 @@
+API changes
+   * allow negotiation of all use_srtp profile values currently listed by IANA

@@ -11056,6 +11056,44 @@ run_test  "DTLS-SRTP server supports all profiles. Client supports one profile."
 
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server supports all profiles. Client supports only SRTP_AEAD_AES_128_GCM." \
+          "$P_SRV dtls=1 use_srtp=1 debug_level=3" \
+          "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=7 debug_level=3" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM" \
+          -s "selected srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -c "client hello, adding use_srtp extension" \
+          -c "found use_srtp extension" \
+          -c "found srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM" \
+          -c "selected srtp profile" \
+          -c "DTLS-SRTP key material is"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -C "error"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server supports all profiles. Client supports only SRTP_AEAD_AES_256_GCM." \
+          "$P_SRV dtls=1 use_srtp=1 debug_level=3" \
+          "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=8 debug_level=3" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
+          -s "selected srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -c "client hello, adding use_srtp extension" \
+          -c "found use_srtp extension" \
+          -c "found srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
+          -c "selected srtp profile" \
+          -c "DTLS-SRTP key material is"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -C "error"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports one profile. Client supports all profiles." \
           "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=6 debug_level=3" \
           "$P_CLI dtls=1 use_srtp=1 debug_level=3" \
@@ -11075,6 +11113,44 @@ run_test  "DTLS-SRTP server supports one profile. Client supports all profiles."
 
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server supports only SRTP_AEAD_AES_128_GCM. Client supports all profiles." \
+          "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=7 debug_level=3" \
+          "$P_CLI dtls=1 use_srtp=1 debug_level=3" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile" \
+          -s "selected srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -c "client hello, adding use_srtp extension" \
+          -c "found use_srtp extension" \
+          -c "found srtp profile: MBEDTLS_TLS_SRTP_SRTP_AEAD_AES_128_GCM" \
+          -c "selected srtp profile" \
+          -c "DTLS-SRTP key material is"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -C "error"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server supports only SRTP_AEAD_AES_256_GCM. Client supports all profiles." \
+          "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=8 debug_level=3" \
+          "$P_CLI dtls=1 use_srtp=1 debug_level=3" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile" \
+          -s "selected srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -c "client hello, adding use_srtp extension" \
+          -c "found use_srtp extension" \
+          -c "found srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
+          -c "selected srtp profile" \
+          -c "DTLS-SRTP key material is"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -C "error"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server and Client support only one matching profile." \
           "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=2 debug_level=3" \
           "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=2 debug_level=3" \
@@ -11087,6 +11163,44 @@ run_test  "DTLS-SRTP server and Client support only one matching profile." \
           -c "client hello, adding use_srtp extension" \
           -c "found use_srtp extension" \
           -c "found srtp profile: MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32" \
+          -c "selected srtp profile" \
+          -c "DTLS-SRTP key material is"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -C "error"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server and Client support can agree to only matching profile SRTP_AEAD_AES_128_GCM." \
+          "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=7 debug_level=3" \
+          "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=7 debug_level=3" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM" \
+          -s "selected srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -c "client hello, adding use_srtp extension" \
+          -c "found use_srtp extension" \
+          -c "found srtp profile: MBEDTLS_TLS_MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM" \
+          -c "selected srtp profile" \
+          -c "DTLS-SRTP key material is"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -C "error"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server and Client support can agree to only matching profile SRTP_AEAD_AES_256_GCM." \
+          "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=8 debug_level=3" \
+          "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=8 debug_level=3" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
+          -s "selected srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -c "client hello, adding use_srtp extension" \
+          -c "found use_srtp extension" \
+          -c "found srtp profile: MBEDTLS_TLS_MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
           -c "selected srtp profile" \
           -c "DTLS-SRTP key material is"\
           -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
@@ -11177,7 +11291,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP all profiles supported. openssl client." \
           "$P_SRV dtls=1 use_srtp=1 debug_level=3" \
-          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           0 \
           -s "found use_srtp extension" \
           -s "found srtp profile" \
@@ -11191,7 +11305,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports all profiles. Client supports all profiles, in different order. openssl client." \
           "$P_SRV dtls=1 use_srtp=1 debug_level=3" \
-          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           0 \
           -s "found use_srtp extension" \
           -s "found srtp profile" \
@@ -11205,7 +11319,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports all profiles. Client supports one profile. openssl client." \
           "$P_SRV dtls=1 use_srtp=1 debug_level=3" \
-          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           0 \
           -s "found use_srtp extension" \
           -s "found srtp profile" \
@@ -11219,7 +11333,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports one profile. Client supports all profiles. openssl client." \
           "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=2 debug_level=3" \
-          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           0 \
           -s "found use_srtp extension" \
           -s "found srtp profile" \
@@ -11233,7 +11347,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server and Client support only one matching profile. openssl client." \
           "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=2 debug_level=3" \
-          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           0 \
           -s "found use_srtp extension" \
           -s "found srtp profile" \
@@ -11245,9 +11359,37 @@ run_test  "DTLS-SRTP server and Client support only one matching profile. openss
 
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server and Client support can agree to only matching profile SRTP_AEAD_AES_128_GCM. openssl client." \
+          "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=7 debug_level=3" \
+          "$O_CLI -dtls -use_srtp SRTP_AEAD_AES_128_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile" \
+          -s "selected srtp profile" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -c "SRTP Extension negotiated, profile=SRTP_AEAD_AES_128_GCM"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server and Client support can agree to only matching profile SRTP_AEAD_AES_256_GCM. openssl client." \
+          "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=8 debug_level=3" \
+          "$O_CLI -dtls -use_srtp SRTP_AEAD_AES_256_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile" \
+          -s "selected srtp profile" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -g "find_in_both '^ *Keying material: [0-9A-F]*$'"\
+          -c "SRTP Extension negotiated, profile=SRTP_AEAD_AES_128_GCM"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server and Client support only one different profile. openssl client." \
           "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=1 debug_level=3" \
-          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           0 \
           -s "found use_srtp extension" \
           -s "found srtp profile" \
@@ -11260,7 +11402,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server doesn't support use_srtp extension. openssl client" \
           "$P_SRV dtls=1 debug_level=3" \
-          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_CLI -dtls -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           0 \
           -s "found use_srtp extension" \
           -S "server hello, adding use_srtp extension" \
@@ -11270,7 +11412,7 @@ run_test  "DTLS-SRTP server doesn't support use_srtp extension. openssl client" 
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP all profiles supported. openssl server" \
-          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           "$P_CLI dtls=1 use_srtp=1 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11283,7 +11425,7 @@ run_test  "DTLS-SRTP all profiles supported. openssl server" \
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports all profiles. Client supports all profiles, in different order. openssl server." \
-          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           "$P_CLI dtls=1 use_srtp=1 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11296,7 +11438,7 @@ run_test  "DTLS-SRTP server supports all profiles. Client supports all profiles,
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports all profiles. Client supports one profile. openssl server." \
-          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=2 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11308,8 +11450,34 @@ run_test  "DTLS-SRTP server supports all profiles. Client supports one profile. 
 
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server supports all profiles. Client supports only SRTP_AEAD_AES_128_GCM. openssl server." \
+          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
+          "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=7 debug_level=3" \
+          0 \
+          -c "client hello, adding use_srtp extension" \
+          -c "found use_srtp extension" \
+          -c "found srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM" \
+          -c "selected srtp profile" \
+          -c "DTLS-SRTP key material is"\
+          -C "error"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server supports all profiles. Client supports only SRTP_AEAD_AES_256_GCM. openssl server." \
+          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
+          "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=8 debug_level=3" \
+          0 \
+          -c "client hello, adding use_srtp extension" \
+          -c "found use_srtp extension" \
+          -c "found srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
+          -c "selected srtp profile" \
+          -c "DTLS-SRTP key material is"\
+          -C "error"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports one profile. Client supports all profiles. openssl server." \
-          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           "$P_CLI dtls=1 use_srtp=1 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11322,7 +11490,7 @@ run_test  "DTLS-SRTP server supports one profile. Client supports all profiles. 
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server and Client support only one matching profile. openssl server." \
-          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=2 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11335,7 +11503,7 @@ run_test  "DTLS-SRTP server and Client support only one matching profile. openss
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server and Client support only one different profile. openssl server." \
-          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=6 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11361,7 +11529,7 @@ run_test  "DTLS-SRTP server doesn't support use_srtp extension. openssl server" 
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP all profiles supported. server doesn't support mki. openssl server." \
-          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 60" \
+          "$O_SRV -dtls -verify 0 -use_srtp SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32 -keymatexport 'EXTRACTOR-dtls_srtp' -keymatexportlen 88" \
           "$P_CLI dtls=1 use_srtp=1 mki=542310ab34290481 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11379,7 +11547,7 @@ requires_gnutls
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP all profiles supported. gnutls client." \
           "$P_SRV dtls=1 use_srtp=1 debug_level=3" \
-          "$G_CLI -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32 --insecure 127.0.0.1" \
+          "$G_CLI -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM --insecure 127.0.0.1" \
           0 \
           -s "found use_srtp extension" \
           -s "found srtp profile" \
@@ -11393,7 +11561,7 @@ requires_gnutls
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports all profiles. Client supports all profiles, in different order. gnutls client." \
           "$P_SRV dtls=1 use_srtp=1 debug_level=3" \
-          "$G_CLI -u --srtp-profiles=SRTP_NULL_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_32 --insecure 127.0.0.1" \
+          "$G_CLI -u --srtp-profiles=SRTP_NULL_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM --insecure 127.0.0.1" \
           0 \
           -s "found use_srtp extension" \
           -s "found srtp profile" \
@@ -11421,7 +11589,7 @@ requires_gnutls
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports one profile. Client supports all profiles. gnutls client." \
           "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=6 debug_level=3" \
-          "$G_CLI -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32 --insecure 127.0.0.1" \
+          "$G_CLI -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM --insecure 127.0.0.1" \
           0 \
           -s "found use_srtp extension" \
           -s "found srtp profile" \
@@ -11429,6 +11597,34 @@ run_test  "DTLS-SRTP server supports one profile. Client supports all profiles. 
           -s "server hello, adding use_srtp extension" \
           -s "DTLS-SRTP key material is"\
           -c "SRTP profile: SRTP_NULL_SHA1_32"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_gnutls
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server supports only SRTP_AEAD_AES_128_GCM profile. Client supports all profiles. gnutls client." \
+          "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=7 debug_level=3" \
+          "$G_CLI -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM --insecure 127.0.0.1" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile" \
+          -s "selected srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -c "SRTP profile: SRTP_AEAD_AES_128_GCM"
+
+requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
+requires_gnutls
+requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
+run_test  "DTLS-SRTP server supports only SRTP_AEAD_AES_256_GCM profile. Client supports all profiles. gnutls client." \
+          "$P_SRV dtls=1 use_srtp=1 srtp_force_profile=8 debug_level=3" \
+          "$G_CLI -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM --insecure 127.0.0.1" \
+          0 \
+          -s "found use_srtp extension" \
+          -s "found srtp profile" \
+          -s "selected srtp profile: MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM" \
+          -s "server hello, adding use_srtp extension" \
+          -s "DTLS-SRTP key material is"\
+          -c "SRTP profile: SRTP_AEAD_AES_256_GCM"
 
 requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_gnutls
@@ -11463,7 +11659,7 @@ requires_gnutls
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server doesn't support use_srtp extension. gnutls client" \
           "$P_SRV dtls=1 debug_level=3" \
-          "$G_CLI -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32 --insecure 127.0.0.1" \
+          "$G_CLI -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM --insecure 127.0.0.1" \
           0 \
           -s "found use_srtp extension" \
           -S "server hello, adding use_srtp extension" \
@@ -11474,7 +11670,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_gnutls
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP all profiles supported. gnutls server" \
-          "$G_SRV -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32" \
+          "$G_SRV -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM" \
           "$P_CLI dtls=1 use_srtp=1 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11488,7 +11684,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_gnutls
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports all profiles. Client supports all profiles, in different order. gnutls server." \
-          "$G_SRV -u --srtp-profiles=SRTP_NULL_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_80:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32" \
+          "$G_SRV -u --srtp-profiles=SRTP_NULL_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_80:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM" \
           "$P_CLI dtls=1 use_srtp=1 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11502,7 +11698,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_gnutls
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP server supports all profiles. Client supports one profile. gnutls server." \
-          "$G_SRV -u --srtp-profiles=SRTP_NULL_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_80:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32" \
+          "$G_SRV -u --srtp-profiles=SRTP_NULL_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_AES128_CM_HMAC_SHA1_80:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM" \
           "$P_CLI dtls=1 use_srtp=1 srtp_force_profile=2 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \
@@ -11572,7 +11768,7 @@ requires_config_enabled MBEDTLS_SSL_DTLS_SRTP
 requires_gnutls
 requires_config_enabled MBEDTLS_SSL_PROTO_TLS1_2
 run_test  "DTLS-SRTP all profiles supported. mki used. gnutls server." \
-          "$G_SRV -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32" \
+          "$G_SRV -u --srtp-profiles=SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32:SRTP_NULL_HMAC_SHA1_80:SRTP_NULL_SHA1_32:SRTP_AEAD_AES_128_GCM:SRTP_AEAD_AES_256_GCM" \
           "$P_CLI dtls=1 use_srtp=1 mki=542310ab34290481 debug_level=3" \
           0 \
           -c "client hello, adding use_srtp extension" \

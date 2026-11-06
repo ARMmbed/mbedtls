@@ -1570,6 +1570,16 @@ static inline mbedtls_ssl_srtp_profile mbedtls_ssl_check_srtp_profile_value
         case MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32:
         case MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_80:
         case MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_32:
+        case MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM:
+        case MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM:
+        case MBEDTLS_TLS_DOUBLE_AEAD_AES_128_GCM_AEAD_AES_128_GCM:
+        case MBEDTLS_TLS_DOUBLE_AEAD_AES_256_GCM_AEAD_AES_256_GCM:
+        case MBEDTLS_TLS_SRTP_ARIA_128_CTR_HMAC_SHA1_80:
+        case MBEDTLS_TLS_SRTP_ARIA_128_CTR_HMAC_SHA1_32:
+        case MBEDTLS_TLS_SRTP_ARIA_256_CTR_HMAC_SHA1_80:
+        case MBEDTLS_TLS_SRTP_ARIA_256_CTR_HMAC_SHA1_32:
+        case MBEDTLS_TLS_SRTP_AEAD_ARIA_128_GCM:
+        case MBEDTLS_TLS_SRTP_AEAD_ARIA_256_GCM:
             return srtp_profile_value;
         default: break;
     }

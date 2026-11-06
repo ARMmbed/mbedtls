@@ -1092,7 +1092,7 @@ typedef struct {
 #if defined(MBEDTLS_SSL_DTLS_SRTP)
 
 #define MBEDTLS_TLS_SRTP_MAX_MKI_LENGTH             255
-#define MBEDTLS_TLS_SRTP_MAX_PROFILE_LIST_LENGTH    4
+#define MBEDTLS_TLS_SRTP_MAX_PROFILE_LIST_LENGTH    14
 /*
  * For code readability use a typedef for DTLS-SRTP profiles
  *
@@ -1102,12 +1102,23 @@ typedef struct {
  * Reminder: if this list is expanded mbedtls_ssl_check_srtp_profile_value
  * must be updated too.
  */
-#define MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80     ((uint16_t) 0x0001)
-#define MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32     ((uint16_t) 0x0002)
-#define MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_80          ((uint16_t) 0x0005)
-#define MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_32          ((uint16_t) 0x0006)
+#define MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80               ((uint16_t) 0x0001)       /* RFC5764 foundation for DTLS+SRTP */
+#define MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32               ((uint16_t) 0x0002)       /* RFC5764 foundation for DTLS+SRTP */
+/* 0x0003-0x0004 are listed as "Unassigned" */
+#define MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_80                    ((uint16_t) 0x0005)       /* RFC5764 foundation for DTLS+SRTP */
+#define MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_32                    ((uint16_t) 0x0006)       /* RFC5764 foundation for DTLS+SRTP */
+#define MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM                     ((uint16_t) 0x0007)       /* RFC7714 AES-GCM for SRTP */
+#define MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM                     ((uint16_t) 0x0008)       /* RFC7714 AES-GCM for SRTP */
+#define MBEDTLS_TLS_DOUBLE_AEAD_AES_128_GCM_AEAD_AES_128_GCM  ((uint16_t) 0x0009)       /* RFC8723 double encryption for SRTP */
+#define MBEDTLS_TLS_DOUBLE_AEAD_AES_256_GCM_AEAD_AES_256_GCM  ((uint16_t) 0x000A)       /* RFC8723 double encryption for SRTP */
+#define MBEDTLS_TLS_SRTP_ARIA_128_CTR_HMAC_SHA1_80            ((uint16_t) 0x000B)       /* RFC8269 ARIA+SRTP */
+#define MBEDTLS_TLS_SRTP_ARIA_128_CTR_HMAC_SHA1_32            ((uint16_t) 0x000C)       /* RFC8269 ARIA+SRTP */
+#define MBEDTLS_TLS_SRTP_ARIA_256_CTR_HMAC_SHA1_80            ((uint16_t) 0x000D)       /* RFC8269 ARIA+SRTP */
+#define MBEDTLS_TLS_SRTP_ARIA_256_CTR_HMAC_SHA1_32            ((uint16_t) 0x000E)       /* RFC8269 ARIA+SRTP */
+#define MBEDTLS_TLS_SRTP_AEAD_ARIA_128_GCM                    ((uint16_t) 0x000F)       /* RFC8269 ARIA+SRTP */
+#define MBEDTLS_TLS_SRTP_AEAD_ARIA_256_GCM                    ((uint16_t) 0x0010)       /* RFC8269 ARIA+SRTP */
 /* This one is not iana defined, but for code readability. */
-#define MBEDTLS_TLS_SRTP_UNSET                      ((uint16_t) 0x0000)
+#define MBEDTLS_TLS_SRTP_UNSET                                ((uint16_t) 0x0000)       /* end of list marker */
 
 typedef uint16_t mbedtls_ssl_srtp_profile;
 
@@ -4175,6 +4186,26 @@ static inline const char *mbedtls_ssl_get_srtp_profile_as_string(mbedtls_ssl_srt
             return "MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_80";
         case MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_32:
             return "MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_32";
+        case MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM:
+            return "MBEDTLS_TLS_SRTP_AEAD_AES_128_GCM";
+        case MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM:
+            return "MBEDTLS_TLS_SRTP_AEAD_AES_256_GCM";
+        case MBEDTLS_TLS_DOUBLE_AEAD_AES_128_GCM_AEAD_AES_128_GCM:
+            return "MBEDTLS_TLS_DOUBLE_AEAD_AES_128_GCM_AEAD_AES_128_GCM";
+        case MBEDTLS_TLS_DOUBLE_AEAD_AES_256_GCM_AEAD_AES_256_GCM:
+            return "MBEDTLS_TLS_DOUBLE_AEAD_AES_256_GCM_AEAD_AES_256_GCM";
+        case MBEDTLS_TLS_SRTP_ARIA_128_CTR_HMAC_SHA1_80:
+            return "MBEDTLS_TLS_SRTP_ARIA_128_CTR_HMAC_SHA1_80";
+        case MBEDTLS_TLS_SRTP_ARIA_128_CTR_HMAC_SHA1_32:
+            return "MBEDTLS_TLS_SRTP_ARIA_128_CTR_HMAC_SHA1_32";
+        case MBEDTLS_TLS_SRTP_ARIA_256_CTR_HMAC_SHA1_80:
+            return "MBEDTLS_TLS_SRTP_ARIA_256_CTR_HMAC_SHA1_80";
+        case MBEDTLS_TLS_SRTP_ARIA_256_CTR_HMAC_SHA1_32:
+            return "MBEDTLS_TLS_SRTP_ARIA_256_CTR_HMAC_SHA1_32";
+        case MBEDTLS_TLS_SRTP_AEAD_ARIA_128_GCM:
+            return "MBEDTLS_TLS_SRTP_AEAD_ARIA_128_GCM";
+        case MBEDTLS_TLS_SRTP_AEAD_ARIA_256_GCM:
+            return "MBEDTLS_TLS_SRTP_AEAD_ARIA_256_GCM";
         default: break;
     }
     return "";
