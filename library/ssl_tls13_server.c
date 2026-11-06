@@ -352,6 +352,7 @@ static int ssl_tls13_offered_psks_check_identity_match(
                                      session->resumption_key_len);
         if (ret != 0) {
             MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_set_hs_psk", ret);
+            mbedtls_ssl_session_free(session);
             return ret;
         }
 
@@ -638,6 +639,9 @@ static int ssl_tls13_parse_pre_shared_key_ext(
 
         if (psk->key_exchange_mode == MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_NONE) {
             MBEDTLS_SSL_DEBUG_MSG(3, ("No suitable PSK key exchange mode"));
+#if defined(MBEDTLS_SSL_SESSION_TICKETS)
+            mbedtls_ssl_session_free(&session);
+#endif
             continue;
         }
 

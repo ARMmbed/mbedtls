@@ -1,0 +1,7 @@
+Bugfix
+   * Fix a memory leak in a TLS 1.3 server built with MBEDTLS_SSL_EARLY_DATA
+     and MBEDTLS_SSL_ALPN. When a ClientHello offered an authentic session
+     ticket that could not be used because none of the PSK key exchange
+     modes it allows was available, the ALPN string restored from the ticket
+     was not freed. A client could repeat such tickets in its ClientHello to
+     leak memory on every handshake.
