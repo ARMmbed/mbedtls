@@ -1,0 +1,8 @@
+Security
+   * Fix a TLS 1.2 server accepting a session ticket that was issued for a
+     TLS 1.3 session. The session was resumed with an all-zero master secret,
+     so anyone holding the ticket could complete the abbreviated handshake and
+     derive the connection keys from public handshake values. TLS 1.3 tickets
+     appear in clear in the pre_shared_key extension of a TLS 1.3 resumption
+     ClientHello. This affects servers that enable both TLS 1.2 and TLS 1.3
+     and session tickets.

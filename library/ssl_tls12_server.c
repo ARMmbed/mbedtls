@@ -481,6 +481,16 @@ static int ssl_parse_session_ticket_ext(mbedtls_ssl_context *ssl,
     }
 
     /*
+     * A ticket issued for a TLS 1.3 session has no TLS 1.2 master secret,
+     * so it must not be used to resume a TLS 1.2 session.
+     */
+    if (session.tls_version != MBEDTLS_SSL_VERSION_TLS1_2) {
+        mbedtls_ssl_session_free(&session);
+        MBEDTLS_SSL_DEBUG_MSG(3, ("ticket TLS version is not 1.2"));
+        return 0;
+    }
+
+    /*
      * Keep the session ID sent by the client, since we MUST send it back to
      * inform them we're accepting the ticket  (RFC 5077 section 3.4)
      */
