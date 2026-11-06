@@ -91,9 +91,9 @@ fi
 # If $GNUTLS_SERV is at least 3.7, use it as GNUTLS_NEXT_SERV as well.
 if [ -z "${GNUTLS_NEXT_SERV:-}" ]; then
     case $($GNUTLS_SERV --version) in
-        gnutls-cli\ 3.[1-9][0-9]*) GNUTLS_NEXT_SERV=$GNUTLS_SERV;;
-        gnutls-cli\ 3.[7-9].*) GNUTLS_NEXT_SERV=$GNUTLS_SERV;;
-        gnutls-cli\ [4-9]*) GNUTLS_NEXT_SERV=$GNUTLS_SERV;;
+        gnutls-serv\ 3.[1-9][0-9]*) GNUTLS_NEXT_SERV=$GNUTLS_SERV;;
+        gnutls-serv\ 3.[7-9].*) GNUTLS_NEXT_SERV=$GNUTLS_SERV;;
+        gnutls-serv\ [4-9]*) GNUTLS_NEXT_SERV=$GNUTLS_SERV;;
     esac
 fi
 
