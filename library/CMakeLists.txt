@@ -356,7 +356,7 @@ foreach(target IN LISTS tf_psa_crypto_library_targets)
                       libmbedcrypto.so.${MBEDTLS_CRYPTO_SOVERSION}
                       libmbedcrypto.so
             )
-            install(FILES $<TARGET_FILE:${target}>
+            install(PROGRAMS $<TARGET_FILE:${target}>
                     DESTINATION ${CMAKE_INSTALL_LIBDIR}
                     RENAME "libmbedcrypto.so.${MBEDTLS_VERSION}"
             )
