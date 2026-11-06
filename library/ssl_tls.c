@@ -6617,11 +6617,8 @@ int ssl_calc_verify_tls_sha384(const mbedtls_ssl_context *ssl,
 }
 #endif /* PSA_WANT_ALG_SHA_384 */
 
-#if defined(MBEDTLS_SSL_SRV_C) && defined(MBEDTLS_SSL_RENEGOTIATION)
-MBEDTLS_CHECK_RETURN_CRITICAL
-static int ssl_write_hello_request(mbedtls_ssl_context *ssl);
-
-#if defined(MBEDTLS_SSL_PROTO_DTLS)
+#if defined(MBEDTLS_SSL_SRV_C) && defined(MBEDTLS_SSL_RENEGOTIATION) && \
+    defined(MBEDTLS_SSL_PROTO_DTLS)
 int mbedtls_ssl_resend_hello_request(mbedtls_ssl_context *ssl)
 {
     /* If renegotiation is not enforced, retransmit until we would reach max
@@ -6643,8 +6640,7 @@ int mbedtls_ssl_resend_hello_request(mbedtls_ssl_context *ssl)
 
     return ssl_write_hello_request(ssl);
 }
-#endif
-#endif /* MBEDTLS_SSL_SRV_C && MBEDTLS_SSL_RENEGOTIATION */
+#endif /* MBEDTLS_SSL_SRV_C && MBEDTLS_SSL_RENEGOTIATION && MBEDTLS_SSL_PROTO_DTLS*/
 
 /*
  * Handshake functions
