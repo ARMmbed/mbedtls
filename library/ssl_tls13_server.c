@@ -782,6 +782,12 @@ static int ssl_tls13_parse_supported_versions_ext(mbedtls_ssl_context *ssl,
 
     MBEDTLS_SSL_CHK_BUF_READ_PTR(p, end, 1);
     versions_len = p[0];
+
+    /* RFC 8446, Section 4.2.1 (versions<2..254>) and Section 3.4
+    * (vector length must be a multiple of the element size). */
+    if ( (versions_len < 2) || (versions_len > 254) || (versions_len % 2 != 0))
+        return MBEDTLS_ERR_SSL_DECODE_ERROR;
+
     p += 1;
 
     MBEDTLS_SSL_CHK_BUF_READ_PTR(p, end, versions_len);
