@@ -1463,10 +1463,49 @@ int mbedtls_x509_get_key_usage(unsigned char **p,
     return 0;
 }
 
+/*
+ * Check the primitive/constructed bit of a context-specific GeneralName tag
+ * (RFC 5280, section 4.2.1.6). otherName, x400Address, directoryName and
+ * ediPartyName are constructed. rfc822Name, dNSName,
+ * uniformResourceIdentifier, iPAddress and registeredID are primitive.
+ * Other tag numbers are not checked here.
+ */
+static int x509_san_tag_has_valid_form(unsigned char tag)
+{
+    int constructed = (tag & MBEDTLS_ASN1_CONSTRUCTED) != 0;
+
+    switch (tag & MBEDTLS_ASN1_TAG_VALUE_MASK) {
+        case MBEDTLS_X509_SAN_OTHER_NAME:
+        case MBEDTLS_X509_SAN_X400_ADDRESS_NAME:
+        case MBEDTLS_X509_SAN_DIRECTORY_NAME:
+        case MBEDTLS_X509_SAN_EDI_PARTY_NAME:
+            return constructed;
+        case MBEDTLS_X509_SAN_RFC822_NAME:
+        case MBEDTLS_X509_SAN_DNS_NAME:
+        case MBEDTLS_X509_SAN_UNIFORM_RESOURCE_IDENTIFIER:
+        case MBEDTLS_X509_SAN_IP_ADDRESS:
+        case MBEDTLS_X509_SAN_REGISTERED_ID:
+            return !constructed;
+        default:
+            return 1;
+    }
+}
+
 int mbedtls_x509_parse_subject_alt_name(const mbedtls_x509_buf *san_buf,
                                         mbedtls_x509_subject_alternative_name *san)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+    /*
+     * The switch below ignores the constructed bit, so check it first.
+     * This also covers the types that fall through to the default case.
+     */
+    if ((san_buf->tag & MBEDTLS_ASN1_TAG_CLASS_MASK) == MBEDTLS_ASN1_CONTEXT_SPECIFIC &&
+        !x509_san_tag_has_valid_form((unsigned char) san_buf->tag)) {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                 MBEDTLS_ERR_ASN1_UNEXPECTED_TAG);
+    }
+
     switch (san_buf->tag &
             (MBEDTLS_ASN1_TAG_CLASS_MASK |
              MBEDTLS_ASN1_TAG_VALUE_MASK)) {

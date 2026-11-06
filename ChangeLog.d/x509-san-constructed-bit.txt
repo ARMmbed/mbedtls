@@ -1,0 +1,6 @@
+Bugfix
+   * The subjectAltName parser no longer ignores the primitive/constructed
+     bit of a GeneralName tag. Previously an entry tagged 0xA2 (constructed
+     [2]) was parsed as a dNSName and used for hostname verification.
+     Certificates and CSRs with a GeneralName in the wrong form are now
+     rejected with MBEDTLS_ERR_ASN1_UNEXPECTED_TAG. Fixes #11024.
