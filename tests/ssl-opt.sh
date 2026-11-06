@@ -337,11 +337,10 @@ get_config_value_or_default() {
     # Note that if the configuration is not defined or is defined to nothing,
     # the output of this function will be an empty string.
     if [ "$LIST_TESTS" -eq 0 ];then
-        ${P_SRV} "query_config=${1}"
+        ${P_QUERY} "${1}"
     else
         echo "1"
     fi
-
 }
 
 requires_config_value_at_least() {
@@ -2141,6 +2140,17 @@ SRV_OUT="srv_out.$$"
 CLI_OUT="cli_out.$$"
 PXY_OUT="pxy_out.$$"
 SESSION="session.$$"
+
+
+# `$P_QUERY MBEDTLS_PLATFORM_STD_NV_SEED_FILE` will return `"seedfile"` and
+# `dd` will create file with double quotes. That's not expected, with `eval`
+# we can remove double quotes
+NV_SEED_FILE=$(eval "echo `$P_QUERY MBEDTLS_PLATFORM_STD_NV_SEED_FILE`")
+if [ -n "$NV_SEED_FILE" ] && [ ! -f $NV_SEED_FILE ]
+then
+    dd if=/dev/urandom of=$NV_SEED_FILE bs=64 count=1 2>/dev/null
+fi
+
 
 SKIP_NEXT="NO"
 

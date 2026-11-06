@@ -4540,6 +4540,8 @@ void raw_key_agreement_fail(int bad_server_ecdhe_key)
                                                 &(server.socket),
                                                 BUFFSIZE), 0);
 
+    USE_PSA_INIT();
+
     TEST_EQUAL(mbedtls_test_move_handshake_to_state(
                    &(client.ssl), &(server.ssl),
                    MBEDTLS_SSL_CLIENT_KEY_EXCHANGE), 0);
@@ -4554,6 +4556,7 @@ void raw_key_agreement_fail(int bad_server_ecdhe_key)
          * raw key agreement in ssl_write_client_key_exchange fail. */
         (client.ssl).handshake->xxdh_psa_peerkey[0] ^= 0x02;
     }
+
 
     TEST_EQUAL(mbedtls_test_move_handshake_to_state(
                    &(client.ssl), &(server.ssl), MBEDTLS_SSL_HANDSHAKE_OVER),

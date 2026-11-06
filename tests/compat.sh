@@ -33,6 +33,7 @@ SRVMEM=0
 : ${M_SRV:=../programs/ssl/ssl_server2}
 : ${M_CLI:=../programs/ssl/ssl_client2}
 : ${OPENSSL:=openssl}
+: ${M_QUERY:=../programs/test/query_compile_time_config}
 : ${GNUTLS_CLI:=gnutls-cli}
 : ${GNUTLS_SERV:=gnutls-serv}
 
@@ -991,6 +992,15 @@ if [ "$MEMCHECK" -gt 0 ]; then
     DOG_DELAY=30
 else
     DOG_DELAY=10
+fi
+
+# `$M_QUERY MBEDTLS_PLATFORM_STD_NV_SEED_FILE` will return `"seedfile"` and
+# `dd` will create file with double quotes. That's not expected, with `eval`
+# we can remove double quotes
+NV_SEED_FILE=$(eval "echo `$M_QUERY MBEDTLS_PLATFORM_STD_NV_SEED_FILE`")
+if [ -n "$NV_SEED_FILE" ] && [ ! -f $NV_SEED_FILE ]
+then
+    dd if=/dev/urandom of=$NV_SEED_FILE bs=64 count=1 2>/dev/null
 fi
 
 SKIP_NEXT="NO"
