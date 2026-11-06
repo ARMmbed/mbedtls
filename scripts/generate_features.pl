@@ -65,7 +65,7 @@ while (my $line = <CONFIG_H>)
     }
 
     if (!$in_section) {
-        my ($section_name) = $line =~ /SECTION: ([\w ]+)/;
+        my ($section_name) = $line =~ /SECTION: ([\w .]+)/;
         my $found_section = grep $_ eq $section_name, @sections;
 
         $in_section = 1 if ($found_section);

@@ -1,0 +1,3 @@
+Bugfix
+   * Fix a `mbedtls_version_check_features()` regression which caused all
+     features under the X.509 configuration section to be considered disabled.
