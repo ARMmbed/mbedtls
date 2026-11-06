@@ -1,0 +1,9 @@
+Slight Enhancement
+
+       * `pk.h` and other headers in the `tf-psa-crypto` submodule's include directory were not being scanned 
+         by `generate_errors.pl`, causing `MBEDTLS_ERR_PK_*` error codes to be missing from `error.c`.
+         This was needed becasue a bug was reported (#10768) that mentioned `MBED_ERR_PK_*" error codes go
+         unhandled.
+         The reporter ran a sample code e.g `int ret = mbedtls_x509_crt_parse_file(&srv_cert, config->server_cert_file);`
+         Returns `MBEDTLS_ERR_PK_FILE_IO_ERROR (-0x3e00)` when the file doesn't exist. Feeding that into `mbedtls_strerror()` 
+         returns an "error message" of `UNKNOWN ERROR CODE (3E00)`

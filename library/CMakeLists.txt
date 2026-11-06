@@ -51,6 +51,7 @@ if(GEN_FILES)
                 ${CMAKE_CURRENT_SOURCE_DIR}/../tf-psa-crypto/drivers/builtin/include/mbedtls
                 ${CMAKE_CURRENT_SOURCE_DIR}/../include/mbedtls
                 ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/data_files
+                ${CMAKE_CURRENT_SOURCE_DIR}/../tf-psa-crypto/include/mbedtls
                 ${CMAKE_CURRENT_BINARY_DIR}/${TF_PSA_CRYPTO_DRIVERS_BUILTIN_SRC_DIR}/error.c
         DEPENDS
             ${MBEDTLS_DIR}/scripts/generate_errors.pl

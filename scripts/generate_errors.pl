@@ -11,22 +11,24 @@
 use strict;
 use warnings;
 
-my ($crypto_include_dir, $tls_include_dir, $data_dir, $error_file);
+my ($crypto_include_dir, $tls_include_dir, $data_dir, $psa_include_dir, $error_file);
 
 if( @ARGV ) {
-    die "Invalid number of arguments" if scalar @ARGV != 4;
-    ($crypto_include_dir, $tls_include_dir, $data_dir, $error_file) = @ARGV;
+    die "Invalid number of arguments" if scalar @ARGV != 5;
+    ($crypto_include_dir, $tls_include_dir, $data_dir, $psa_include_dir, $error_file) = @ARGV;
 
     -d $crypto_include_dir or die "No such directory: $crypto_include_dir\n";
     -d $tls_include_dir or die "No such directory: $tls_include_dir\n";
     -d $data_dir or die "No such directory: $data_dir\n";
+    -d $psa_include_dir or die "No such directory: $psa_include_dir\n";
 } else {
     $crypto_include_dir = 'tf-psa-crypto/drivers/builtin/include/mbedtls';
     $tls_include_dir = 'include/mbedtls';
     $data_dir = 'scripts/data_files';
     $error_file = 'library/error.c';
+    $psa_include_dir = 'tf-psa-crypto/include/mbedtls';
 
-    unless( -d $crypto_include_dir && -d $tls_include_dir && -d $data_dir ) {
+    unless( -d $crypto_include_dir && -d $tls_include_dir && -d $data_dir && -d $psa_include_dir ) {
         chdir '..' or die;
         -d $crypto_include_dir && -d $tls_include_dir && -d $data_dir
             or die "Without arguments, must be run from root or scripts\n"
@@ -52,9 +54,11 @@ close(FORMAT_FILE);
 
 my @files = glob qq("$crypto_include_dir/*.h");
 push(@files, glob qq("$tls_include_dir/*.h"));
+push(@files, glob qq("$psa_include_dir/*.h"));
 
 push(@files, glob qq("$crypto_include_dir/private/*.h"));
 push(@files, glob qq("$tls_include_dir/private/*.h"));
+push(@files, glob qq("$psa_include_dir/private/*.h"));
 
 my @necessary_include_files;
 my @matches;
