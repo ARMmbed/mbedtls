@@ -4083,6 +4083,11 @@ void mbedtls_ssl_set_hs_authmode(mbedtls_ssl_context *ssl,
  *                 then must return 0. If no matching name is found, the
  *                 callback may return non-zero to abort the handshake.
  *
+ * \note           The callback is only called once the whole ServerName
+ *                 extension has been validated. \c hostname is not
+ *                 null-terminated; it is at least one byte long and does
+ *                 not contain any null byte.
+ *
  * \param conf     SSL configuration
  * \param f_sni    verification function
  * \param p_sni    verification parameter

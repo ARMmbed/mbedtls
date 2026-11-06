@@ -3653,3 +3653,48 @@ tls13_record_boundary_alignment:MBEDTLS_SSL_IS_SERVER:MBEDTLS_SSL_HS_FINISHED
 TLS 1.3 EndOfEarlyData record boundary alignment enforcement
 depends_on:MBEDTLS_SSL_EARLY_DATA:MBEDTLS_SSL_SESSION_TICKETS
 tls13_record_boundary_alignment:MBEDTLS_SSL_IS_SERVER:MBEDTLS_SSL_HS_END_OF_EARLY_DATA
+
+Parse server_name: single host_name
+ssl_parse_server_name_ext:"000e00000b6578616d706c652e636f6d":TEST_SNI_CB_NONE:0:0:"6578616d706c652e636f6d"
+
+Parse server_name: single host_name, callback accepts
+ssl_parse_server_name_ext:"000e00000b6578616d706c652e636f6d":TEST_SNI_CB_ACCEPT:0:0:"6578616d706c652e636f6d"
+
+Parse server_name: single host_name, callback rejects
+ssl_parse_server_name_ext:"000e00000b6578616d706c652e636f6d":TEST_SNI_CB_REJECT:MBEDTLS_ERR_SSL_UNRECOGNIZED_NAME:MBEDTLS_SSL_ALERT_MSG_UNRECOGNIZED_NAME:"6578616d706c652e636f6d"
+
+Parse server_name: unknown name type skipped before host_name
+ssl_parse_server_name_ext:"001401000361626300000b6578616d706c652e636f6d":TEST_SNI_CB_ACCEPT:0:0:"6578616d706c652e636f6d"
+
+Parse server_name: unknown name type only
+ssl_parse_server_name_ext:"0006010003616263":TEST_SNI_CB_ACCEPT:0:0:""
+
+Parse server_name: truncated list length
+ssl_parse_server_name_ext:"00":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_DECODE_ERROR:MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR:""
+
+Parse server_name: empty server_name_list
+ssl_parse_server_name_ext:"0000":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_DECODE_ERROR:MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR:""
+
+Parse server_name: trailing data after server_name_list
+ssl_parse_server_name_ext:"000e00000b6578616d706c652e636f6dff":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_DECODE_ERROR:MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR:""
+
+Parse server_name: server_name_list longer than extension
+ssl_parse_server_name_ext:"000f00000b6578616d706c652e636f6d":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_DECODE_ERROR:MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR:""
+
+Parse server_name: truncated entry header
+ssl_parse_server_name_ext:"00020000":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_DECODE_ERROR:MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR:""
+
+Parse server_name: host_name longer than server_name_list
+ssl_parse_server_name_ext:"0003000005":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_DECODE_ERROR:MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR:""
+
+Parse server_name: empty host_name
+ssl_parse_server_name_ext:"0003000000":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_DECODE_ERROR:MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR:""
+
+Parse server_name: two host_name entries
+ssl_parse_server_name_ext:"001c00000b6578616d706c652e636f6d00000b6578616d706c652e6e6574":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_DECODE_ERROR:MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR:""
+
+Parse server_name: malformed entry after host_name
+ssl_parse_server_name_ext:"001300000b6578616d706c652e636f6d0100056162":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_DECODE_ERROR:MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR:""
+
+Parse server_name: null byte in host_name
+ssl_parse_server_name_ext:"000e00000b6578616d706c6500636f6d":TEST_SNI_CB_ACCEPT:MBEDTLS_ERR_SSL_UNRECOGNIZED_NAME:MBEDTLS_SSL_ALERT_MSG_UNRECOGNIZED_NAME:""

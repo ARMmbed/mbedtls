@@ -637,6 +637,36 @@ static void tls_tweak_in_msglen(void *ctx, int level,
 }
 #endif
 
+/* Modes of the ServerName callback in ssl_parse_server_name_ext. These are
+ * used as expression parameters in test_suite_ssl.data, which the test
+ * framework's get_expression() evaluates regardless of a test case's
+ * dependencies, so they must be defined whenever the suite is built, not
+ * only under SNI && SRV_C. */
+#define TEST_SNI_CB_NONE   0
+#define TEST_SNI_CB_ACCEPT 1
+#define TEST_SNI_CB_REJECT 2
+
+#if defined(MBEDTLS_SSL_SERVER_NAME_INDICATION) && defined(MBEDTLS_SSL_SRV_C)
+typedef struct {
+    int ret;
+    int calls;
+    const unsigned char *name;
+    size_t name_len;
+} test_sni_cb_ctx_t;
+
+static int test_sni_cb(void *p_ctx, mbedtls_ssl_context *ssl,
+                       const unsigned char *name, size_t name_len)
+{
+    test_sni_cb_ctx_t *ctx = (test_sni_cb_ctx_t *) p_ctx;
+
+    (void) ssl;
+    ctx->calls++;
+    ctx->name = name;
+    ctx->name_len = name_len;
+    return ctx->ret;
+}
+#endif /* MBEDTLS_SSL_SERVER_NAME_INDICATION && MBEDTLS_SSL_SRV_C */
+
 
 
 /* END_HEADER */
@@ -7595,5 +7625,66 @@ exit:
     mbedtls_debug_set_threshold(0);
     mbedtls_ssl_session_free(&saved_session);
     PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_SERVER_NAME_INDICATION:MBEDTLS_SSL_SRV_C */
+void ssl_parse_server_name_ext(data_t *ext_data, int sni_cb_mode,
+                               int expected_ret, int expected_alert,
+                               data_t *expected_hostname)
+{
+    mbedtls_ssl_context ssl;
+    mbedtls_ssl_config conf;
+    test_sni_cb_ctx_t sni_ctx = { 0, 0, NULL, 0 };
+    const unsigned char *sni_name;
+    size_t sni_name_len;
+
+    mbedtls_ssl_init(&ssl);
+    mbedtls_ssl_config_init(&conf);
+    USE_PSA_INIT();
+
+    TEST_EQUAL(mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_SERVER,
+                                           MBEDTLS_SSL_TRANSPORT_STREAM,
+                                           MBEDTLS_SSL_PRESET_DEFAULT),
+               0);
+    if (sni_cb_mode != TEST_SNI_CB_NONE) {
+        sni_ctx.ret = (sni_cb_mode == TEST_SNI_CB_REJECT) ? -1 : 0;
+        mbedtls_ssl_conf_sni(&conf, test_sni_cb, &sni_ctx);
+    }
+    TEST_EQUAL(mbedtls_ssl_setup(&ssl, &conf), 0);
+
+    TEST_EQUAL(mbedtls_ssl_parse_server_name_ext(&ssl, ext_data->x,
+                                                 ext_data->x + ext_data->len),
+               expected_ret);
+
+    if (expected_alert != 0) {
+        TEST_EQUAL(ssl.MBEDTLS_PRIVATE(send_alert), 1);
+        TEST_EQUAL(ssl.MBEDTLS_PRIVATE(alert_type), expected_alert);
+        TEST_EQUAL(ssl.MBEDTLS_PRIVATE(alert_reason), expected_ret);
+    } else {
+        TEST_EQUAL(ssl.MBEDTLS_PRIVATE(send_alert), 0);
+    }
+
+    /* The host name is recorded, and the callback called with it, only
+     * once the whole extension has been validated. */
+    sni_name = ssl.MBEDTLS_PRIVATE(handshake)->sni_name;
+    sni_name_len = ssl.MBEDTLS_PRIVATE(handshake)->sni_name_len;
+    if (expected_hostname->len == 0) {
+        TEST_ASSERT(sni_name == NULL);
+        TEST_EQUAL(sni_ctx.calls, 0);
+    } else {
+        TEST_MEMORY_COMPARE(sni_name, sni_name_len,
+                            expected_hostname->x, expected_hostname->len);
+        if (sni_cb_mode != TEST_SNI_CB_NONE) {
+            TEST_EQUAL(sni_ctx.calls, 1);
+            TEST_MEMORY_COMPARE(sni_ctx.name, sni_ctx.name_len,
+                                expected_hostname->x, expected_hostname->len);
+        }
+    }
+
+exit:
+    mbedtls_ssl_free(&ssl);
+    mbedtls_ssl_config_free(&conf);
+    USE_PSA_DONE();
 }
 /* END_CASE */

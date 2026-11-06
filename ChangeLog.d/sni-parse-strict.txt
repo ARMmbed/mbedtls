@@ -1,0 +1,9 @@
+Bugfix
+   * The TLS server now rejects a ClientHello whose server_name extension
+     is malformed: an empty server_name_list, a list that does not fill the
+     extension, an empty host_name, more than one host_name entry (forbidden
+     by RFC 6066), or an entry after the host_name that overruns the list.
+     Previously the first host_name was used and the rest of the extension
+     was not checked. These are rejected with a decode_error alert. A
+     host_name containing a null byte is rejected with an unrecognized_name
+     alert instead of being passed to the ServerName callback.

@@ -8372,6 +8372,13 @@ int mbedtls_ssl_write_sig_alg_ext(mbedtls_ssl_context *ssl, unsigned char *buf,
  *  struct {
  *          ServerName server_name_list<1..2^16-1>
  *     } ServerNameList;
+ *
+ * RFC 6066, section 3: "The ServerNameList MUST NOT contain more than one
+ * name of the same name_type." Entries of unknown name types begin with a
+ * 16-bit length field and are skipped.
+ *
+ * The whole list is validated before the ServerName callback is called, so
+ * that the callback never acts on a malformed extension.
  */
 MBEDTLS_CHECK_RETURN_CRITICAL
 int mbedtls_ssl_parse_server_name_ext(mbedtls_ssl_context *ssl,
@@ -8380,8 +8387,9 @@ int mbedtls_ssl_parse_server_name_ext(mbedtls_ssl_context *ssl,
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     const unsigned char *p = buf;
-    size_t server_name_list_len, hostname_len;
-    const unsigned char *server_name_list_end;
+    size_t server_name_list_len, name_len;
+    const unsigned char *hostname = NULL;
+    size_t hostname_len = 0;
 
     MBEDTLS_SSL_DEBUG_MSG(3, ("parse ServerName extension"));
 
@@ -8389,37 +8397,63 @@ int mbedtls_ssl_parse_server_name_ext(mbedtls_ssl_context *ssl,
     server_name_list_len = MBEDTLS_GET_UINT16_BE(p, 0);
     p += 2;
 
-    MBEDTLS_SSL_CHK_BUF_READ_PTR(p, end, server_name_list_len);
-    server_name_list_end = p + server_name_list_len;
-    while (p < server_name_list_end) {
-        MBEDTLS_SSL_CHK_BUF_READ_PTR(p, server_name_list_end, 3);
-        hostname_len = MBEDTLS_GET_UINT16_BE(p, 1);
-        MBEDTLS_SSL_CHK_BUF_READ_PTR(p, server_name_list_end,
-                                     hostname_len + 3);
+    /* The list must not be empty and must fill the extension exactly. */
+    if (server_name_list_len == 0 ||
+        server_name_list_len != (size_t) (end - p)) {
+        MBEDTLS_SSL_DEBUG_MSG(1, ("bad server_name list length"));
+        MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR,
+                                     MBEDTLS_ERR_SSL_DECODE_ERROR);
+        return MBEDTLS_ERR_SSL_DECODE_ERROR;
+    }
+
+    while (p < end) {
+        MBEDTLS_SSL_CHK_BUF_READ_PTR(p, end, 3);
+        name_len = MBEDTLS_GET_UINT16_BE(p, 1);
+        MBEDTLS_SSL_CHK_BUF_READ_PTR(p, end, name_len + 3);
 
         if (p[0] == MBEDTLS_TLS_EXT_SERVERNAME_HOSTNAME) {
-            /* sni_name is intended to be used only during the parsing of the
-             * ClientHello message (it is reset to NULL before the end of
-             * the message parsing). Thus it is ok to just point to the
-             * reception buffer and not make a copy of it.
-             */
-            ssl->handshake->sni_name = p + 3;
-            ssl->handshake->sni_name_len = hostname_len;
-            if (ssl->conf->f_sni == NULL) {
-                return 0;
+            if (hostname != NULL || name_len == 0) {
+                MBEDTLS_SSL_DEBUG_MSG(1, ("bad server_name host_name entry"));
+                MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR,
+                                             MBEDTLS_ERR_SSL_DECODE_ERROR);
+                return MBEDTLS_ERR_SSL_DECODE_ERROR;
             }
-            ret = ssl->conf->f_sni(ssl->conf->p_sni,
-                                   ssl, p + 3, hostname_len);
-            if (ret != 0) {
-                MBEDTLS_SSL_DEBUG_RET(1, "ssl_sni_wrapper", ret);
+            /* A host name never contains a null byte. Reject it rather than
+             * pass a name to the callback that a C string comparison would
+             * truncate. */
+            if (memchr(p + 3, '\0', name_len) != NULL) {
+                MBEDTLS_SSL_DEBUG_MSG(1, ("null byte in server_name host_name"));
                 MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_UNRECOGNIZED_NAME,
                                              MBEDTLS_ERR_SSL_UNRECOGNIZED_NAME);
                 return MBEDTLS_ERR_SSL_UNRECOGNIZED_NAME;
             }
-            return 0;
+            hostname = p + 3;
+            hostname_len = name_len;
         }
 
-        p += hostname_len + 3;
+        p += name_len + 3;
+    }
+
+    if (hostname == NULL) {
+        return 0;
+    }
+
+    /* sni_name is intended to be used only during the parsing of the
+     * ClientHello message (it is reset to NULL before the end of
+     * the message parsing). Thus it is ok to just point to the
+     * reception buffer and not make a copy of it.
+     */
+    ssl->handshake->sni_name = hostname;
+    ssl->handshake->sni_name_len = hostname_len;
+    if (ssl->conf->f_sni == NULL) {
+        return 0;
+    }
+    ret = ssl->conf->f_sni(ssl->conf->p_sni, ssl, hostname, hostname_len);
+    if (ret != 0) {
+        MBEDTLS_SSL_DEBUG_RET(1, "ssl_sni_wrapper", ret);
+        MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_UNRECOGNIZED_NAME,
+                                     MBEDTLS_ERR_SSL_UNRECOGNIZED_NAME);
+        return MBEDTLS_ERR_SSL_UNRECOGNIZED_NAME;
     }
 
     return 0;
