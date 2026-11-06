@@ -1,0 +1,3 @@
+Bugfix
+	* Call to `psa_crypto_init()` before parsing the test CA certificate in the
+	  fuzzing programs for TLS and DTLS clients.

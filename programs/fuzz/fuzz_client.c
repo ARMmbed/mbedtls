@@ -37,6 +37,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
     fuzzBufferOffset_t biomemfuzz;
     uint16_t options;
 
+    psa_status_t status = psa_crypto_init();
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
     if (initialized == 0) {
 #if defined(MBEDTLS_X509_CRT_PARSE_C) && defined(MBEDTLS_PEM_PARSE_C)
         mbedtls_x509_crt_init(&cacert);
@@ -65,11 +70,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
 
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
-
-    psa_status_t status = psa_crypto_init();
-    if (status != PSA_SUCCESS) {
-        goto exit;
-    }
 
     if (mbedtls_ssl_config_defaults(&conf,
                                     MBEDTLS_SSL_IS_CLIENT,
