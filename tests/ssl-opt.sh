@@ -13310,7 +13310,10 @@ run_test    "TLS 1.3: Server side check - mbedtls with client empty certificate"
             -s "tls13 server state: MBEDTLS_SSL_SERVER_CERTIFICATE" \
             -s "=> write certificate request" \
             -s "SSL - No client certification received from the client, but required by the authentication mode" \
+            -s "send alert level=2 message=116" \
             -c "client state: MBEDTLS_SSL_CERTIFICATE_REQUEST" \
+            -c "is a fatal alert message (msg 116)" \
+            -C "0x7180" \
             -s "=> parse client hello" \
             -s "<= parse client hello"
 

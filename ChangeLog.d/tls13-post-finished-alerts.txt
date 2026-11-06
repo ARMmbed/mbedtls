@@ -1,0 +1,13 @@
+Bugfix
+   * In a TLS 1.3 server, protect alerts sent after the server Finished
+     message, such as those sent when a required client certificate is
+     missing or invalid, with the application traffic keys, as required by
+     RFC 8446 section 4.4.4. Previously these alerts were encrypted with the
+     handshake traffic keys, so the peer reported a MAC failure instead of
+     decoding the alert. Fixes #10877.
+   * In TLS 1.3, send the alerts described in RFC 8446 section 4.4.2.4. A
+     server that requires a client certificate and receives none now sends a
+     certificate_required alert, and a client that receives an empty server
+     Certificate message now sends a decode_error alert. Both previously sent
+     the no_certificate alert, which is reserved in TLS 1.3. Fixes #10720,
+     fixes #10900, fixes #10724, fixes #10884.

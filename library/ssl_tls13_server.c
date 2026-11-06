@@ -2888,6 +2888,14 @@ static int ssl_tls13_write_server_finished(mbedtls_ssl_context *ssl)
         return ret;
     }
 
+    /* RFC 8446 4.4.4: records after the server Finished use the application
+     * keys. Switch the outbound transform now; inbound stays on the handshake
+     * (or early-data) keys until the client's second flight. */
+    MBEDTLS_SSL_DEBUG_MSG(
+        1, ("Switch to application keys for outbound traffic "
+            "( K_send = application )"));
+    mbedtls_ssl_set_outbound_transform(ssl, ssl->transform_application);
+
 #if defined(MBEDTLS_SSL_EARLY_DATA)
     if (ssl->handshake->early_data_accepted) {
         /* See RFC 8446 section A.2 for more information */

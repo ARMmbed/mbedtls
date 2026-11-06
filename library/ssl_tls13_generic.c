@@ -677,16 +677,14 @@ static int ssl_tls13_validate_certificate(mbedtls_ssl_context *ssl)
 
 #if defined(MBEDTLS_SSL_SRV_C)
         if (ssl->conf->endpoint == MBEDTLS_SSL_IS_SERVER) {
-            /* The client was asked for a certificate but didn't send
-             * one. The client should know what's going on, so we
-             * don't send an alert.
-             */
+            /* No client certificate: optional auth continues, required auth
+             * aborts with certificate_required (RFC 8446 4.4.2.4). */
             ssl->session_negotiate->verify_result = MBEDTLS_X509_BADCERT_MISSING;
             if (authmode == MBEDTLS_SSL_VERIFY_OPTIONAL) {
                 return 0;
             } else {
                 MBEDTLS_SSL_PEND_FATAL_ALERT(
-                    MBEDTLS_SSL_ALERT_MSG_NO_CERT,
+                    MBEDTLS_SSL_ALERT_MSG_CERT_REQUIRED,
                     MBEDTLS_ERR_SSL_NO_CLIENT_CERTIFICATE);
                 return MBEDTLS_ERR_SSL_NO_CLIENT_CERTIFICATE;
             }
@@ -698,9 +696,10 @@ static int ssl_tls13_validate_certificate(mbedtls_ssl_context *ssl)
          * certificate chain. (Last paragraph before 4.4.2.1 in RFC 8446: "The
          * server's certificate_list MUST always be non-empty.") With authmode
          * optional/none, we continue the handshake if we can't validate the
-         * server's cert, but we still break it if no certificate was sent. */
+         * server's cert, but we still break it if no certificate was sent.
+         * RFC 8446, section 4.4.2.4 requires a "decode_error" alert here. */
         if (ssl->conf->endpoint == MBEDTLS_SSL_IS_CLIENT) {
-            MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_NO_CERT,
+            MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_DECODE_ERROR,
                                          MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE);
             return MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE;
         }
