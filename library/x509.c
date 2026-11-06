@@ -1299,7 +1299,8 @@ int mbedtls_x509_get_subject_alt_name_ext(unsigned char **p,
         (*p)++;
 
         if ((ret = mbedtls_asn1_get_len(p, end, &tag_len)) != 0) {
-            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+            ret = MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
+            goto error;
         }
 
         tmp_san_buf.p = *p;
@@ -1307,8 +1308,9 @@ int mbedtls_x509_get_subject_alt_name_ext(unsigned char **p,
 
         if ((tmp_san_buf.tag & MBEDTLS_ASN1_TAG_CLASS_MASK) !=
             MBEDTLS_ASN1_CONTEXT_SPECIFIC) {
-            return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
-                                     MBEDTLS_ERR_ASN1_UNEXPECTED_TAG);
+            ret = MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                    MBEDTLS_ERR_ASN1_UNEXPECTED_TAG);
+            goto error;
         }
 
         /*
@@ -1321,23 +1323,26 @@ int mbedtls_x509_get_subject_alt_name_ext(unsigned char **p,
          * and clear the allocated sequences.
          */
         if (ret != 0 && ret != MBEDTLS_ERR_X509_FEATURE_UNAVAILABLE) {
-            mbedtls_asn1_sequence_free(subject_alt_name->next);
-            subject_alt_name->next = NULL;
-            return ret;
+            goto error;
         }
 
         mbedtls_x509_free_subject_alt_name(&tmp_san_name);
         /* Allocate and assign next pointer */
         if (cur->buf.p != NULL) {
             if (cur->next != NULL) {
+                /*
+                 * The mbedtls_x509_sequence already contains something,
+                 * leave it alone and return an error.
+                 */
                 return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
             }
 
             cur->next = mbedtls_calloc(1, sizeof(mbedtls_asn1_sequence));
 
             if (cur->next == NULL) {
-                return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
-                                         MBEDTLS_ERR_ASN1_ALLOC_FAILED);
+                ret = MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                        MBEDTLS_ERR_ASN1_ALLOC_FAILED);
+                goto error;
             }
 
             cur = cur->next;
@@ -1351,11 +1356,17 @@ int mbedtls_x509_get_subject_alt_name_ext(unsigned char **p,
     cur->next = NULL;
 
     if (*p != end) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
-                                 MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+        ret = MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+        goto error;
     }
 
     return 0;
+
+error:
+    mbedtls_asn1_sequence_free(subject_alt_name->next);
+    subject_alt_name->next = NULL;
+    return ret;
 }
 
 /*
