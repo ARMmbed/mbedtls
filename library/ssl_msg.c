@@ -4092,7 +4092,9 @@ int mbedtls_ssl_read_record(mbedtls_ssl_context *ssl,
                  MBEDTLS_ERR_SSL_CONTINUE_PROCESSING == ret);
 
         if (0 != ret) {
-            MBEDTLS_SSL_DEBUG_RET(1, ("mbedtls_ssl_handle_message_type"), ret);
+            if (ret != MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
+                MBEDTLS_SSL_DEBUG_RET(1, ("mbedtls_ssl_handle_message_type"), ret);
+            }
             return ret;
         }
 
@@ -5719,8 +5721,9 @@ int mbedtls_ssl_read(mbedtls_ssl_context *ssl, unsigned char *buf, size_t len)
             if (ret == MBEDTLS_ERR_SSL_CONN_EOF) {
                 return 0;
             }
-
-            MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_read_record", ret);
+            if (ret != MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
+                MBEDTLS_SSL_DEBUG_RET(1, "mbedtls_ssl_read_record", ret);
+            }
             return ret;
         }
 
