@@ -1,0 +1,6 @@
+Bugfix
+   * Fix mbedtls_ssl_cookie_write() writing up to 20 bytes past the end of
+     the output buffer when less than 36 bytes (or 52 bytes when the cookie
+     uses SHA-384) were available. The library's own callers always leave
+     enough room, so only applications that call it directly with a smaller
+     buffer were affected.

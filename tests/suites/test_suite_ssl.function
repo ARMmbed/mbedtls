@@ -2,6 +2,7 @@
 #include <ssl_misc.h>
 #include <mbedtls/timing.h>
 #include <mbedtls/debug.h>
+#include <mbedtls/ssl_cookie.h>
 #include <mbedtls/pk.h>
 #if defined(MBEDTLS_PK_HAVE_PRIVATE_HEADER)
 #include <mbedtls/private/pk_private.h>
@@ -4402,6 +4403,40 @@ exit:
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
     USE_PSA_DONE();
+}
+/* END_CASE */
+
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_COOKIE_C */
+void cookie_write_bounds(int out_len, int exp_ret)
+{
+    mbedtls_ssl_cookie_ctx ctx;
+    const unsigned char cli_id[] = { 0x7f, 0x00, 0x00, 0x01, 0x12, 0x34 };
+    unsigned char *buf = NULL;
+    unsigned char *p;
+
+    mbedtls_ssl_cookie_init(&ctx);
+    PSA_INIT();
+
+    /* Allocate exactly out_len bytes so that Asan catches any write past
+     * the end of the output buffer. */
+    TEST_CALLOC(buf, out_len);
+
+    TEST_EQUAL(mbedtls_ssl_cookie_setup(&ctx), 0);
+
+    p = buf;
+    TEST_EQUAL(mbedtls_ssl_cookie_write(&ctx, &p, buf + out_len,
+                                        cli_id, sizeof(cli_id)), exp_ret);
+
+    if (exp_ret == 0) {
+        TEST_EQUAL(p - buf, out_len);
+        TEST_EQUAL(mbedtls_ssl_cookie_check(&ctx, buf, p - buf,
+                                            cli_id, sizeof(cli_id)), 0);
+    }
+
+exit:
+    mbedtls_free(buf);
+    mbedtls_ssl_cookie_free(&ctx);
+    PSA_DONE();
 }
 /* END_CASE */
 

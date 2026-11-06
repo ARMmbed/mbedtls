@@ -159,7 +159,7 @@ int mbedtls_ssl_cookie_write(void *p_ctx,
         goto exit;
     }
 
-    status = psa_mac_sign_finish(&operation, *p, COOKIE_MD_OUTLEN,
+    status = psa_mac_sign_finish(&operation, *p, COOKIE_HMAC_LEN,
                                  &sign_mac_length);
     if (status != PSA_SUCCESS) {
         ret = PSA_TO_MBEDTLS_ERR(status);
