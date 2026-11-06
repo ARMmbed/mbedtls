@@ -2768,6 +2768,10 @@ X509 CRT verify chain #25 (len=3, vrfy fatal on depth 3, untrusted)
 depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256:PSA_HAVE_ALG_SOME_RSA_VERIFY:PSA_WANT_ALG_SHA_1:PSA_WANT_ECC_SECP_R1_384
 mbedtls_x509_crt_verify_chain:"../framework/data_files/server10_int3_int-ca2_ca.crt":"../framework/data_files/test-ca2.crt":-1:-4:"":8
 
+X509 CRT verify chain #26 (ECDSA-only profile, EC self-signed cert)
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256
+mbedtls_x509_crt_verify_chain:"../framework/data_files/server5-selfsigned.crt":"../framework/data_files/server5-selfsigned.crt":0:0:"ecdsa_only":0
+
 X509 OID description #1
 x509_oid_desc:"2b06010505070301":"TLS Web Server Authentication"
 
@@ -3559,3 +3563,7 @@ oid_get_numeric_string:"8001":MBEDTLS_ERR_ASN1_INVALID_DATA:""
 
 OID get numeric string - overlong encoding, second subidentifier
 oid_get_numeric_string:"2B8001":MBEDTLS_ERR_ASN1_INVALID_DATA:""
+
+X509 CRT verify chain #18 (ECDSA-only profile, EC self-signed cert)
+depends_on:PSA_WANT_ALG_SHA_256:PSA_HAVE_ALG_ECDSA_VERIFY:PSA_WANT_ECC_SECP_R1_256
+mbedtls_x509_crt_verify_chain:"../framework/data_files/server5-selfsigned.crt":"../framework/data_files/server5-selfsigned.crt":0:0:"ecdsa_only":0

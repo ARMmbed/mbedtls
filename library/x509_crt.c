@@ -181,6 +181,24 @@ int mbedtls_x509_profile_check_md_alg(const mbedtls_x509_crt_profile *profile,
     return -1;
 }
 
+/*
+ * Map an internal pk_type to the public pk_sigalg_t used in profiles.
+ *
+ * This is needed because mbedtls_pk_type_t and mbedtls_pk_sigalg_t have
+ * different numerical values for the same logical algorithms.
+ */
+static mbedtls_pk_sigalg_t x509_pk_type_to_sigalg(mbedtls_pk_type_t pk_type)
+{
+    switch (pk_type) {
+        case MBEDTLS_PK_RSA:        return MBEDTLS_PK_SIGALG_RSA_PKCS1V15;
+        case MBEDTLS_PK_RSASSA_PSS: return MBEDTLS_PK_SIGALG_RSA_PSS;
+        case MBEDTLS_PK_ECKEY:
+        case MBEDTLS_PK_ECKEY_DH:
+        case MBEDTLS_PK_ECDSA:      return MBEDTLS_PK_SIGALG_ECDSA;
+        default:                    return MBEDTLS_PK_SIGALG_NONE;
+    }
+}
+
 int mbedtls_x509_profile_check_pk_alg(const mbedtls_x509_crt_profile *profile,
                                       mbedtls_pk_sigalg_t pk_alg)
 {
@@ -3074,7 +3092,7 @@ static int x509_crt_verify_restartable_ca_cb(mbedtls_x509_crt *crt,
     /* Check the type and size of the key */
     pk_type = mbedtls_pk_get_type(&crt->pk);
 
-    if (mbedtls_x509_profile_check_pk_alg(profile, (mbedtls_pk_sigalg_t) pk_type) != 0) {
+    if (mbedtls_x509_profile_check_pk_alg(profile, x509_pk_type_to_sigalg(pk_type)) != 0) {
         ee_flags |= MBEDTLS_X509_BADCERT_BAD_PK;
     }
 

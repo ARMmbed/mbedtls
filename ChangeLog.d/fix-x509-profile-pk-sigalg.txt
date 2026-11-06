@@ -1,0 +1,5 @@
+Bugfix
+   * Fix X.509 certificate profile checks to correctly map internal PK types
+     to public signature algorithm identifiers. Previously, ECKEY certificates
+     were incorrectly rejected when MBEDTLS_PK_SIGALG_ECDSA was allowed in a
+     custom profile. Fixes #10849 and #10747.
