@@ -1,0 +1,2 @@
+Features
+   * Validate UTF-8 strings in certificate Distinguished Names.

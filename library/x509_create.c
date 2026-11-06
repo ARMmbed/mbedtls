@@ -455,6 +455,59 @@ error:
     return ret;
 }
 
+static int validate_utf8(unsigned char *data, size_t len)
+{
+    uint32_t code_point;
+    unsigned char *d;
+    unsigned char *end = data + len;
+    int utf_bytes, i;
+
+    for (d = data; d < end; d++) {
+        code_point = 0;
+        if ((*d & 0x80) == 0x00) {
+            utf_bytes = 1;
+            code_point = code_point | (*d & 0x3F);
+        } else if ((*d & 0xE0) == 0xC0) {
+            utf_bytes = 2;
+            code_point = code_point | (uint32_t) (*d & 0x1F) << 6;
+        } else if ((*d & 0xF0) == 0xE0) {
+            utf_bytes = 3;
+            code_point = code_point | (uint32_t) (*d & 0x0F) << 12;
+        } else if ((*d & 0xF8) == 0xF0) {
+            utf_bytes = 4;
+            code_point = code_point | (uint32_t) (*d & 0x07) << 18;
+        } else {
+            return MBEDTLS_ERR_X509_INVALID_NAME;
+        }
+        for (i = utf_bytes-1; i > 0; i--) {
+            if (d + 1 >= end) {
+                return -1;
+            }
+            d++;
+            code_point = code_point | (uint32_t) (*d & 0x3F) << (6 * (i-1));
+        }
+        switch (utf_bytes) {
+            case 2:
+                if (!(0x80 < code_point && code_point < 0x7FF)) {
+                    return MBEDTLS_ERR_X509_INVALID_NAME; //bad encoding
+                }
+                break;
+            case 3:
+                if (!(0x800 < code_point && code_point < 0xD7FF) &&
+                    !(0xE000 < utf_bytes && utf_bytes < 0xFFFF)) {
+                    return MBEDTLS_ERR_X509_INVALID_NAME; //bad encoding
+                }
+                break;
+            case 4:
+                if (!(0x10000 < code_point && code_point < 0x10FFFF)) {
+                    return MBEDTLS_ERR_X509_INVALID_NAME; //bad encoding
+                }
+                break;
+        }
+    }
+    return 0;
+}
+
 int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *name)
 {
     int ret = MBEDTLS_ERR_X509_INVALID_NAME;
@@ -524,6 +577,11 @@ int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *nam
                         return parse_ret;
                     }
                     tag = attr_descr->default_tag;
+                }
+            }
+            if (tag == MBEDTLS_ASN1_UTF8_STRING) {
+                if (validate_utf8(data, data_len) != 0) {
+                    return MBEDTLS_ERR_X509_INVALID_NAME;
                 }
             }
 
