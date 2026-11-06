@@ -469,8 +469,7 @@ static int x509_get_uid(unsigned char **p,
     uid->tag = **p;
 
     if ((ret = mbedtls_asn1_get_tag(p, end, &uid->len,
-                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED |
-                                    n)) != 0) {
+                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC | n)) != 0) {
         if (ret == MBEDTLS_ERR_ASN1_UNEXPECTED_TAG) {
             return 0;
         }

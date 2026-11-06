@@ -1,0 +1,13 @@
+Security
+   * Fix mbedtls_x509_crt_parse() accepting a certificate whose
+     extensions field (context tag [3]) has been relabeled as
+     issuerUniqueID (tag [1]) or subjectUniqueID (tag [2]). Previously
+     x509_get_uid() matched context-specific tags [1]/[2] in either
+     primitive or constructed form, but a genuine, correctly
+     DER-encoded issuerUniqueID/subjectUniqueID (an IMPLICIT-tagged
+     BIT STRING) is always primitive, while a real extensions block is
+     always constructed (EXPLICIT tagging). A relabeled extensions
+     block was therefore silently consumed as a unique identifier,
+     causing all certificate extensions - including basicConstraints
+     and keyUsage - to be dropped without any parse error. Reported by
+     an anonymous researcher.
