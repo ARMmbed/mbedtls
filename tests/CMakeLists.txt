@@ -151,18 +151,18 @@ function(add_test_suite suite_name)
             ${MBEDTLS_FRAMEWORK_DIR}/scripts/generate_test_code.py
             -f ${CMAKE_CURRENT_SOURCE_DIR}/suites/test_suite_${suite_name}.function
             -d ${data_file}
-            -t ${CMAKE_CURRENT_SOURCE_DIR}/../tf-psa-crypto/tests/suites/main_test.function
-            -p ${CMAKE_CURRENT_SOURCE_DIR}/../tf-psa-crypto/tests/suites/host_test.function
+            -t ${TF_PSA_CRYPTO_DIR}/tests/suites/main_test.function
+            -p ${TF_PSA_CRYPTO_DIR}/tests/suites/host_test.function
             -s ${CMAKE_CURRENT_SOURCE_DIR}/suites
-            --helpers-file ${CMAKE_CURRENT_SOURCE_DIR}/../tf-psa-crypto/tests/suites/helpers.function
+            --helpers-file ${TF_PSA_CRYPTO_DIR}/tests/suites/helpers.function
             -o .
         DEPENDS
             ${MBEDTLS_FRAMEWORK_DIR}/scripts/generate_test_code.py
             ${CMAKE_CURRENT_SOURCE_DIR}/suites/test_suite_${suite_name}.function
             ${data_file}
-            ${CMAKE_CURRENT_SOURCE_DIR}/../tf-psa-crypto/tests/suites/main_test.function
-            ${CMAKE_CURRENT_SOURCE_DIR}/../tf-psa-crypto/tests/suites/host_test.function
-            ${CMAKE_CURRENT_SOURCE_DIR}/../tf-psa-crypto/tests/suites/helpers.function
+            ${TF_PSA_CRYPTO_DIR}/tests/suites/main_test.function
+            ${TF_PSA_CRYPTO_DIR}/tests/suites/host_test.function
+            ${TF_PSA_CRYPTO_DIR}/tests/suites/helpers.function
             ${mbedtls_target}
         BYPRODUCTS
             test_suite_${data_name}.datax

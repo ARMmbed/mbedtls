@@ -3,7 +3,7 @@ MBEDTLS_TEST_PATH:=../../tests
 MBEDTLS_PATH := ../..
 include ../../scripts/common.make
 
-PROGRAM_FUZZ_PATH:=$(MBEDTLS_PATH)/tf-psa-crypto/programs/fuzz
+PROGRAM_FUZZ_PATH:=$(TF_PSA_CRYPTO_PATH)/programs/fuzz
 
 DEP=${MBEDLIBS}
 
@@ -46,9 +46,9 @@ endif
 clean:
 ifndef WINDOWS
 	rm -rf $(BINARIES) *.o
-	rm -rf $(MBEDTLS_PATH)/tf-psa-crypto/programs/fuzz/*.o
+	rm -rf $(TF_PSA_CRYPTO_PATH)/programs/fuzz/*.o
 else
 	if exist *.o del /Q /F *.o
 	if exist *.exe del /Q /F *.exe
-	if exist $(MBEDTLS_PATH)\tf-psa-crypto\programs\fuzz\*.o del /Q /F $(MBEDTLS_PATH)\tf-psa-crypto\programs\fuzz\*.o
+	if exist $(TF_PSA_CRYPTO_PATH)\programs\fuzz\*.o del /Q /F $(TF_PSA_CRYPTO_PATH)\programs\fuzz\*.o
 endif

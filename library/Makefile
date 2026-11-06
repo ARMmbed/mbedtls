@@ -24,6 +24,10 @@ ifndef MBEDTLS_PATH
 MBEDTLS_PATH := ..
 endif
 
+ifndef TF_PSA_CRYPTO_PATH
+TF_PSA_CRYPTO_PATH := $(MBEDTLS_PATH)/tf-psa-crypto
+endif
+
 ifeq (,$(wildcard $(MBEDTLS_PATH)/framework/exported.make))
     # Use the define keyword to get a multi-line message.
     # GNU make appends ".  Stop.", so tweak the ending of our message accordingly.
@@ -36,7 +40,7 @@ This is a fatal error
 endif
 include $(MBEDTLS_PATH)/framework/exported.make
 
-include $(MBEDTLS_PATH)/tf-psa-crypto/scripts/crypto-common.make
+include $(TF_PSA_CRYPTO_PATH)/scripts/crypto-common.make
 
 # For the time being, Mbed TLS uses non-public interfaces of TF-PSA-Crypto,
 # so we include both public and internal headers.
@@ -159,7 +163,7 @@ include $(TF_PSA_CRYPTO_CORE_PATH)/crypto-library.make
 
 static: libmbedcrypto.a libmbedx509.a libmbedtls.a
 	cd ../tests && echo "This is a seedfile that contains 64 bytes (65 on Windows)......" > seedfile
-	cd ../tf-psa-crypto/tests && echo "This is a seedfile that contains 64 bytes (65 on Windows)......" > seedfile
+	cd $(TF_PSA_CRYPTO_PATH)/tests && echo "This is a seedfile that contains 64 bytes (65 on Windows)......" > seedfile
 
 shared: libmbedcrypto.$(DLEXT) libmbedx509.$(DLEXT) libmbedtls.$(DLEXT)
 

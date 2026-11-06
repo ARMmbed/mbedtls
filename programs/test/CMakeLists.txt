@@ -27,8 +27,8 @@ if(TEST_CPP)
     set_base_compile_options(cpp_dummy_build)
     target_include_directories(cpp_dummy_build
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../tf-psa-crypto/include
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../tf-psa-crypto/drivers/builtin/include)
+        PRIVATE ${TF_PSA_CRYPTO_DIR}/include
+        PRIVATE ${TF_PSA_CRYPTO_DIR}/drivers/builtin/include)
     target_link_libraries(cpp_dummy_build ${tfpsacrypto_target} ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
@@ -38,8 +38,8 @@ if(USE_SHARED_MBEDTLS_LIBRARY AND
     set_base_compile_options(dlopen)
     target_include_directories(dlopen
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../tf-psa-crypto/include
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../tf-psa-crypto/drivers/builtin/include)
+        PRIVATE ${TF_PSA_CRYPTO_DIR}/include
+        PRIVATE ${TF_PSA_CRYPTO_DIR}/drivers/builtin/include)
     target_link_libraries(dlopen ${CMAKE_DL_LIBS})
 endif()
 
@@ -53,14 +53,14 @@ if(GEN_FILES)
             ${PERL}
                 ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/generate_query_config.pl
                 ${CMAKE_CURRENT_SOURCE_DIR}/../../include/mbedtls/mbedtls_config.h
-                ${CMAKE_CURRENT_SOURCE_DIR}/../../tf-psa-crypto/include/psa/crypto_config.h
+                ${TF_PSA_CRYPTO_DIR}/include/psa/crypto_config.h
                 ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/data_files/query_config.fmt
                 ${CMAKE_CURRENT_BINARY_DIR}/query_config.c
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../..
         DEPENDS
             ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/generate_query_config.pl
             ${CMAKE_CURRENT_SOURCE_DIR}/../../include/mbedtls/mbedtls_config.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../tf-psa-crypto/include/psa/crypto_config.h
+            ${TF_PSA_CRYPTO_DIR}/include/psa/crypto_config.h
             ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/data_files/query_config.fmt
     )
     # this file will also be used in another directory, so create a target, see
@@ -92,7 +92,7 @@ foreach(exe IN LISTS executables)
                 ${MBEDTLS_FRAMEWORK_DIR}/tests/programs)
     target_include_directories(${exe}
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../library
-                ${CMAKE_CURRENT_SOURCE_DIR}/../../tf-psa-crypto/core)
+                ${TF_PSA_CRYPTO_DIR}/core)
     if(exe STREQUAL "query_compile_time_config")
         target_include_directories(${exe} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     endif()
@@ -103,8 +103,8 @@ foreach(exe IN LISTS executables)
 endforeach()
 
 target_include_directories(metatest
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../tf-psa-crypto/drivers/builtin/src
-                ${CMAKE_CURRENT_SOURCE_DIR}/../../tf-psa-crypto/platform
+        PRIVATE ${TF_PSA_CRYPTO_DIR}/drivers/builtin/src
+                ${TF_PSA_CRYPTO_DIR}/platform
 )
 install(TARGETS ${executables}
         DESTINATION "bin"

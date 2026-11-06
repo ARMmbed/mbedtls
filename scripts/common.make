@@ -15,6 +15,10 @@ ifndef MBEDTLS_PATH
 MBEDTLS_PATH := ..
 endif
 
+ifndef TF_PSA_CRYPTO_PATH
+TF_PSA_CRYPTO_PATH := $(MBEDTLS_PATH)/tf-psa-crypto
+endif
+
 PSASIM_PATH?=$(abspath $(MBEDTLS_PATH)/framework/psasim)
 
 
@@ -30,7 +34,7 @@ This is a fatal error
 endif
 include $(MBEDTLS_PATH)/framework/exported.make
 
-include $(MBEDTLS_PATH)/tf-psa-crypto/scripts/crypto-common.make
+include $(TF_PSA_CRYPTO_PATH)/scripts/crypto-common.make
 
 # To compile on SunOS: add "-lsocket -lnsl" to LDFLAGS
 

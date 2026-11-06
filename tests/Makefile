@@ -107,7 +107,7 @@ include/test/test_keys.h: ../framework/scripts/generate_test_keys.py
 
 TEST_OBJS_DEPS = $(wildcard include/test/*.h include/test/*/*.h)
 TEST_OBJS_DEPS += include/test/test_certs.h include/test/test_keys.h \
-                  ../tf-psa-crypto/tests/include/test/test_keys.h
+                  $(TF_PSA_CRYPTO_PATH)/tests/include/test/test_keys.h
 
 # Rule to compile common test C files in framework
 ../framework/tests/src/%.o : ../framework/tests/src/%.c $(TEST_OBJS_DEPS)
@@ -150,9 +150,9 @@ c: $(C_FILES)
 # the local case. In GNU Make >=3.82, the shortest match applies regardless
 # of the order in the makefile. In GNU Make <=3.81, the first matching rule
 # applies.
-../tf-psa-crypto/tests/%.c: ../tf-psa-crypto/tests/suites/$$(firstword $$(subst ., ,$$*)).function ../tf-psa-crypto/tests/suites/%.data ../framework/scripts/generate_test_code.py ../tf-psa-crypto/tests/suites/helpers.function ../tf-psa-crypto/tests/suites/main_test.function ../tf-psa-crypto/tests/suites/host_test.function
+$(TF_PSA_CRYPTO_PATH)/tests/%.c: $(TF_PSA_CRYPTO_PATH)/tests/suites/$$(firstword $$(subst ., ,$$*)).function $(TF_PSA_CRYPTO_PATH)/tests/suites/%.data ../framework/scripts/generate_test_code.py $(TF_PSA_CRYPTO_PATH)/tests/suites/helpers.function $(TF_PSA_CRYPTO_PATH)/tests/suites/main_test.function $(TF_PSA_CRYPTO_PATH)/tests/suites/host_test.function
 	echo "  Gen   $@"
-	cd ../tf-psa-crypto/tests && $(PYTHON) ../../framework/scripts/generate_test_code.py -f suites/$(firstword $(subst ., ,$*)).function \
+	cd $(TF_PSA_CRYPTO_PATH)/tests && $(PYTHON) ../../framework/scripts/generate_test_code.py -f suites/$(firstword $(subst ., ,$*)).function \
 		-d suites/$*.data \
 		-t suites/main_test.function \
 		-p suites/host_test.function \
@@ -160,14 +160,14 @@ c: $(C_FILES)
 		--helpers-file suites/helpers.function \
 		-o .
 
-%.c: suites/$$(firstword $$(subst ., ,$$*)).function suites/%.data ../framework/scripts/generate_test_code.py ../tf-psa-crypto/tests/suites/helpers.function ../tf-psa-crypto/tests/suites/main_test.function ../tf-psa-crypto/tests/suites/host_test.function
+%.c: suites/$$(firstword $$(subst ., ,$$*)).function suites/%.data ../framework/scripts/generate_test_code.py $(TF_PSA_CRYPTO_PATH)/tests/suites/helpers.function $(TF_PSA_CRYPTO_PATH)/tests/suites/main_test.function $(TF_PSA_CRYPTO_PATH)/tests/suites/host_test.function
 	echo "  Gen   $@"
 	$(PYTHON) ../framework/scripts/generate_test_code.py -f suites/$(firstword $(subst ., ,$*)).function \
 		-d suites/$*.data \
-		-t ../tf-psa-crypto/tests/suites/main_test.function \
-		-p ../tf-psa-crypto/tests/suites/host_test.function \
+		-t $(TF_PSA_CRYPTO_PATH)/tests/suites/main_test.function \
+		-p $(TF_PSA_CRYPTO_PATH)/tests/suites/host_test.function \
 		-s suites  \
-		--helpers-file ../tf-psa-crypto/tests/suites/helpers.function \
+		--helpers-file $(TF_PSA_CRYPTO_PATH)/tests/suites/helpers.function \
 		-o .
 
 $(BINARIES): %$(EXEXT): %.c $(MBEDLIBS) $(TEST_OBJS_DEPS) $(MBEDTLS_TEST_OBJS)
@@ -182,13 +182,13 @@ LOCAL_CRYPTO_LDFLAGS = $(patsubst -L../library, -L../../library, \
 					   $(LOCAL_LDFLAGS)))))
 $(CRYPTO_BINARIES): %$(EXEXT): %.c $(MBEDLIBS) $(TEST_OBJS_DEPS) $(MBEDTLS_TEST_OBJS)
 	echo "  CC   $<"
-	cd ../tf-psa-crypto/tests && $(CC) $(LOCAL_CRYPTO_CFLAGS) $(CFLAGS) $(subst $(EXEXT),,$(@F)).c $(LOCAL_CRYPTO_LDFLAGS) $(LDFLAGS) -o $(@F)
+	cd $(TF_PSA_CRYPTO_PATH)/tests && $(CC) $(LOCAL_CRYPTO_CFLAGS) $(CFLAGS) $(subst $(EXEXT),,$(@F)).c $(LOCAL_CRYPTO_LDFLAGS) $(LDFLAGS) -o $(@F)
 
 clean:
 ifndef WINDOWS
 	$(MAKE) -C $(PSASIM_PATH) clean
 	rm -rf $(BINARIES) *.c *.datax
-	rm -rf $(CRYPTO_BINARIES) ../tf-psa-crypto/tests/*.c ../tf-psa-crypto/tests/*.datax
+	rm -rf $(CRYPTO_BINARIES) $(TF_PSA_CRYPTO_PATH)/tests/*.c $(TF_PSA_CRYPTO_PATH)/tests/*.datax
 	rm -f src/*.o src/test_helpers/*.o src/libmbed*
 	rm -f ../framework/tests/src/*.o ../framework/tests/src/drivers/*.o
 	rm -f ../framework/tests/include/test/instrument_record_status.h
@@ -200,9 +200,9 @@ else
 	if exist *.c del /Q /F *.c
 	if exist *.exe del /Q /F *.exe
 	if exist *.datax del /Q /F *.datax
-	if exist ../tf-psa-crypto/tests/*.c del /Q /F ../tf-psa-crypto/tests/*.c
-	if exist ../tf-psa-crypto/tests/*.exe del /Q /F ../tf-psa-crypto/tests/*.exe
-	if exist ../tf-psa-crypto/tests/*.datax del /Q /F ../tf-psa-crypto/tests/*.datax
+	if exist $(TF_PSA_CRYPTO_PATH)/tests/*.c del /Q /F $(TF_PSA_CRYPTO_PATH)/tests/*.c
+	if exist $(TF_PSA_CRYPTO_PATH)/tests/*.exe del /Q /F $(TF_PSA_CRYPTO_PATH)/tests/*.exe
+	if exist $(TF_PSA_CRYPTO_PATH)/tests/*.datax del /Q /F $(TF_PSA_CRYPTO_PATH)/tests/*.datax
 	if exist src/*.o del /Q /F src/*.o
 	if exist src/test_helpers/*.o del /Q /F src/test_helpers/*.o
 	if exist src/libmbed* del /Q /F src/libmbed*
@@ -220,9 +220,9 @@ test: check
 # Generate variants of some headers for testing
 ../framework/tests/include/alt-extra/%_alt.h: ../include/%.h
 	perl -p -e 's/^(# *(define|ifndef) +\w+_)H\b/$${1}ALT_H/' $< >$@
-../framework/tests/include/alt-extra/%_alt.h: ../tf-psa-crypto/include/%.h
+../framework/tests/include/alt-extra/%_alt.h: $(TF_PSA_CRYPTO_PATH)/include/%.h
 	perl -p -e 's/^(# *(define|ifndef) +\w+_)H\b/$${1}ALT_H/' $< >$@
-../framework/tests/include/alt-extra/%_alt.h: ../tf-psa-crypto/drivers/builtin/include/%.h
+../framework/tests/include/alt-extra/%_alt.h: $(TF_PSA_CRYPTO_PATH)/drivers/builtin/include/%.h
 	perl -p -e 's/^(# *(define|ifndef) +\w+_)H\b/$${1}ALT_H/' $< >$@
 
 # Generate test library
@@ -240,42 +240,42 @@ libtestdriver1.a:
 	cp -Rf ../library ./libtestdriver1
 	cp -Rf ../include ./libtestdriver1
 	cp -Rf ../scripts ./libtestdriver1
-	cp -Rf ../tf-psa-crypto/core ./libtestdriver1/tf-psa-crypto
-	cp -Rf ../tf-psa-crypto/include ./libtestdriver1/tf-psa-crypto
-	cp -Rf ../tf-psa-crypto/drivers/builtin ./libtestdriver1/tf-psa-crypto/drivers/builtin
+	cp -Rf $(TF_PSA_CRYPTO_PATH)/core ./libtestdriver1/tf-psa-crypto
+	cp -Rf $(TF_PSA_CRYPTO_PATH)/include ./libtestdriver1/tf-psa-crypto
+	cp -Rf $(TF_PSA_CRYPTO_PATH)/drivers/builtin ./libtestdriver1/tf-psa-crypto/drivers/builtin
 	# Make installable pqcp headers available to the libtestdriver1 build
-	cp -Rf ../tf-psa-crypto/drivers/pqcp/include ./libtestdriver1/tf-psa-crypto/
-	if [ -d ../tf-psa-crypto/dispatch ]; then \
-	    cp -Rf ../tf-psa-crypto/dispatch ./libtestdriver1/tf-psa-crypto/dispatch; \
+	cp -Rf $(TF_PSA_CRYPTO_PATH)/drivers/pqcp/include ./libtestdriver1/tf-psa-crypto/
+	if [ -d $(TF_PSA_CRYPTO_PATH)/dispatch ]; then \
+	    cp -Rf $(TF_PSA_CRYPTO_PATH)/dispatch ./libtestdriver1/tf-psa-crypto/dispatch; \
 	fi
-	if [ -d ../tf-psa-crypto/extras ]; then \
-	    cp -Rf ../tf-psa-crypto/extras ./libtestdriver1/tf-psa-crypto/extras; \
+	if [ -d $(TF_PSA_CRYPTO_PATH)/extras ]; then \
+	    cp -Rf $(TF_PSA_CRYPTO_PATH)/extras ./libtestdriver1/tf-psa-crypto/extras; \
 	fi
-	if [ -d ../tf-psa-crypto/platform ]; then \
-	    cp -Rf ../tf-psa-crypto/platform ./libtestdriver1/tf-psa-crypto/platform; \
+	if [ -d $(TF_PSA_CRYPTO_PATH)/platform ]; then \
+	    cp -Rf $(TF_PSA_CRYPTO_PATH)/platform ./libtestdriver1/tf-psa-crypto/platform; \
 	fi
-	if [ -d ../tf-psa-crypto/utilities ]; then \
-	    cp -Rf ../tf-psa-crypto/utilities ./libtestdriver1/tf-psa-crypto/utilities; \
+	if [ -d $(TF_PSA_CRYPTO_PATH)/utilities ]; then \
+	    cp -Rf $(TF_PSA_CRYPTO_PATH)/utilities ./libtestdriver1/tf-psa-crypto/utilities; \
 	fi
-	cp -Rf ../tf-psa-crypto/scripts ./libtestdriver1/tf-psa-crypto
+	cp -Rf $(TF_PSA_CRYPTO_PATH)/scripts ./libtestdriver1/tf-psa-crypto
 
 	# Set the test driver base (minimal) configuration.
-	cp ../tf-psa-crypto/tests/configs/config_test_driver.h ./libtestdriver1/include/mbedtls/mbedtls_config.h
-	cp ../tf-psa-crypto/tests/configs/crypto_config_test_driver.h ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h
+	cp $(TF_PSA_CRYPTO_PATH)/tests/configs/config_test_driver.h ./libtestdriver1/include/mbedtls/mbedtls_config.h
+	cp $(TF_PSA_CRYPTO_PATH)/tests/configs/crypto_config_test_driver.h ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h
 
 	# Set the PSA cryptography configuration for the test library.
 	# The configuration is created by joining the base
-	# ../tf-psa-crypto/tests/configs/crypto_config_test_driver.h,
+	# $(TF_PSA_CRYPTO_PATH)/tests/configs/crypto_config_test_driver.h,
 	# with the the library's PSA_WANT_* macros extracted from
 	# ./tf-psa-crypto/include/psa/crypto_config.h
 	# and then extended with entries of
-	# ../tf-psa-crypto/tests/configs/crypto_config_test_driver_extension.h
+	# $(TF_PSA_CRYPTO_PATH)/tests/configs/crypto_config_test_driver_extension.h
 	# to mirror the PSA_ACCEL_* macros.
 
 	mv ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h.bak
 	head -n -1 ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h.bak > ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h
-	grep '^#define PSA_WANT_*' ../tf-psa-crypto/include/psa/crypto_config.h >> ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h
-	cat ../tf-psa-crypto/tests/configs/crypto_config_test_driver_extension.h >> ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h
+	grep '^#define PSA_WANT_*' $(TF_PSA_CRYPTO_PATH)/include/psa/crypto_config.h >> ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h
+	cat $(TF_PSA_CRYPTO_PATH)/tests/configs/crypto_config_test_driver_extension.h >> ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h
 	echo "#endif /* PSA_CRYPTO_CONFIG_H */" >> ./libtestdriver1/tf-psa-crypto/include/psa/crypto_config.h
 
 	# Prefix MBEDTLS_* PSA_* symbols with LIBTESTDRIVER1_ as well as
@@ -289,16 +289,16 @@ libtestdriver1.a:
 	perl -i ./scripts/libtestdriver1_rewrite.pl ./libtestdriver1/tf-psa-crypto/drivers/builtin/include/*/*.h
 	perl -i ./scripts/libtestdriver1_rewrite.pl ./libtestdriver1/tf-psa-crypto/drivers/builtin/include/*/*/*.h
 	perl -i ./scripts/libtestdriver1_rewrite.pl ./libtestdriver1/tf-psa-crypto/drivers/builtin/src/*.[ch]
-	if [ -d ../tf-psa-crypto/dispatch ]; then \
+	if [ -d $(TF_PSA_CRYPTO_PATH)/dispatch ]; then \
 	    perl -i ./scripts/libtestdriver1_rewrite.pl ./libtestdriver1/tf-psa-crypto/dispatch/*.[ch]; \
 	fi
-	if [ -d ../tf-psa-crypto/extras ]; then \
+	if [ -d $(TF_PSA_CRYPTO_PATH)/extras ]; then \
 	    perl -i ./scripts/libtestdriver1_rewrite.pl ./libtestdriver1/tf-psa-crypto/extras/*.[ch]; \
 	fi
-	if [ -d ../tf-psa-crypto/platform ]; then \
+	if [ -d $(TF_PSA_CRYPTO_PATH)/platform ]; then \
 	    perl -i ./scripts/libtestdriver1_rewrite.pl ./libtestdriver1/tf-psa-crypto/platform/*.[ch]; \
 	fi
-	if [ -d ../tf-psa-crypto/utilities ]; then \
+	if [ -d $(TF_PSA_CRYPTO_PATH)/utilities ]; then \
 	    perl -i ./scripts/libtestdriver1_rewrite.pl ./libtestdriver1/tf-psa-crypto/utilities/*.[ch]; \
 	fi
 	$(MAKE) -C ./libtestdriver1/library CFLAGS="-I../../ $(CFLAGS)" LDFLAGS="$(LDFLAGS)" libmbedcrypto.a

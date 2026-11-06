@@ -67,6 +67,9 @@ endif()
 # Set the project and framework root directory.
 set(MBEDTLS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(MBEDTLS_FRAMEWORK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/framework)
+if(NOT DEFINED TF_PSA_CRYPTO_DIR)
+    set(TF_PSA_CRYPTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tf-psa-crypto)
+endif()
 
 option(ENABLE_PROGRAMS "Build Mbed TLS programs." ON)
 
@@ -489,7 +492,7 @@ set(TF_PSA_CRYPTO_TARGET_PREFIX ${MBEDTLS_TARGET_PREFIX} CACHE STRING "")
 set(TF_PSA_CRYPTO_FATAL_WARNINGS ${MBEDTLS_FATAL_WARNINGS} CACHE BOOL "")
 set(USE_STATIC_TF_PSA_CRYPTO_LIBRARY ${USE_STATIC_MBEDTLS_LIBRARY} CACHE BOOL "")
 set(USE_SHARED_TF_PSA_CRYPTO_LIBRARY ${USE_SHARED_MBEDTLS_LIBRARY} CACHE BOOL "")
-add_subdirectory(tf-psa-crypto)
+add_subdirectory(${TF_PSA_CRYPTO_DIR} tf-psa-crypto)
 
 set(tfpsacrypto_target "${TF_PSA_CRYPTO_TARGET_PREFIX}tfpsacrypto")
 if (USE_STATIC_MBEDTLS_LIBRARY)
@@ -519,12 +522,12 @@ endforeach(target)
 # empty.
 #
 set(TF_PSA_CRYPTO_PRIVATE_INCLUDE_DIRS
-        ${CMAKE_CURRENT_SOURCE_DIR}/tf-psa-crypto/core
-        ${CMAKE_CURRENT_SOURCE_DIR}/tf-psa-crypto/dispatch
-        ${CMAKE_CURRENT_SOURCE_DIR}/tf-psa-crypto/drivers/builtin/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/tf-psa-crypto/extras
-        ${CMAKE_CURRENT_SOURCE_DIR}/tf-psa-crypto/platform
-        ${CMAKE_CURRENT_SOURCE_DIR}/tf-psa-crypto/utilities
+        ${TF_PSA_CRYPTO_DIR}/core
+        ${TF_PSA_CRYPTO_DIR}/dispatch
+        ${TF_PSA_CRYPTO_DIR}/drivers/builtin/src
+        ${TF_PSA_CRYPTO_DIR}/extras
+        ${TF_PSA_CRYPTO_DIR}/platform
+        ${TF_PSA_CRYPTO_DIR}/utilities
 )
 
 add_subdirectory(library)
@@ -573,10 +576,10 @@ if(ENABLE_TESTING OR ENABLE_PROGRAMS)
                 ${MBEDTLS_FRAMEWORK_DIR}/tests/include
                 tests/include
                 include
-                tf-psa-crypto/include
-                tf-psa-crypto/drivers/builtin/include
-                tf-psa-crypto/drivers/everest/include
-                tf-psa-crypto/drivers/pqcp/include
+                ${TF_PSA_CRYPTO_DIR}/include
+                ${TF_PSA_CRYPTO_DIR}/drivers/builtin/include
+                ${TF_PSA_CRYPTO_DIR}/drivers/everest/include
+                ${TF_PSA_CRYPTO_DIR}/drivers/pqcp/include
                 library
                 ${TF_PSA_CRYPTO_PRIVATE_INCLUDE_DIRS}
     )
@@ -610,11 +613,11 @@ if(ENABLE_TESTING OR ENABLE_PROGRAMS)
                 ${MBEDTLS_FRAMEWORK_DIR}/tests/include
                 tests/include
                 include
-                tf-psa-crypto/include
-                tf-psa-crypto/drivers/builtin/include
+                ${TF_PSA_CRYPTO_DIR}/include
+                ${TF_PSA_CRYPTO_DIR}/drivers/builtin/include
                 library
-                tf-psa-crypto/drivers/everest/include
-                tf-psa-crypto/drivers/pqcp/include
+                ${TF_PSA_CRYPTO_DIR}/drivers/everest/include
+                ${TF_PSA_CRYPTO_DIR}/drivers/pqcp/include
                 ${TF_PSA_CRYPTO_PRIVATE_INCLUDE_DIRS}
     )
 
@@ -628,9 +631,12 @@ if(ENABLE_PROGRAMS)
     add_subdirectory(programs)
 endif()
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doxygen/mbedtls.doxyfile.in
+               ${PROJECT_BINARY_DIR}/doxygen/mbedtls.doxyfile)
+
 ADD_CUSTOM_TARGET(${MBEDTLS_TARGET_PREFIX}mbedtls-apidoc
     COMMAND doxygen mbedtls.doxyfile
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/doxygen)
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/doxygen)
 
 if(ENABLE_TESTING)
     enable_testing()
