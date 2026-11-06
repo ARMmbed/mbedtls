@@ -6775,6 +6775,70 @@ exit:
 }
 /* END_CASE */
 
+/* BEGIN_CASE depends_on:MBEDTLS_SSL_KEYING_MATERIAL_EXPORT:MBEDTLS_SSL_PROTO_DTLS:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
+void ssl_dtls_exporter_before_wrapup()
+{
+    /* On DTLS the sender of the last handshake flight (the server in a full
+     * handshake) defers its handshake wrapup until the retransmission window
+     * closes. Exporting keying material in that state must work, as
+     * DTLS-SRTP (RFC 5764) does with possibly no application data ever
+     * flowing; regression test for a NULL dereference of ssl->transform. */
+
+    int ret = -1;
+    unsigned char key_server[48];
+    unsigned char key_client[48];
+    char label[] = "test-label";
+    mbedtls_test_ssl_endpoint client_ep, server_ep;
+    memset(&client_ep, 0, sizeof(client_ep));
+    memset(&server_ep, 0, sizeof(server_ep));
+    mbedtls_test_handshake_test_options options;
+
+    MD_OR_USE_PSA_INIT();
+
+    mbedtls_test_init_handshake_options(&options);
+    options.dtls = 1;
+
+    ret = mbedtls_test_ssl_endpoint_init(&client_ep, MBEDTLS_SSL_IS_CLIENT, &options);
+    TEST_EQUAL(ret, 0);
+    ret = mbedtls_test_ssl_endpoint_init(&server_ep, MBEDTLS_SSL_IS_SERVER, &options);
+    TEST_EQUAL(ret, 0);
+    ret = mbedtls_test_ssl_dtls_join_endpoints(&client_ep, &server_ep);
+    TEST_EQUAL(ret, 0);
+    ret = mbedtls_test_mock_socket_connect(&client_ep.socket, &server_ep.socket, 17000);
+    TEST_EQUAL(ret, 0);
+
+    ret = mbedtls_test_move_handshake_to_state(&client_ep.ssl, &server_ep.ssl,
+                                               MBEDTLS_SSL_HANDSHAKE_OVER);
+    TEST_EQUAL(ret, 0);
+    ret = mbedtls_test_move_handshake_to_state(&server_ep.ssl, &client_ep.ssl,
+                                               MBEDTLS_SSL_HANDSHAKE_OVER);
+    TEST_ASSERT(ret == 0 ||
+                ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE);
+    TEST_ASSERT(mbedtls_ssl_is_handshake_over(&client_ep.ssl));
+    TEST_ASSERT(mbedtls_ssl_is_handshake_over(&server_ep.ssl));
+
+    /* No application data is exchanged: the server-side wrapup is still
+     * pending at this point. */
+    ret = mbedtls_ssl_export_keying_material(&server_ep.ssl,
+                                             key_server, sizeof(key_server),
+                                             label, sizeof(label),
+                                             NULL, 0, 0);
+    TEST_EQUAL(ret, 0);
+    ret = mbedtls_ssl_export_keying_material(&client_ep.ssl,
+                                             key_client, sizeof(key_client),
+                                             label, sizeof(label),
+                                             NULL, 0, 0);
+    TEST_EQUAL(ret, 0);
+    TEST_EQUAL(memcmp(key_server, key_client, sizeof(key_server)), 0);
+
+exit:
+    mbedtls_test_ssl_endpoint_free(&server_ep);
+    mbedtls_test_ssl_endpoint_free(&client_ep);
+    mbedtls_test_free_handshake_options(&options);
+    MD_OR_USE_PSA_DONE();
+}
+/* END_CASE */
+
 /* BEGIN_CASE depends_on:MBEDTLS_SSL_KEYING_MATERIAL_EXPORT:MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED:PSA_WANT_ECC_SECP_R1_384:PSA_WANT_ALG_SHA_256 */
 void ssl_tls_exporter_uses_label(int proto)
 {

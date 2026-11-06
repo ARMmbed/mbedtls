@@ -8952,11 +8952,17 @@ static int mbedtls_ssl_tls12_export_keying_material(const mbedtls_ssl_context *s
         return MBEDTLS_ERR_SSL_ALLOC_FAILED;
     }
 
+    /* On DTLS, the endpoint that sent the last flight of the handshake
+     * keeps ssl->transform unset until its handshake wrapup runs at the end
+     * of the retransmission window. The negotiated transform is already
+     * installed for reading at that point, so fall back to it. */
+    const mbedtls_ssl_transform *transform =
+        ssl->transform != NULL ? ssl->transform : ssl->transform_in;
     memcpy(prf_input,
-           ssl->transform->randbytes + MBEDTLS_SERVER_HELLO_RANDOM_LEN,
+           transform->randbytes + MBEDTLS_SERVER_HELLO_RANDOM_LEN,
            MBEDTLS_CLIENT_HELLO_RANDOM_LEN);
     memcpy(prf_input + MBEDTLS_CLIENT_HELLO_RANDOM_LEN,
-           ssl->transform->randbytes,
+           transform->randbytes,
            MBEDTLS_SERVER_HELLO_RANDOM_LEN);
     if (use_context) {
         MBEDTLS_PUT_UINT16_BE(context_len, prf_input, randbytes_len);

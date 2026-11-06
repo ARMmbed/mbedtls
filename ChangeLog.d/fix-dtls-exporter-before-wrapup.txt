@@ -1,0 +1,7 @@
+Bugfix
+   * Fix a NULL pointer dereference in mbedtls_ssl_export_keying_material()
+     when called on a DTLS 1.2 endpoint that sent the last flight of the
+     handshake (typically the server), after the handshake has completed but
+     before the retransmission window has closed. This notably affected
+     DTLS-SRTP (RFC 5764) style usage, where keying material is exported
+     immediately after the handshake.

@@ -3567,6 +3567,10 @@ TLS 1.2 Keying Material Exporter: Handshake not done
 depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_CAN_HANDLE_RSA_TEST_KEY
 ssl_tls_exporter_too_early:MBEDTLS_SSL_VERSION_TLS1_2:1:MBEDTLS_SSL_SERVER_CERTIFICATE
 
+DTLS 1.2 Keying Material Exporter: Export before server-side wrapup
+depends_on:MBEDTLS_SSL_PROTO_TLS1_2:MBEDTLS_CAN_HANDLE_RSA_TEST_KEY
+ssl_dtls_exporter_before_wrapup
+
 TLS 1.3 Keying Material Exporter: Consistent results, no context
 depends_on:MBEDTLS_SSL_PROTO_TLS1_3:MBEDTLS_TEST_AT_LEAST_ONE_TLS1_3_CIPHERSUITE:MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED:PSA_WANT_ALG_RSA_PKCS1V15_SIGN:MBEDTLS_X509_RSASSA_PSS_SUPPORT
 ssl_tls_exporter_consistent_result:MBEDTLS_SSL_VERSION_TLS1_3:24:0
