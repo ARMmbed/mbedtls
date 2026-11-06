@@ -157,6 +157,24 @@ const mbedtls_x509_crt_profile mbedtls_x509_crt_profile_suiteb =
 };
 
 /*
+ * CNSA profile
+ */
+const mbedtls_x509_crt_profile mbedtls_x509_crt_profile_cnsa =
+{
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_MD_SHA384),
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_PK_RSA) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_PK_RSASSA_PSS) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_PK_ECDSA) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_PK_ECKEY),
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_ECP_DP_SECP384R1),
+#else
+    0,
+#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+    3072,
+};
+
+/*
  * Empty / all-forbidden profile
  */
 const mbedtls_x509_crt_profile mbedtls_x509_crt_profile_none =

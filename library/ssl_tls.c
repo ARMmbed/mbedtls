@@ -5268,6 +5268,16 @@ static const int ssl_preset_suiteb_ciphersuites[] = {
     0
 };
 
+/* As per rfc9151 */
+static const int ssl_preset_cnsa_ciphersuites[] = {
+    MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+    MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+    MBEDTLS_TLS_RSA_WITH_AES_256_GCM_SHA384,
+    MBEDTLS_TLS_DHE_RSA_WITH_AES_256_GCM_SHA384,
+    MBEDTLS_TLS1_3_AES_256_GCM_SHA384,
+    0
+};
+
 #if defined(MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED)
 
 /* NOTICE:
@@ -5412,6 +5422,38 @@ static const uint16_t ssl_tls12_preset_suiteb_sig_algs[] = {
 };
 #endif /* MBEDTLS_SSL_PROTO_TLS1_2 */
 
+
+/* As per rfc9151 */
+static const uint16_t ssl_preset_cnsa_sig_algs[] = {
+#if defined(MBEDTLS_KEY_EXCHANGE_ECDSA_CERT_REQ_ANY_ALLOWED_ENABLED) && \
+    defined(PSA_WANT_ALG_SHA_384) && \
+    defined(PSA_WANT_ECC_SECP_R1_384)
+    MBEDTLS_TLS1_3_SIG_ECDSA_SECP384R1_SHA384,
+#endif
+#if defined(MBEDTLS_RSA_C) && defined(PSA_WANT_ALG_SHA_384)
+    MBEDTLS_TLS1_3_SIG_RSA_PSS_PSS_SHA384,
+#endif
+#if defined(MBEDTLS_X509_RSASSA_PSS_SUPPORT) && defined(PSA_WANT_ALG_SHA_384)
+    MBEDTLS_TLS1_3_SIG_RSA_PSS_RSAE_SHA384,
+#endif
+    MBEDTLS_TLS_SIG_NONE
+};
+
+
+#if defined(MBEDTLS_SSL_PROTO_TLS1_2)
+static const uint16_t ssl_tls12_preset_cnsa_sig_algs[] = {
+#if defined(MBEDTLS_KEY_EXCHANGE_ECDSA_CERT_REQ_ANY_ALLOWED_ENABLED) && \
+    defined(PSA_WANT_ALG_SHA_384) && \
+    defined(PSA_WANT_ECC_SECP_R1_384)
+    MBEDTLS_SSL_TLS12_SIG_AND_HASH_ALG(MBEDTLS_SSL_SIG_ECDSA, MBEDTLS_SSL_HASH_SHA384),
+#endif
+#if defined(MBEDTLS_RSA_C) && defined(PSA_WANT_ALG_SHA_384)
+    MBEDTLS_SSL_TLS12_SIG_AND_HASH_ALG(MBEDTLS_SSL_SIG_RSA, MBEDTLS_SSL_HASH_SHA384),
+#endif
+    MBEDTLS_TLS_SIG_NONE
+};
+#endif /* MBEDTLS_SSL_PROTO_TLS1_2 */
+
 #endif /* MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED */
 
 static const uint16_t ssl_preset_suiteb_groups[] = {
@@ -5423,6 +5465,18 @@ static const uint16_t ssl_preset_suiteb_groups[] = {
 #endif
     MBEDTLS_SSL_IANA_TLS_GROUP_NONE
 };
+
+static const uint16_t ssl_preset_cnsa_groups[] = {
+#if defined(MBEDTLS_ECP_DP_SECP384R1_ENABLED)
+    MBEDTLS_SSL_IANA_TLS_GROUP_SECP384R1,
+#endif
+#if defined(PSA_WANT_ALG_FFDH)
+    MBEDTLS_SSL_IANA_TLS_GROUP_FFDHE3072,
+    MBEDTLS_SSL_IANA_TLS_GROUP_FFDHE4096,
+#endif
+    MBEDTLS_SSL_IANA_TLS_GROUP_NONE
+};
+
 
 #if defined(MBEDTLS_DEBUG_C) && defined(MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED)
 /* Function for checking `ssl_preset_*_sig_algs` and `ssl_tls12_preset_*_sig_algs`
@@ -5574,6 +5628,29 @@ int mbedtls_ssl_config_defaults(mbedtls_ssl_config *conf,
      * Preset-specific defaults
      */
     switch (preset) {
+        /*
+         * CNSA
+         */
+        case MBEDTLS_SSL_PRESET_CNSA:
+
+            conf->ciphersuite_list = ssl_preset_cnsa_ciphersuites;
+#if defined(MBEDTLS_X509_CRT_PARSE_C)
+            conf->cert_profile = &mbedtls_x509_crt_profile_cnsa;
+#endif
+#if defined(MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED)
+#if defined(MBEDTLS_SSL_PROTO_TLS1_2)
+            if (mbedtls_ssl_conf_is_tls12_only(conf)) {
+                conf->sig_algs = ssl_tls12_preset_cnsa_sig_algs;
+            } else
+#endif /* MBEDTLS_SSL_PROTO_TLS1_2 */
+            conf->sig_algs = ssl_preset_cnsa_sig_algs;
+#endif /* MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED */
+#if defined(MBEDTLS_ECP_C) && !defined(MBEDTLS_DEPRECATED_REMOVED)
+            conf->curve_list = NULL;
+#endif
+            conf->group_list = ssl_preset_cnsa_groups;
+            break;
+
         /*
          * NSA Suite B
          */

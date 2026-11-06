@@ -1,0 +1,2 @@
+Features
+   * Add support for CNSA preset that supersedes NSA SuiteB.
