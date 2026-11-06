@@ -653,13 +653,13 @@ union mbedtls_ssl_premaster_secret {
     unsigned char dummy; /* Make the union non-empty even with SSL disabled */
 #if defined(MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED)    || \
     defined(MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED)
-    unsigned char _pms_ecdh[MBEDTLS_ECP_MAX_BYTES];    /* RFC 4492 5.10 */
+    unsigned char _pms_ecdh[PSA_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE];    /* RFC 4492 5.10 */
 #endif
 #if defined(MBEDTLS_KEY_EXCHANGE_PSK_ENABLED)
     unsigned char _pms_psk[4 + 2 * MBEDTLS_PSK_MAX_LEN];       /* RFC 4279 2 */
 #endif
 #if defined(MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED)
-    unsigned char _pms_ecdhe_psk[4 + MBEDTLS_ECP_MAX_BYTES
+    unsigned char _pms_ecdhe_psk[4 + PSA_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE
                                  + MBEDTLS_PSK_MAX_LEN];       /* RFC 5489 2 */
 #endif
 #if defined(MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED)

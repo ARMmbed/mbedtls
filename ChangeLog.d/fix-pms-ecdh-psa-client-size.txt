@@ -1,0 +1,7 @@
+Bugfix
+   * Fix TLS 1.2 ECDHE handshakes failing in PSA-client-only
+     (MBEDTLS_PSA_CRYPTO_C disabled) builds when PSK
+     and ECJPAKE key-exchanges were disabled.
+     In this scenario ECDHE key agreement failed returning
+     PSA_ERROR_BUFFER_TOO_SMALL.
+     Fixes #10757.
