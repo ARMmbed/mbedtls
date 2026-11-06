@@ -1,6 +1,6 @@
 [submodule "framework"]
 	path = framework
-	url = https://github.com/Mbed-TLS/mbedtls-framework
+	url = ../mbedtls-framework
 [submodule "tf-psa-crypto"]
 	path = tf-psa-crypto
-	url = https://github.com/Mbed-TLS/TF-PSA-Crypto.git
+	url = ../TF-PSA-Crypto.git
