@@ -268,5 +268,25 @@ void test_hooks_free(void);
 /* Helper functions for FFDH groups. */
 int parse_groups(const char *groups, uint16_t *group_list, size_t group_list_len);
 
+/** Parse command-line option: sig_algs
+ *
+ * \param sig_algs          Comma-separated list of signature algorithms.
+ *                          Each element is either a TLS 1.3 signature
+ *                          algorithm name (e.g. "rsa_pkcs1_sha256"), or a
+ *                          TLS 1.2 (hash, signature) pair given as 4 hex
+ *                          digits (e.g. "0401" for SHA-256 with RSA).
+ * \param sig_alg_list      Array to fill with the parsed list.
+ * \param sig_alg_list_len  Length of \p sig_alg_list. Room is left for a
+ *                          terminating MBEDTLS_TLS1_3_SIG_NONE.
+ *
+ * \return                  \c 0 on success.
+ * \return                  \c -1 on parse error.
+ */
+int parse_sig_algs(const char *sig_algs, uint16_t *sig_alg_list,
+                   size_t sig_alg_list_len);
+
+void mbedtls_print_supported_sig_algs(void);
+
+
 #endif /* MBEDTLS_SSL_TEST_IMPOSSIBLE conditions: else */
 #endif /* MBEDTLS_PROGRAMS_SSL_SSL_TEST_LIB_H */

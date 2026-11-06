@@ -351,25 +351,4 @@ static int x509_crt_verify_info(char *buf, size_t size, const char *prefix,
 #endif /* MBEDTLS_X509_REMOVE_INFO */
 }
 
-static void mbedtls_print_supported_sig_algs(void)
-{
-    mbedtls_printf("supported signature algorithms:\n");
-    mbedtls_printf("\trsa_pkcs1_sha256 ");
-    mbedtls_printf("rsa_pkcs1_sha384 ");
-    mbedtls_printf("rsa_pkcs1_sha512\n");
-    mbedtls_printf("\tecdsa_secp256r1_sha256 ");
-    mbedtls_printf("ecdsa_secp384r1_sha384 ");
-    mbedtls_printf("ecdsa_secp521r1_sha512\n");
-    mbedtls_printf("\trsa_pss_rsae_sha256 ");
-    mbedtls_printf("rsa_pss_rsae_sha384 ");
-    mbedtls_printf("rsa_pss_rsae_sha512\n");
-    mbedtls_printf("\trsa_pss_pss_sha256 ");
-    mbedtls_printf("rsa_pss_pss_sha384 ");
-    mbedtls_printf("rsa_pss_pss_sha512\n");
-    mbedtls_printf("\ted25519 ");
-    mbedtls_printf("ed448 ");
-    mbedtls_printf("rsa_pkcs1_sha1 ");
-    mbedtls_printf("ecdsa_sha1\n");
-    mbedtls_printf("\n");
-}
 #endif /* MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED */

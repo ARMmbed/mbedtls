@@ -495,4 +495,127 @@ int parse_groups(const char *groups, uint16_t *group_list, size_t group_list_len
     return 0;
 }
 
+
+void mbedtls_print_supported_sig_algs(void)
+{
+    mbedtls_printf("supported signature algorithms:\n");
+    mbedtls_printf("\trsa_pkcs1_sha256 ");
+    mbedtls_printf("rsa_pkcs1_sha384 ");
+    mbedtls_printf("rsa_pkcs1_sha512\n");
+    mbedtls_printf("\tecdsa_secp256r1_sha256 ");
+    mbedtls_printf("ecdsa_secp384r1_sha384 ");
+    mbedtls_printf("ecdsa_secp521r1_sha512\n");
+    mbedtls_printf("\trsa_pss_rsae_sha256 ");
+    mbedtls_printf("rsa_pss_rsae_sha384 ");
+    mbedtls_printf("rsa_pss_rsae_sha512\n");
+    mbedtls_printf("\trsa_pss_pss_sha256 ");
+    mbedtls_printf("rsa_pss_pss_sha384 ");
+    mbedtls_printf("rsa_pss_pss_sha512\n");
+    mbedtls_printf("\ted25519 ");
+    mbedtls_printf("ed448 ");
+    mbedtls_printf("rsa_pkcs1_sha1 ");
+    mbedtls_printf("ecdsa_sha1\n");
+    mbedtls_printf("\n");
+}
+
+static int sig_alg_hex_digit(char c)
+{
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    }
+    if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    }
+    if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    }
+    return -1;
+}
+
+int parse_sig_algs(const char *sig_algs, uint16_t *sig_alg_list,
+                   size_t sig_alg_list_len)
+{
+    typedef struct {
+        const char *name;
+        uint16_t id;
+    } sig_alg_name_t;
+
+    static const sig_alg_name_t sig_alg_names[] = {
+        { "rsa_pkcs1_sha256", MBEDTLS_TLS1_3_SIG_RSA_PKCS1_SHA256 },
+        { "rsa_pkcs1_sha384", MBEDTLS_TLS1_3_SIG_RSA_PKCS1_SHA384 },
+        { "rsa_pkcs1_sha512", MBEDTLS_TLS1_3_SIG_RSA_PKCS1_SHA512 },
+        { "ecdsa_secp256r1_sha256", MBEDTLS_TLS1_3_SIG_ECDSA_SECP256R1_SHA256 },
+        { "ecdsa_secp384r1_sha384", MBEDTLS_TLS1_3_SIG_ECDSA_SECP384R1_SHA384 },
+        { "ecdsa_secp521r1_sha512", MBEDTLS_TLS1_3_SIG_ECDSA_SECP521R1_SHA512 },
+        { "rsa_pss_rsae_sha256", MBEDTLS_TLS1_3_SIG_RSA_PSS_RSAE_SHA256 },
+        { "rsa_pss_rsae_sha384", MBEDTLS_TLS1_3_SIG_RSA_PSS_RSAE_SHA384 },
+        { "rsa_pss_rsae_sha512", MBEDTLS_TLS1_3_SIG_RSA_PSS_RSAE_SHA512 },
+        { "ed25519", MBEDTLS_TLS1_3_SIG_ED25519 },
+        { "ed448", MBEDTLS_TLS1_3_SIG_ED448 },
+        { "rsa_pss_pss_sha256", MBEDTLS_TLS1_3_SIG_RSA_PSS_PSS_SHA256 },
+        { "rsa_pss_pss_sha384", MBEDTLS_TLS1_3_SIG_RSA_PSS_PSS_SHA384 },
+        { "rsa_pss_pss_sha512", MBEDTLS_TLS1_3_SIG_RSA_PSS_PSS_SHA512 },
+        { "rsa_pkcs1_sha1", MBEDTLS_TLS1_3_SIG_RSA_PKCS1_SHA1 },
+        { "ecdsa_sha1", MBEDTLS_TLS1_3_SIG_ECDSA_SHA1 },
+    };
+
+    const char *p = sig_algs;
+    size_t i = 0;
+
+    /* Leave room for a final MBEDTLS_TLS1_3_SIG_NONE in sig_alg_list. */
+    while (i < sig_alg_list_len - 1 && *p != '\0') {
+        size_t name_len = strcspn(p, ",");
+        uint16_t sig_alg = 0;
+        size_t j;
+        int found = 0;
+
+        if (name_len == 4) {
+            /* A TLS 1.2 (hash, signature) pair given as 4 hex digits. */
+            int d0 = sig_alg_hex_digit(p[0]);
+            int d1 = sig_alg_hex_digit(p[1]);
+            int d2 = sig_alg_hex_digit(p[2]);
+            int d3 = sig_alg_hex_digit(p[3]);
+
+            if (d0 >= 0 && d1 >= 0 && d2 >= 0 && d3 >= 0) {
+                sig_alg = (uint16_t) ((d0 << 12) | (d1 << 8) |
+                                      (d2 << 4) | d3);
+                found = 1;
+            }
+        }
+
+        if (!found) {
+            for (j = 0; j < ARRAY_LENGTH(sig_alg_names); j++) {
+                if (strlen(sig_alg_names[j].name) == name_len &&
+                    strncmp(p, sig_alg_names[j].name, name_len) == 0) {
+                    sig_alg = sig_alg_names[j].id;
+                    found = 1;
+                    break;
+                }
+            }
+        }
+
+        if (!found) {
+            mbedtls_printf("unknown signature algorithm \"%.*s\"\n",
+                           (int) name_len, p);
+            mbedtls_print_supported_sig_algs();
+            return -1;
+        }
+
+        sig_alg_list[i++] = sig_alg;
+        p += name_len;
+        if (*p == ',') {
+            p++;
+        }
+    }
+
+    if (i == sig_alg_list_len - 1 && *p != '\0') {
+        mbedtls_printf("signature algorithm list too long, maximum %u",
+                       (unsigned int) (sig_alg_list_len - 1));
+        return -1;
+    }
+
+    sig_alg_list[i] = MBEDTLS_TLS1_3_SIG_NONE;
+    return 0;
+}
+
 #endif /* !defined(MBEDTLS_SSL_TEST_IMPOSSIBLE) */

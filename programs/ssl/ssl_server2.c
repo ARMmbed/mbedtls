@@ -446,7 +446,8 @@ int main(void)
 #if defined(MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED)
 #define USAGE_SIG_ALGS \
     "    sig_algs=a,b,c,d      default: \"default\" (library default)\n"  \
-    "                          example: \"ecdsa_secp256r1_sha256,ecdsa_secp384r1_sha384\"\n"
+    "                          example: \"ecdsa_secp256r1_sha256,ecdsa_secp384r1_sha384\"\n" \
+    "                          or a TLS 1.2 (hash,sig) pair as 4 hex digits (e.g. \"0401\")\n"
 #else
 #define USAGE_SIG_ALGS ""
 #endif
@@ -2436,70 +2437,15 @@ usage:
     }
 
 #if defined(MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED)
+#if defined(MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED)
     if (opt.sig_algs != NULL) {
-        p = (char *) opt.sig_algs;
-        i = 0;
-
-        /* Leave room for a final MBEDTLS_TLS1_3_SIG_NONE in signature algorithm list (sig_alg_list). */
-        while (i < SIG_ALG_LIST_SIZE - 1 && *p != '\0') {
-            q = p;
-
-            /* Terminate the current string */
-            while (*p != ',' && *p != '\0') {
-                p++;
-            }
-            if (*p == ',') {
-                *p++ = '\0';
-            }
-
-            if (strcmp(q, "rsa_pkcs1_sha256") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PKCS1_SHA256;
-            } else if (strcmp(q, "rsa_pkcs1_sha384") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PKCS1_SHA384;
-            } else if (strcmp(q, "rsa_pkcs1_sha512") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PKCS1_SHA512;
-            } else if (strcmp(q, "ecdsa_secp256r1_sha256") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_ECDSA_SECP256R1_SHA256;
-            } else if (strcmp(q, "ecdsa_secp384r1_sha384") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_ECDSA_SECP384R1_SHA384;
-            } else if (strcmp(q, "ecdsa_secp521r1_sha512") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_ECDSA_SECP521R1_SHA512;
-            } else if (strcmp(q, "rsa_pss_rsae_sha256") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PSS_RSAE_SHA256;
-            } else if (strcmp(q, "rsa_pss_rsae_sha384") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PSS_RSAE_SHA384;
-            } else if (strcmp(q, "rsa_pss_rsae_sha512") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PSS_RSAE_SHA512;
-            } else if (strcmp(q, "ed25519") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_ED25519;
-            } else if (strcmp(q, "ed448") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_ED448;
-            } else if (strcmp(q, "rsa_pss_pss_sha256") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PSS_PSS_SHA256;
-            } else if (strcmp(q, "rsa_pss_pss_sha384") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PSS_PSS_SHA384;
-            } else if (strcmp(q, "rsa_pss_pss_sha512") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PSS_PSS_SHA512;
-            } else if (strcmp(q, "rsa_pkcs1_sha1") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_RSA_PKCS1_SHA1;
-            } else if (strcmp(q, "ecdsa_sha1") == 0) {
-                sig_alg_list[i++] = MBEDTLS_TLS1_3_SIG_ECDSA_SHA1;
-            } else {
-                ret = -1;
-                mbedtls_printf("unknown signature algorithm \"%s\"\n", q);
-                mbedtls_print_supported_sig_algs();
-                goto exit;
-            }
-        }
-
-        if (i == (SIG_ALG_LIST_SIZE - 1) && *p != '\0') {
-            mbedtls_printf("signature algorithm list too long, maximum %d",
-                           SIG_ALG_LIST_SIZE - 1);
+        ret = parse_sig_algs(opt.sig_algs, sig_alg_list, SIG_ALG_LIST_SIZE);
+        if (ret != 0) {
             goto exit;
         }
-
-        sig_alg_list[i] = MBEDTLS_TLS1_3_SIG_NONE;
     }
+#endif /* MBEDTLS_SSL_HANDSHAKE_WITH_CERT_ENABLED */
+
 #endif
 
 #if defined(MBEDTLS_SSL_ALPN)
