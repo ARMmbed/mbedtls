@@ -3403,6 +3403,15 @@ cookie_parsing:"16fefd0000000000000000002f010000de000000000000011efefd7b72727272
 Cookie parsing: one byte overread
 cookie_parsing:"16fefd0000000000000000002F010000de000000000000011efefd7b7272727272727272727272727272727272727272727272727272727272727d0001":MBEDTLS_ERR_SSL_DECODE_ERROR
 
+TLS 1.3: duplicate extension rejected
+tls13_check_received_extension_duplicate
+
+TLS 1.3 duplicate extension rejected by client
+tls13_rejects_extension_duplicate:MBEDTLS_SSL_IS_CLIENT
+
+TLS 1.3 duplicate extension rejected by server
+tls13_rejects_extension_duplicate:MBEDTLS_SSL_IS_SERVER
+
 TLS 1.3 srv Certificate msg - wrong vector lengths
 tls13_server_certificate_msg_invalid_vector_len
 

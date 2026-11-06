@@ -1642,11 +1642,25 @@ int mbedtls_ssl_tls13_check_received_extension(
     unsigned int received_extension_type,
     uint32_t hs_msg_allowed_extensions_mask)
 {
+    uint32_t extension_id = mbedtls_ssl_get_extension_id(
+        received_extension_type);
     uint32_t extension_mask = mbedtls_ssl_get_extension_mask(
         received_extension_type);
 
     MBEDTLS_SSL_PRINT_EXT(
         3, hs_msg_type, received_extension_type, "received");
+
+    /* RFC 8446, section 4.2: An extension type must not appear twice
+     * in the same extension block. Treat as illegal_parameter on repeat. */
+    if (extension_id != MBEDTLS_SSL_EXT_ID_UNRECOGNIZED &&
+        (ssl->handshake->received_extensions & extension_mask) != 0) {
+        MBEDTLS_SSL_PRINT_EXT(
+            3, hs_msg_type, received_extension_type, "is duplicate");
+        MBEDTLS_SSL_PEND_FATAL_ALERT(
+            MBEDTLS_SSL_ALERT_MSG_ILLEGAL_PARAMETER,
+            MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER);
+        return MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER;
+    }
 
     if ((extension_mask & hs_msg_allowed_extensions_mask) == 0) {
         MBEDTLS_SSL_PRINT_EXT(

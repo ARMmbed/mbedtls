@@ -1,0 +1,4 @@
+Bugfix
+   * Reject duplicate TLS 1.3 extensions in a single extension block,
+     returning illegal_parameter instead of continuing with
+     an inconsistent handshake.
