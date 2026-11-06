@@ -287,6 +287,60 @@ mbedtls_x509_string_to_names:"C=NL, 2.5.4.10.234.532=#0C084F6666737061726B, OU=P
 Check max serial length
 x509_set_serial_check:
 
+Set validity: valid, UTCTime range
+x509_set_validity_check:"20190210144406":"20290210144406":0
+
+Set validity: valid, GeneralizedTime range
+x509_set_validity_check:"20500101000000":"99991231235959":0
+
+Set validity: valid, first year representable as UTCTime
+x509_set_validity_check:"19500101000000":"20490101000000":0
+
+Set validity: valid, 29 February in a leap year
+x509_set_validity_check:"20240229000000":"20280229235959":0
+
+Set validity: too short
+x509_set_validity_check:"2019021014440":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: too long
+x509_set_validity_check:"20190210144406":"202902101444060":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: non-digit in not_before
+x509_set_validity_check:"2019021014440Z":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: non-digit in not_after
+x509_set_validity_check:"20190210144406":"2029-02-10 14h":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: month 00
+x509_set_validity_check:"20190010144406":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: month 13
+x509_set_validity_check:"20191310144406":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: day 00
+x509_set_validity_check:"20190200144406":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: 31 April
+x509_set_validity_check:"20190431144406":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: 29 February in a non-leap year
+x509_set_validity_check:"20190229144406":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: 29 February 2100 (not a leap year)
+x509_set_validity_check:"20190210144406":"21000229000000":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: hour 24
+x509_set_validity_check:"20190210244406":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: minute 60
+x509_set_validity_check:"20190210146006":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: second 60
+x509_set_validity_check:"20190210144460":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
+Set validity: year before 1950 cannot be encoded as UTCTime
+x509_set_validity_check:"19491231235959":"20290210144406":MBEDTLS_ERR_X509_BAD_INPUT_DATA
+
 Check max extension length
 x509_set_extension_length_check:
 

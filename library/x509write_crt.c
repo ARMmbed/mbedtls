@@ -105,12 +105,60 @@ int mbedtls_x509write_crt_set_serial_raw(mbedtls_x509write_cert *ctx,
     return 0;
 }
 
+/*
+ * Check that a timestamp is a valid date and time in the format
+ * "YYYYMMDDhhmmss" that x509_write_time() can encode.
+ */
+static int x509_write_check_time(const char *t)
+{
+    static const unsigned char days_in_month[12] =
+    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    /* century, year in century, month, day, hour, minute, second */
+    unsigned int field[7];
+    unsigned int year, mon, month_days;
+
+    if (strlen(t) != MBEDTLS_X509_RFC5280_UTC_TIME_LEN - 1) {
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+    }
+
+    for (size_t i = 0; i < 7; i++) {
+        unsigned int d1 = (unsigned int) ((unsigned char) t[2 * i] - '0');
+        unsigned int d2 = (unsigned int) ((unsigned char) t[2 * i + 1] - '0');
+        if (d1 > 9 || d2 > 9) {
+            return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+        }
+        field[i] = d1 * 10 + d2;
+    }
+
+    year = field[0] * 100 + field[1];
+    mon = field[2];
+
+    /* Years before 2050 are written as UTCTime, which cannot represent
+     * a year before 1950: it would be read back as 20YY (RFC 5280
+     * section 4.1.2.5.1). */
+    if (year < 1950 || mon < 1 || mon > 12) {
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+    }
+
+    month_days = days_in_month[mon - 1];
+    if (mon == 2 && year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) {
+        month_days = 29;
+    }
+
+    if (field[3] < 1 || field[3] > month_days ||
+        field[4] > 23 || field[5] > 59 || field[6] > 59) {
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+    }
+
+    return 0;
+}
+
 int mbedtls_x509write_crt_set_validity(mbedtls_x509write_cert *ctx,
                                        const char *not_before,
                                        const char *not_after)
 {
-    if (strlen(not_before) != MBEDTLS_X509_RFC5280_UTC_TIME_LEN - 1 ||
-        strlen(not_after)  != MBEDTLS_X509_RFC5280_UTC_TIME_LEN - 1) {
+    if (x509_write_check_time(not_before) != 0 ||
+        x509_write_check_time(not_after) != 0) {
         return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
     }
     strncpy(ctx->not_before, not_before, MBEDTLS_X509_RFC5280_UTC_TIME_LEN);

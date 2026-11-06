@@ -1,0 +1,7 @@
+Bugfix
+   * mbedtls_x509write_crt_set_validity() only checked the length of the
+     not_before and not_after strings, so timestamps with non-digit
+     characters or out-of-range fields were written into the certificate
+     as is, and a year before 1950 was written as a UTCTime that reads
+     back as a year in 2000-2049. Such timestamps are now rejected with
+     MBEDTLS_ERR_X509_BAD_INPUT_DATA.

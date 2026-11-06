@@ -579,6 +579,23 @@ exit:
 }
 /* END_CASE */
 
+/* BEGIN_CASE depends_on:MBEDTLS_X509_CRT_WRITE_C */
+void x509_set_validity_check(char *not_before, char *not_after, int expected_ret)
+{
+    mbedtls_x509write_cert ctx;
+
+    USE_PSA_INIT();
+    mbedtls_x509write_crt_init(&ctx);
+
+    TEST_EQUAL(mbedtls_x509write_crt_set_validity(&ctx, not_before, not_after),
+               expected_ret);
+
+exit:
+    mbedtls_x509write_crt_free(&ctx);
+    USE_PSA_DONE();
+}
+/* END_CASE */
+
 /* BEGIN_CASE depends_on:MBEDTLS_X509_CREATE_C:MBEDTLS_X509_USE_C */
 void mbedtls_x509_string_to_names(char *name, char *parsed_name,
                                   int result, int may_fail)

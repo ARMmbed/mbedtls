@@ -975,7 +975,9 @@ int mbedtls_x509write_crt_set_serial_raw(mbedtls_x509write_cert *ctx,
  * \param not_after     not_after timestamp
  *
  * \return          0 if timestamp was parsed successfully, or
- *                  a specific error code
+ *                  #MBEDTLS_ERR_X509_BAD_INPUT_DATA if a timestamp is not
+ *                  a valid date and time in the above format, or if its
+ *                  year is before 1950.
  */
 int mbedtls_x509write_crt_set_validity(mbedtls_x509write_cert *ctx, const char *not_before,
                                        const char *not_after);
