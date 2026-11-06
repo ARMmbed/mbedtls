@@ -1,0 +1,4 @@
+Bugfix
+   * Fix PKCS7 so that it successfully parses also in case of empty
+     or not supported digest algorithms. Validation of the digest algorithm
+     is performed at validation step.

@@ -142,6 +142,10 @@ static int pkcs7_get_digest_algorithm_set(unsigned char **p,
         return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PKCS7_INVALID_ALG, ret);
     }
 
+    if (len == 0) {
+        return 0;
+    }
+
     end = *p + len;
 
     ret = mbedtls_asn1_get_alg_null(p, end, alg);
@@ -333,10 +337,15 @@ static int pkcs7_get_signer_info(unsigned char **p, unsigned char *end,
         goto out;
     }
 
-    /* Check that the digest algorithm used matches the one provided earlier */
-    if (signer->alg_identifier.tag != alg->tag ||
-        signer->alg_identifier.len != alg->len ||
-        memcmp(signer->alg_identifier.p, alg->p, alg->len) != 0) {
+    /*
+     * If digestAlgorithms is present, require the signer digest algorithm to
+     * match it. If the outer set is empty, defer the failure until
+     * verification, where the missing digest algorithm is reported.
+     */
+    if (alg->p != NULL &&
+        (signer->alg_identifier.tag != alg->tag ||
+         signer->alg_identifier.len != alg->len ||
+         memcmp(signer->alg_identifier.p, alg->p, alg->len) != 0)) {
         ret = MBEDTLS_ERR_PKCS7_INVALID_SIGNER_INFO;
         goto out;
     }
@@ -481,9 +490,11 @@ static int pkcs7_get_signed_data(unsigned char *buf, size_t buflen,
         return ret;
     }
 
-    ret = mbedtls_x509_oid_get_md_alg(&signed_data->digest_alg_identifiers, &md_alg);
-    if (ret != 0) {
-        return MBEDTLS_ERR_PKCS7_INVALID_ALG;
+    if (signed_data->digest_alg_identifiers.p != NULL) {
+        ret = mbedtls_x509_oid_get_md_alg(&signed_data->digest_alg_identifiers, &md_alg);
+        if (ret != 0) {
+            return MBEDTLS_ERR_PKCS7_INVALID_ALG;
+        }
     }
 
     mbedtls_pkcs7_buf content_type;
