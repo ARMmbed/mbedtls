@@ -255,7 +255,7 @@ static int ssl_tls13_parse_certificate_verify(mbedtls_ssl_context *ssl,
                                               const unsigned char *verify_buffer,
                                               size_t verify_buffer_len)
 {
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    int ret;
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     const unsigned char *p = buf;
     uint16_t algorithm;
@@ -359,7 +359,6 @@ error:
     MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_DECRYPT_ERROR,
                                  MBEDTLS_ERR_SSL_HANDSHAKE_FAILURE);
     return MBEDTLS_ERR_SSL_HANDSHAKE_FAILURE;
-
 }
 #endif /* MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED */
 
