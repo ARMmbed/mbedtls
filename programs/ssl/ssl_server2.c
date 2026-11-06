@@ -1385,6 +1385,10 @@ static int dummy_ticket_parse(void *p_ticket, mbedtls_ssl_session *session,
     int ret;
     ((void) p_ticket);
 
+    if (len < 4) {
+        return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+    }
+
     if ((ret = mbedtls_ssl_session_load(session, buf + 4, len - 4)) != 0) {
         return ret;
     }
@@ -1392,51 +1396,59 @@ static int dummy_ticket_parse(void *p_ticket, mbedtls_ssl_session *session,
     switch (opt.dummy_ticket % 11) {
         case 1:
             return MBEDTLS_ERR_SSL_INVALID_MAC;
+
         case 2:
             return MBEDTLS_ERR_SSL_SESSION_TICKET_EXPIRED;
+
         case 3:
             /* Creation time in the future. */
             session->ticket_creation_time = mbedtls_ms_time() + 1000;
             break;
+
         case 4:
             /* Ticket has reached the end of lifetime. */
             session->ticket_creation_time = mbedtls_ms_time() -
                                             (7 * 24 * 3600 * 1000 + 1000);
             break;
+
 #if defined(MBEDTLS_SSL_PROTO_TLS1_3)
         case 5:
             /* Ticket is valid, but client age is below the lower bound of the tolerance window. */
-            session->ticket_age_add += MBEDTLS_SSL_TLS1_3_TICKET_AGE_TOLERANCE + 4 * 1000;
-            /* Make sure the execution time does not affect the result */
+            session->ticket_age_add += MBEDTLS_SSL_TLS1_3_TICKET_AGE_TOLERANCE +
+                                       4 * 1000;
             session->ticket_creation_time = mbedtls_ms_time();
             break;
 
         case 6:
             /* Ticket is valid, but client age is beyond the upper bound of the tolerance window. */
-            session->ticket_age_add -= MBEDTLS_SSL_TLS1_3_TICKET_AGE_TOLERANCE + 4 * 1000;
-            /* Make sure the execution time does not affect the result */
+            session->ticket_age_add -= MBEDTLS_SSL_TLS1_3_TICKET_AGE_TOLERANCE +
+                                       4 * 1000;
             session->ticket_creation_time = mbedtls_ms_time();
             break;
+
         case 7:
             session->ticket_flags = MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_NONE;
             break;
+
         case 8:
             session->ticket_flags = MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK;
             break;
+
         case 9:
             session->ticket_flags = MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL;
             break;
+
         case 10:
             session->ticket_flags = MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_ALL;
             break;
 #endif
+
         default:
             break;
     }
 
     return ret;
 }
-#endif /* MBEDTLS_SSL_SESSION_TICKETS && MBEDTLS_SSL_TICKET_C && MBEDTLS_HAVE_TIME */
 
 static int parse_cipher(char *buf)
 {
