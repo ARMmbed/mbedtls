@@ -1385,6 +1385,14 @@ static int dummy_ticket_parse(void *p_ticket, mbedtls_ssl_session *session,
     int ret;
     ((void) p_ticket);
 
+    /* Tickets are written by dummy_ticket_write() and start with a 4-byte
+     * lifetime header. Reject shorter tickets (which a misbehaving client
+     * could send) to avoid an underflow of len - 4 below resulting in a
+     * read past the end of the ticket buffer. */
+    if (len < 4) {
+        return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+    }
+
     if ((ret = mbedtls_ssl_session_load(session, buf + 4, len - 4)) != 0) {
         return ret;
     }

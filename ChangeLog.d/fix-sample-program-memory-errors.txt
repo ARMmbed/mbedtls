@@ -1,0 +1,6 @@
+Bugfix
+   * Fix potential buffer overreads on malformed inputs in sample programs:
+     ssl_server2 could read past the end of a session ticket shorter than
+     4 bytes when the dummy_ticket option is enabled, and ssl_context_info
+     could call strlen() on non-null-terminated ALPN data from the input
+     file, reading past the end of the decoded buffer. Fixes #10803.

@@ -882,8 +882,13 @@ static void print_deserialized_ssl_context(const uint8_t *ssl, size_t len)
         printf("\tALPN negotiation                   : ");
         CHECK_SSL_END(alpn_len);
         if (alpn_len > 0) {
-            if (strlen((const char *) ssl) == alpn_len) {
-                printf("%s\n", ssl);
+            /* The ALPN protocol name in the serialized data is not
+             * null-terminated, so do not use strlen() on it: with a
+             * malformed input file it could read past the end of the
+             * decoded buffer. Read exactly alpn_len bytes instead, and
+             * treat an embedded null byte as incorrect data. */
+            if (memchr(ssl, '\0', alpn_len) == NULL) {
+                printf("%.*s\n", (int) alpn_len, ssl);
             } else {
                 printf("\n");
                 printf_err("\tALPN negotiation is incorrect\n");
